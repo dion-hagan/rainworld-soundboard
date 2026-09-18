@@ -47,6 +47,7 @@ out for your own whenever you like.
 | `Soundboard_Meow` | `m-e-o-w.wav` | `PlayerArtificerPyroJump` | Enabled | Plays when Artificer does a pyro jump (explosion-boosted "double jump"). |
 | `Soundboard_Scatman` | `scatman.wav` | `PlayerSpottedByCyanLizard` | Enabled | Plays when a Cyan Lizard first notices you (instead of Benny Hill). |
 | `Soundboard_NuclearAlarm` | `nuclear-alarm-siren.wav` | `VultureGrubSignal` | Enabled | Plays when a thrown Vulture Grub starts emitting its signal, calling nearby vultures. |
+| `Soundboard_FbiOpenUp` | `fbi-open-up-sfx.wav` | `CreatureEnteredOccupiedShelter` | Enabled | Plays when any creature enters a shelter that already has a player in it. |
 
 This table is hand-maintained; the source of truth for each sound's
 description and menu label is [`mod/soundeffects/meta.json`](mod/soundeffects/meta.json).
@@ -214,6 +215,7 @@ Wired up in `src/EventHooks.cs`:
 | `PlayerJumpWithCicada` | The slugcat jumps while grasping a Cicada ("squidcada") (`Player.Jump` + grasp check) - fires alongside `PlayerJump`, not instead of it |
 | `PlayerArtificerPyroJump` | Artificer does an explosion-boosted jump (`Player.ClassMechanicsArtificer`, edge-detected on `pyroJumpped`) |
 | `VultureGrubSignal` | A thrown Vulture Grub starts emitting its call (`VultureGrub.InitiateSignal`), which summons nearby vultures |
+| `CreatureEnteredOccupiedShelter` | Any creature moves into a shelter room that already has a player in it (`Creature.NewRoom`) - some creature types override `NewRoom` themselves and may not trigger this, same caveat as the death-event hooks above |
 
 If multiple enabled sounds share the same event key, one group is chosen at
 random each time that event fires, and everything in that group plays

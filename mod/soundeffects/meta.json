@@ -201,6 +201,14 @@
       "file": "nuclear-alarm-siren.wav",
       "event": "VultureGrubSignal",
       "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_FbiOpenUp",
+      "displayName": "FBI Open Up",
+      "description": "Plays when any creature enters a shelter that already has a player in it.",
+      "file": "fbi-open-up-sfx.wav",
+      "event": "CreatureEnteredOccupiedShelter",
+      "defaultEnabled": true
     }
   ]
 }

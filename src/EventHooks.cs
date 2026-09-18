@@ -268,6 +268,59 @@ namespace SoundboardMod
             }
         }
 
+        // Fires whenever ANY creature moves into a shelter room that
+        // already has a player physically present in it (excluding the
+        // entering creature itself, so a player's own first entry doesn't
+        // trigger it). NOTE: some creature types override NewRoom() instead
+        // of using Creature's - if a particular creature type never
+        // triggers this, that's why (same issue as Die() needing per-type
+        // patches for Spider/BigSpider/etc above).
+        [HarmonyPatch(typeof(Creature), nameof(Creature.NewRoom))]
+        private static class Creature_NewRoom_Patch
+        {
+            [HarmonyPostfix]
+            private static void Postfix(Creature __instance, Room newRoom)
+            {
+                if (newRoom?.shelterDoor == null || __instance.bodyChunks == null || __instance.bodyChunks.Length == 0)
+                {
+                    return;
+                }
+
+                if (!AnotherPlayerAlreadyThere(newRoom, __instance))
+                {
+                    return;
+                }
+
+                TriggerAt("CreatureEnteredOccupiedShelter", newRoom, __instance.bodyChunks[0].pos);
+            }
+
+            private static bool AnotherPlayerAlreadyThere(Room room, Creature entering)
+            {
+                if (room.physicalObjects == null)
+                {
+                    return false;
+                }
+
+                foreach (List<PhysicalObject> layer in room.physicalObjects)
+                {
+                    if (layer == null)
+                    {
+                        continue;
+                    }
+
+                    foreach (PhysicalObject obj in layer)
+                    {
+                        if (obj is Player player && !ReferenceEquals(player, entering))
+                        {
+                            return true;
+                        }
+                    }
+                }
+
+                return false;
+            }
+        }
+
         // --- Region gate ---------------------------------------------------
         // OPENCLOSE is the method that kicks off a gate's door-opening
         // sequence, i.e. the transition. It's not confirmed 100% one-shot

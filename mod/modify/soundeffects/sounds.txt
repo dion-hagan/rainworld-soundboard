@@ -37,3 +37,4 @@
 [ADD]Soundboard_Meow/vol=0.4 : m-e-o-w
 [ADD]Soundboard_Scatman/vol=0.4 : scatman
 [ADD]Soundboard_NuclearAlarm/vol=0.4 : nuclear-alarm-siren
+[ADD]Soundboard_FbiOpenUp/vol=0.4 : fbi-open-up-sfx
