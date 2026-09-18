@@ -15,6 +15,13 @@ namespace SoundboardMod
         public string @event;
         public bool defaultEnabled = true;
 
+        // Optional. Sounds sharing the same event AND the same non-empty
+        // group are picked/played as a single unit (see ChooseGroup in
+        // EventHooks.cs): the random pick is between groups, not individual
+        // sounds, and every sound in the winning group plays together.
+        // Sounds with no group are their own group of one.
+        public string group;
+
         // Populated at runtime, not read from JSON.
         public SoundID soundId;
     }
@@ -96,6 +103,7 @@ namespace SoundboardMod
                     file = GetString(fields, "file"),
                     @event = GetString(fields, "event"),
                     defaultEnabled = GetBool(fields, "defaultEnabled", true),
+                    group = GetString(fields, "group"),
                 };
 
                 // register: true creates (or reuses) the abstract SoundID that

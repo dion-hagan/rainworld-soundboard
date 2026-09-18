@@ -22,20 +22,31 @@ out for your own whenever you like.
 
 | ID | File | Triggers on | Default | Description |
 |---|---|---|---|---|
-| `Soundboard_Example_Beep` | `examplebeep.wav` | `PlayerJump` | Enabled | Placeholder beep to verify the mod is installed and working. Safe to delete once you add your own sounds. |
+| `Soundboard_Example_Beep` | `examplebeep.wav` | `PlayerJump` | Enabled | A short placeholder beep used to verify the mod is installed and working correctly. Safe to delete once you add your own sounds. |
 | `Soundboard_AnimeWow` | `anime-wow-sound-effect.wav` | `PlayerGrabExplosive` | Enabled | Plays when you pick up an explosive spear or a scavenger grenade. |
 | `Soundboard_DiscordLeave` | `discord-leave-noise.wav` | `ScavengerDeath` | Enabled | Plays when a Scavenger dies. |
 | `Soundboard_Fah` | `fahhhhhhhhhhhhhh.wav` | `PlayerDeath` | Enabled | Plays when you die. |
 | `Soundboard_FortniteDeath` | `fortnite-death.wav` | `SpiderDeath` | Enabled | Plays when a Spider or Big Spider dies. |
 | `Soundboard_Gunshot` | `gunshot-one.wav` | `PlayerThrowExplosiveSpear` | Enabled | Plays when you throw an explosive spear. |
 | `Soundboard_HubIntro` | `hub-intro-sound.wav` | `PlayerEnterShelter` | Enabled | Plays when a shelter door closes (typically right after you enter for the cycle). |
-| `Soundboard_FortniteDeath_Lizard` | `fortnite-death.wav` | `LizardDeath` | Enabled | Plays when a Lizard dies (reuses the Fortnite death clip). |
+| `Soundboard_FortniteDeath_Lizard` | `fortnite-death.wav` | `LizardDeath` | Enabled | Plays when a Lizard dies. |
 | `Soundboard_Romance` | `romanceeeeeeeeeeeeee.wav` | `PlayerGrabSlugcat` | Enabled | Plays when you pick up another slugcat onto your back. |
-| `Soundboard_VineBoom` | `vine-boom.wav` | `PlayerHardLanding` | Enabled | Plays on a hard landing - falling from a height taller than the slugcat. |
+| `Soundboard_VineBoom` | `vine-boom.wav` | `PlayerHardLanding` | Enabled | Plays on a hard landing, sharing the slot with Bone Crack (roughly 50/50). |
 | `Soundboard_GoodBoy` | `what-a-good-boy.wav` | `PlayerEatCreature` | Enabled | Plays when you eat a creature (meat), as opposed to fruit/plants. |
-| `Soundboard_BennyHill` | `benny-hill.wav` | `PlayerSpottedByPredator` | Enabled | Plays when a Lizard, Spider/BigSpider, or Vulture first notices you. |
+| `Soundboard_BennyHill` | `benny-hill.wav` | `PlayerSpottedByPredator` | Enabled | Plays when a Lizard (other than Cyan), Spider/BigSpider, or Vulture first notices you. |
 | `Soundboard_YameteKudasai` | `yamete-kudasai.wav` | `SnailExplosion` | Enabled | Plays when a Snail explodes. |
-| `Soundboard_ScavengerSpotted` | `can-i-put-my-balls-in-your-jaws.wav` | `PlayerSpottedByScavenger` | Enabled | Plays when a Scavenger first notices you. |
+| `Soundboard_ScavengerSpotted` | `can-i-put-my-balls-in-your-jaws.wav` | `PlayerSpottedByScavenger` | Enabled | Plays when a Scavenger first notices you - a 50/50 pick against Enrique+Indian Song playing together. |
+| `Soundboard_AnimeAhh` | `anime-ahh.wav` | `CicadaOrLanternMouseDeath` | Enabled | Plays when a Cicada ("squidcada") or Lantern Mouse dies. |
+| `Soundboard_BoneCrack` | `bone-crack.wav` | `PlayerHardLanding` | Enabled | Plays on a hard landing, sharing the slot with Vine Boom (roughly 50/50). |
+| `Soundboard_FartMeme` | `fartmeme.wav` | `ScavengerDeath` | Enabled | Plays when a Scavenger dies, sharing the slot with We Do Not Care and Discord Leave Noise. |
+| `Soundboard_WeDoNotCare` | `we-do-not-care.wav` | `ScavengerDeath` | Enabled | Plays when a Scavenger dies, sharing the slot with Fart Meme and Discord Leave Noise. |
+| `Soundboard_MusicaElevador` | `musica-elevador-short.wav` | `RegionGateTransition` | Enabled | Plays when a region gate transition starts. |
+| `Soundboard_HatsuneMikuWeee` | `hatsune-miku-weeeeeeee.wav` | `PlayerJumpWithCicada` | Enabled | Plays when you jump while holding a Cicada ("squidcada"). |
+| `Soundboard_Enrique` | `enrique.wav` | `PlayerSpottedByScavenger` | Enabled | Plays together with Indian Song (as one 50/50 pick against Can I Put My Balls In Your Jaws) when a Scavenger first notices you. |
+| `Soundboard_IndianSong` | `indian-song.wav` | `PlayerSpottedByScavenger` | Enabled | Plays together with Enrique (as one 50/50 pick against Can I Put My Balls In Your Jaws) when a Scavenger first notices you. |
+| `Soundboard_Meow` | `m-e-o-w.wav` | `PlayerArtificerPyroJump` | Enabled | Plays when Artificer does a pyro jump (explosion-boosted "double jump"). |
+| `Soundboard_Scatman` | `scatman.wav` | `PlayerSpottedByCyanLizard` | Enabled | Plays when a Cyan Lizard first notices you (instead of Benny Hill). |
+| `Soundboard_NuclearAlarm` | `nuclear-alarm-siren.wav` | `VultureGrubSignal` | Enabled | Plays when a thrown Vulture Grub starts emitting its signal, calling nearby vultures. |
 
 This table is hand-maintained; the source of truth for each sound's
 description and menu label is [`mod/soundeffects/meta.json`](mod/soundeffects/meta.json).
@@ -164,6 +175,16 @@ install for you - equivalent to running:
    ```
    The `event` value must match one of the event keys wired up in
    `src/EventHooks.cs` (see below), or a new one you add yourself.
+
+   Optionally add a `"group"` string. When multiple *enabled* sounds share
+   both the same `event` and the same `group`, they're treated as one unit:
+   the random pick is between groups (not individual sounds), and every
+   sound in the winning group plays together. Sounds with no `group` are
+   their own group of one, so e.g. two grouped sounds sharing an event with
+   one ungrouped sound gives a 50/50 split between "the ungrouped one alone"
+   and "both grouped ones together" - see `Soundboard_Enrique` /
+   `Soundboard_IndianSong` (grouped) vs `Soundboard_ScavengerSpotted`
+   (ungrouped) in `meta.json` for a working example.
 4. Rebuild/redeploy, restart the game, and toggle it on in the mods menu.
 
 ### Available event keys
@@ -184,12 +205,20 @@ Wired up in `src/EventHooks.cs`:
 | `ScavengerDeath` | A Scavenger dies (`Creature.Die`) |
 | `LizardDeath` | A Lizard dies (`Creature.Die`) |
 | `SpiderDeath` | A Spider or BigSpider dies (`Spider.Die` / `BigSpider.Die`) |
-| `PlayerSpottedByPredator` | A Lizard, Spider/BigSpider, or Vulture first notices you (`Tracker.CreatureNoticed`) - fires once per sighting, not continuously while it's chasing you |
+| `PlayerSpottedByPredator` | A Lizard (other than Cyan), Spider/BigSpider, or Vulture first notices you (`Tracker.CreatureNoticed`) - fires once per sighting, not continuously while it's chasing you |
 | `SnailExplosion` | A Snail dies/explodes (`Snail.Die`) |
 | `PlayerSpottedByScavenger` | A Scavenger first notices you (`Tracker.CreatureNoticed`) - separate from `PlayerSpottedByPredator` since Scavengers aren't strictly hostile |
+| `PlayerSpottedByCyanLizard` | Specifically a Cyan Lizard first notices you (`Tracker.CreatureNoticed`) - takes priority over `PlayerSpottedByPredator` for that one lizard color |
+| `CicadaOrLanternMouseDeath` | A Cicada ("squidcada") or Lantern Mouse dies (`Cicada.Die` / `LanternMouse.Die`) |
+| `RegionGateTransition` | A region gate's door-opening sequence starts (`RegionGate.OPENCLOSE`) - heuristic, not confirmed strictly one-shot |
+| `PlayerJumpWithCicada` | The slugcat jumps while grasping a Cicada ("squidcada") (`Player.Jump` + grasp check) - fires alongside `PlayerJump`, not instead of it |
+| `PlayerArtificerPyroJump` | Artificer does an explosion-boosted jump (`Player.ClassMechanicsArtificer`, edge-detected on `pyroJumpped`) |
+| `VultureGrubSignal` | A thrown Vulture Grub starts emitting its call (`VultureGrub.InitiateSignal`), which summons nearby vultures |
 
-If multiple enabled sounds share the same event key, one is chosen at random
-each time that event fires (see `ChooseSound` in `EventHooks.cs`).
+If multiple enabled sounds share the same event key, one group is chosen at
+random each time that event fires, and everything in that group plays
+together (see `ChooseGroup` in `EventHooks.cs`, and the `group` field
+described above).
 
 To hook a different event, add another Harmony patch in `EventHooks.cs`
 following the same pattern (patch a method, call `Trigger("YourEventKey", creature)`

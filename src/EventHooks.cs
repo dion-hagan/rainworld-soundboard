@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using BepInEx.Logging;
 using HarmonyLib;
 using UnityEngine;
@@ -54,6 +56,30 @@ namespace SoundboardMod
             private static void Postfix(Player __instance)
             {
                 Trigger("PlayerJump", __instance);
+
+                if (IsHoldingCicada(__instance))
+                {
+                    Trigger("PlayerJumpWithCicada", __instance);
+                }
+            }
+
+            private static bool IsHoldingCicada(Player player)
+            {
+                Creature.Grasp[] grasps = player.grasps;
+                if (grasps == null)
+                {
+                    return false;
+                }
+
+                foreach (Creature.Grasp grasp in grasps)
+                {
+                    if (grasp?.grabbed is Cicada)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
             }
         }
 
@@ -97,6 +123,27 @@ namespace SoundboardMod
                 {
                     Trigger("PlayerHardLanding", __instance);
                 }
+            }
+        }
+
+        // Player.pyroJumpped is a persistent flag, not a one-frame pulse, so
+        // track its last value per-player and only fire on the false->true
+        // edge (otherwise this would re-trigger every frame it stays true).
+        [HarmonyPatch(typeof(Player), nameof(Player.ClassMechanicsArtificer))]
+        private static class Player_ClassMechanicsArtificer_Patch
+        {
+            private static readonly ConditionalWeakTable<Player, StrongBox<bool>> LastPyroJumped = new ConditionalWeakTable<Player, StrongBox<bool>>();
+
+            [HarmonyPostfix]
+            private static void Postfix(Player __instance)
+            {
+                StrongBox<bool> last = LastPyroJumped.GetOrCreateValue(__instance);
+                if (__instance.pyroJumpped && !last.Value)
+                {
+                    Trigger("PlayerArtificerPyroJump", __instance);
+                }
+
+                last.Value = __instance.pyroJumpped;
             }
         }
 
@@ -176,6 +223,39 @@ namespace SoundboardMod
             }
         }
 
+        [HarmonyPatch(typeof(Cicada), nameof(Cicada.Die))]
+        private static class Cicada_Die_Patch
+        {
+            [HarmonyPostfix]
+            private static void Postfix(Cicada __instance)
+            {
+                Trigger("CicadaOrLanternMouseDeath", __instance);
+            }
+        }
+
+        [HarmonyPatch(typeof(LanternMouse), nameof(LanternMouse.Die))]
+        private static class LanternMouse_Die_Patch
+        {
+            [HarmonyPostfix]
+            private static void Postfix(LanternMouse __instance)
+            {
+                Trigger("CicadaOrLanternMouseDeath", __instance);
+            }
+        }
+
+        // VultureGrub.InitiateSignal is the moment it starts actively
+        // emitting its call (after being thrown by the player), which is
+        // what actually summons nearby vultures.
+        [HarmonyPatch(typeof(VultureGrub), "InitiateSignal")]
+        private static class VultureGrub_InitiateSignal_Patch
+        {
+            [HarmonyPostfix]
+            private static void Postfix(VultureGrub __instance)
+            {
+                Trigger("VultureGrubSignal", __instance);
+            }
+        }
+
         // --- Shelter -----------------------------------------------------
 
         [HarmonyPatch(typeof(ShelterDoor), "DoorClosed")]
@@ -185,6 +265,23 @@ namespace SoundboardMod
             private static void Postfix(ShelterDoor __instance)
             {
                 TriggerNonPositional("PlayerEnterShelter", __instance.room);
+            }
+        }
+
+        // --- Region gate ---------------------------------------------------
+        // OPENCLOSE is the method that kicks off a gate's door-opening
+        // sequence, i.e. the transition. It's not confirmed 100% one-shot
+        // (no decompiler was available to check the method body), so if this
+        // ends up firing more than once per transition, that's the place to
+        // look.
+
+        [HarmonyPatch(typeof(RegionGate), "OPENCLOSE")]
+        private static class RegionGate_OPENCLOSE_Patch
+        {
+            [HarmonyPostfix]
+            private static void Postfix(RegionGate __instance)
+            {
+                TriggerNonPositional("RegionGateTransition", __instance.room);
             }
         }
 
@@ -210,6 +307,10 @@ namespace SoundboardMod
                 {
                     Trigger("PlayerSpottedByScavenger", player);
                 }
+                else if (predator is Lizard lizard && lizard.abstractCreature.creatureTemplate.type == CreatureTemplate.Type.CyanLizard)
+                {
+                    Trigger("PlayerSpottedByCyanLizard", player);
+                }
                 else if (predator is Lizard || predator is Spider || predator is BigSpider || predator is Vulture)
                 {
                     Trigger("PlayerSpottedByPredator", player);
@@ -230,9 +331,11 @@ namespace SoundboardMod
         }
 
         /// <summary>
-        /// Plays one randomly-chosen, currently-enabled sound registered for
-        /// the given event key (if any), positioned in the world so it
-        /// pans/attenuates naturally.
+        /// Plays every sound in one randomly-chosen group registered for the
+        /// given event key (if any), positioned in the world so it
+        /// pans/attenuates naturally. Sounds with no "group" in meta.json are
+        /// their own group of one; sounds sharing a group are picked as a
+        /// single unit and all play together.
         /// </summary>
         private static void TriggerAt(string eventKey, Room room, Vector2 pos)
         {
@@ -241,10 +344,9 @@ namespace SoundboardMod
                 return;
             }
 
-            SoundEntry chosen = ChooseSound(eventKey);
-            if (chosen != null)
+            foreach (SoundEntry entry in ChooseGroup(eventKey))
             {
-                room.PlaySound(chosen.soundId, pos, 1f, 1f);
+                room.PlaySound(entry.soundId, pos, 1f, 1f);
             }
         }
 
@@ -256,17 +358,19 @@ namespace SoundboardMod
                 return;
             }
 
-            SoundEntry chosen = ChooseSound(eventKey);
-            if (chosen != null)
+            foreach (SoundEntry entry in ChooseGroup(eventKey))
             {
-                room.PlaySound(chosen.soundId);
+                room.PlaySound(entry.soundId);
             }
         }
 
-        private static SoundEntry ChooseSound(string eventKey)
+        /// <summary>
+        /// Picks one group at random (uniformly) among the currently-enabled
+        /// sounds registered for eventKey, and returns every sound in it.
+        /// </summary>
+        private static List<SoundEntry> ChooseGroup(string eventKey)
         {
-            SoundEntry chosen = null;
-            int matchCount = 0;
+            var groups = new Dictionary<string, List<SoundEntry>>();
 
             foreach (SoundEntry entry in SoundboardData.Sounds)
             {
@@ -281,14 +385,29 @@ namespace SoundboardMod
                     continue;
                 }
 
+                // No group -> its own group of one, keyed by its id.
+                string groupKey = string.IsNullOrEmpty(entry.group) ? entry.id : entry.group;
+                if (!groups.TryGetValue(groupKey, out List<SoundEntry> members))
+                {
+                    members = new List<SoundEntry>();
+                    groups[groupKey] = members;
+                }
+
+                members.Add(entry);
+            }
+
+            List<SoundEntry> chosen = null;
+            int matchCount = 0;
+            foreach (List<SoundEntry> members in groups.Values)
+            {
                 matchCount++;
                 if (UnityEngine.Random.Range(0, matchCount) == 0)
                 {
-                    chosen = entry;
+                    chosen = members;
                 }
             }
 
-            return chosen;
+            return chosen ?? new List<SoundEntry>();
         }
     }
 }

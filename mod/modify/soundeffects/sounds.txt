@@ -26,3 +26,14 @@
 [ADD]Soundboard_BennyHill/vol=0.4 : benny-hill
 [ADD]Soundboard_YameteKudasai/vol=0.4 : yamete-kudasai
 [ADD]Soundboard_ScavengerSpotted/vol=0.4 : can-i-put-my-balls-in-your-jaws
+[ADD]Soundboard_AnimeAhh/vol=0.4 : anime-ahh
+[ADD]Soundboard_BoneCrack/vol=0.4 : bone-crack
+[ADD]Soundboard_FartMeme/vol=0.4 : fartmeme
+[ADD]Soundboard_WeDoNotCare/vol=0.4 : we-do-not-care
+[ADD]Soundboard_MusicaElevador/vol=0.4 : musica-elevador-short
+[ADD]Soundboard_HatsuneMikuWeee/vol=0.4 : hatsune-miku-weeeeeeee
+[ADD]Soundboard_Enrique/vol=0.4 : enrique
+[ADD]Soundboard_IndianSong/vol=0.4 : indian-song
+[ADD]Soundboard_Meow/vol=0.4 : m-e-o-w
+[ADD]Soundboard_Scatman/vol=0.4 : scatman
+[ADD]Soundboard_NuclearAlarm/vol=0.4 : nuclear-alarm-siren
