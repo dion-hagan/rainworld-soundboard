@@ -42,16 +42,25 @@ namespace SoundboardMod
             var disableAllButton = new OpSimpleButton(new Vector2(140f, 490f), new Vector2(110f, 30f), "DISABLE ALL");
             disableAllButton.OnClick += _ => SetAll(false);
 
-            var items = new List<UIelement>
-            {
+            // The sound list scrolls: with dozens of sounds a plain stack of
+            // checkboxes runs off the bottom of the 600px-tall tab.
+            const float rowHeight = 34f;
+            const float listHeight = 470f;
+            float contentSize = Mathf.Max(listHeight, SoundboardData.Sounds.Count * rowHeight + 20f);
+            var scrollBox = new OpScrollBox(new Vector2(0f, 0f), new Vector2(600f, listHeight), contentSize);
+
+            tab.AddItems(
                 new OpLabel(20f, 550f, "Custom Soundboard", true),
                 new OpLabel(20f, 525f, "Enable or disable individual sound effects below.", false),
                 enableAllButton,
-                disableAllButton
-            };
+                disableAllButton,
+                scrollBox);
 
+            // Items go into the scroll box only after it's been added to the tab.
+            // Inside it, y=0 is the bottom of the content, so start at the top.
+            var items = new List<UIelement>();
             checkBoxes.Clear();
-            float y = 445f;
+            float y = contentSize - rowHeight;
             foreach (SoundEntry entry in SoundboardData.Sounds)
             {
                 var checkBox = new OpCheckBox(enabledConfigs[entry.id], new Vector2(20f, y))
@@ -63,7 +72,7 @@ namespace SoundboardMod
                 items.Add(checkBox);
                 items.Add(new OpLabel(60f, y + 4f, entry.displayName ?? entry.id, false));
 
-                y -= 34f;
+                y -= rowHeight;
             }
 
             if (SoundboardData.Sounds.Count == 0)
@@ -71,7 +80,7 @@ namespace SoundboardMod
                 items.Add(new OpLabel(20f, y, "No sounds registered yet - see README.md.", false));
             }
 
-            tab.AddItems(items.ToArray());
+            scrollBox.AddItems(items.ToArray());
         }
 
         public bool IsEnabled(string soundId)

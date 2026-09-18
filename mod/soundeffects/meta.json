@@ -91,7 +91,7 @@
     {
       "id": "Soundboard_BennyHill",
       "displayName": "Benny Hill",
-      "description": "Plays when a Lizard (other than Cyan), Spider/BigSpider, or Vulture first notices you.",
+      "description": "Plays when a Lizard, Spider/BigSpider, or Vulture first notices you (Cyan Lizards, Red Lizards, King Vultures, and Miros Vultures have their own sounds instead).",
       "file": "benny-hill.wav",
       "event": "PlayerSpottedByPredator",
       "defaultEnabled": true
@@ -208,6 +208,230 @@
       "description": "Plays when any creature enters a shelter that already has a player in it.",
       "file": "fbi-open-up-sfx.wav",
       "event": "CreatureEnteredOccupiedShelter",
+      "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_FahhSlowed",
+      "displayName": "Fahh (Slowed)",
+      "description": "Plays when you die (one of several random death sounds).",
+      "file": "fahh-slowed.wav",
+      "event": "PlayerDeath",
+      "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_ICantDoNathan",
+      "displayName": "I Can't Do Nathan",
+      "description": "Plays when you die (one of several random death sounds).",
+      "file": "i-cant-do-nathan.wav",
+      "event": "PlayerDeath",
+      "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_IGotThis",
+      "displayName": "I Got This Fahhhhhh",
+      "description": "Plays when you die (one of several random death sounds).",
+      "file": "i-got-this-fahhhhhh.wav",
+      "event": "PlayerDeath",
+      "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_MiauTriste",
+      "displayName": "Miau Triste",
+      "description": "Plays when you die (one of several random death sounds).",
+      "file": "miau-triste.wav",
+      "event": "PlayerDeath",
+      "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_OmgBruh",
+      "displayName": "OMG Bruh Oh Hell Nah",
+      "description": "Plays when you die (one of several random death sounds).",
+      "file": "omg-bruh-oh-hell-nah.wav",
+      "event": "PlayerDeath",
+      "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_EmotionalDamage",
+      "displayName": "Emotional Damage",
+      "description": "Plays when you die (one of several random death sounds).",
+      "file": "emotional-damage-meme.wav",
+      "event": "PlayerDeath",
+      "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_SixtySeven",
+      "displayName": "67",
+      "description": "Plays when a Cyan Lizard jumps.",
+      "file": "67-SQlv2Xv.wav",
+      "event": "CyanLizardJump",
+      "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_AwwSoCute",
+      "displayName": "Aww So Cute (IShowSpeed)",
+      "description": "Plays when you grab a Yeek.",
+      "file": "aww-so-cute-ishowspeed.wav",
+      "event": "PlayerGrabYeek",
+      "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_ChupaloGuayaco",
+      "displayName": "Chupalo Guayaco",
+      "description": "Plays when a Scavenger throws a spear (one of several random sounds).",
+      "file": "chupalo-guayaco.wav",
+      "event": "ScavengerThrowSpear",
+      "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_EnriqueYell",
+      "displayName": "Enrique Yell",
+      "description": "Plays when a Scavenger throws a spear (one of several random sounds).",
+      "file": "ennnnriiiiqqqqueeeeeeee.wav",
+      "event": "ScavengerThrowSpear",
+      "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_GoofyYell",
+      "displayName": "Goofy Yell",
+      "description": "Plays when a Scavenger throws a spear (one of several random sounds).",
+      "file": "goofy-yell.wav",
+      "event": "ScavengerThrowSpear",
+      "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_MarioYell",
+      "displayName": "Mario Yell",
+      "description": "Plays when a Scavenger throws a spear (one of several random sounds).",
+      "file": "mario-yell.wav",
+      "event": "ScavengerThrowSpear",
+      "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_OhioRingtone",
+      "displayName": "Ohio Ringtone",
+      "description": "Plays when a Scavenger throws a spear (one of several random sounds).",
+      "file": "ohio-ringtone.wav",
+      "event": "ScavengerThrowSpear",
+      "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_QuandaleDingle",
+      "displayName": "Quandale Dingle",
+      "description": "Plays when a Scavenger throws a spear (one of several random sounds).",
+      "file": "quandale-dingle.wav",
+      "event": "ScavengerThrowSpear",
+      "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_Syfm",
+      "displayName": "SYFM",
+      "description": "Plays when a Scavenger dies (one of several random sounds).",
+      "file": "syfm-loud.wav",
+      "event": "ScavengerDeath",
+      "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_TheyreEatingMyFlesh",
+      "displayName": "They're Eating My Flesh",
+      "description": "Plays when a Lizard bites you.",
+      "file": "theyre-eating-my-flesh.wav",
+      "event": "PlayerBitByLizard",
+      "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_GahDayum",
+      "displayName": "Gah Dayum",
+      "description": "Plays when a Lizard bites you.",
+      "file": "gah-dayum.wav",
+      "event": "PlayerBitByLizard",
+      "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_KeyboardMeme",
+      "displayName": "Keyboard Meme",
+      "description": "Plays when a Spitter Spider's dart maggot sticks into you.",
+      "file": "keyboard-meme.wav",
+      "event": "PlayerHitByDartMaggot",
+      "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_HomerBarts",
+      "displayName": "Homer Lets The Barts Out",
+      "description": "Plays when a shelter door closes (one of several random sounds).",
+      "file": "homer-lets-the-barts-out.wav",
+      "event": "PlayerEnterShelter",
+      "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_GalaxyMeme",
+      "displayName": "Galaxy Meme",
+      "description": "Plays when a shelter door closes (one of several random sounds).",
+      "file": "galaxy-meme.wav",
+      "event": "PlayerEnterShelter",
+      "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_HelloMfer",
+      "displayName": "Hello M-F-er",
+      "description": "Plays when any creature enters a shelter that already has a player in it (one of several random sounds).",
+      "file": "hello-m-f-er.wav",
+      "event": "CreatureEnteredOccupiedShelter",
+      "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_ImGonnaCome",
+      "displayName": "I'm Gonna Come",
+      "description": "Plays when you pick up an explosive spear or a scavenger grenade (one of several random sounds).",
+      "file": "im-gonna-come.wav",
+      "event": "PlayerGrabExplosive",
+      "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_Jackpot",
+      "displayName": "I Just Hit The Jackpot",
+      "description": "Plays when you pick up an explosive spear or a scavenger grenade (one of several random sounds).",
+      "file": "i-just-hit-the-jackpot.wav",
+      "event": "PlayerGrabExplosive",
+      "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_DamnHeThicc",
+      "displayName": "Damn He Thicc",
+      "description": "Plays when a Red Lizard, Red Centipede, King Vulture, or Long Legs first notices you (one of several random sounds).",
+      "file": "damn-he-thicc.wav",
+      "event": "PlayerSpottedByMajorThreat",
+      "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_EmotionalDamage_Threat",
+      "displayName": "Emotional Damage (Threat)",
+      "description": "Plays when a Red Lizard, Red Centipede, King Vulture, or Long Legs first notices you (one of several random sounds).",
+      "file": "emotional-damage-meme.wav",
+      "event": "PlayerSpottedByMajorThreat",
+      "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_Gigachad",
+      "displayName": "Gigachad Theme",
+      "description": "Plays when a Red Lizard, Red Centipede, King Vulture, or Long Legs first notices you (one of several random sounds).",
+      "file": "gigachad-theme-music.wav",
+      "event": "PlayerSpottedByMajorThreat",
+      "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_FlashbangGahDayum",
+      "displayName": "Flashbang Gah Dayum",
+      "description": "Plays when a flashbang (Flare Bomb) is thrown.",
+      "file": "flashbang-gah-dayum.wav",
+      "event": "FlareBombThrown",
+      "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_Mine",
+      "displayName": "Mine",
+      "description": "Plays when a Miros Bird or Miros Vulture first notices you.",
+      "file": "mine.wav",
+      "event": "PlayerSpottedByMiros",
       "defaultEnabled": true
     }
   ]

@@ -31,9 +31,9 @@ out for your own whenever you like.
 | `Soundboard_HubIntro` | `hub-intro-sound.wav` | `PlayerEnterShelter` | Enabled | Plays when a shelter door closes (typically right after you enter for the cycle). |
 | `Soundboard_FortniteDeath_Lizard` | `fortnite-death.wav` | `LizardDeath` | Enabled | Plays when a Lizard dies. |
 | `Soundboard_Romance` | `romanceeeeeeeeeeeeee.wav` | `PlayerGrabSlugcat` | Enabled | Plays when you pick up another slugcat onto your back. |
-| `Soundboard_VineBoom` | `vine-boom.wav` | `PlayerHardLanding` | Enabled | Plays on a hard landing, sharing the slot with Bone Crack (roughly 50/50). |
+| `Soundboard_VineBoom` | `vine-boom.wav` | `PlayerHardLanding` | Enabled | Plays on a hard landing - falling from a height taller than the slugcat and hitting the ground. |
 | `Soundboard_GoodBoy` | `what-a-good-boy.wav` | `PlayerEatCreature` | Enabled | Plays when you eat a creature (meat), as opposed to fruit/plants. |
-| `Soundboard_BennyHill` | `benny-hill.wav` | `PlayerSpottedByPredator` | Enabled | Plays when a Lizard (other than Cyan), Spider/BigSpider, or Vulture first notices you. |
+| `Soundboard_BennyHill` | `benny-hill.wav` | `PlayerSpottedByPredator` | Enabled | Plays when a Lizard, Spider/BigSpider, or Vulture first notices you (Cyan Lizards, Red Lizards, King Vultures, and Miros Vultures have their own sounds instead). |
 | `Soundboard_YameteKudasai` | `yamete-kudasai.wav` | `SnailExplosion` | Enabled | Plays when a Snail explodes. |
 | `Soundboard_ScavengerSpotted` | `can-i-put-my-balls-in-your-jaws.wav` | `PlayerSpottedByScavenger` | Enabled | Plays when a Scavenger first notices you - a 50/50 pick against Enrique+Indian Song playing together. |
 | `Soundboard_AnimeAhh` | `anime-ahh.wav` | `CicadaOrLanternMouseDeath` | Enabled | Plays when a Cicada ("squidcada") or Lantern Mouse dies. |
@@ -48,6 +48,34 @@ out for your own whenever you like.
 | `Soundboard_Scatman` | `scatman.wav` | `PlayerSpottedByCyanLizard` | Enabled | Plays when a Cyan Lizard first notices you (instead of Benny Hill). |
 | `Soundboard_NuclearAlarm` | `nuclear-alarm-siren.wav` | `VultureGrubSignal` | Enabled | Plays when a thrown Vulture Grub starts emitting its signal, calling nearby vultures. |
 | `Soundboard_FbiOpenUp` | `fbi-open-up-sfx.wav` | `CreatureEnteredOccupiedShelter` | Enabled | Plays when any creature enters a shelter that already has a player in it. |
+| `Soundboard_FahhSlowed` | `fahh-slowed.wav` | `PlayerDeath` | Enabled | Plays when you die (one of several random death sounds). |
+| `Soundboard_ICantDoNathan` | `i-cant-do-nathan.wav` | `PlayerDeath` | Enabled | Plays when you die (one of several random death sounds). |
+| `Soundboard_IGotThis` | `i-got-this-fahhhhhh.wav` | `PlayerDeath` | Enabled | Plays when you die (one of several random death sounds). |
+| `Soundboard_MiauTriste` | `miau-triste.wav` | `PlayerDeath` | Enabled | Plays when you die (one of several random death sounds). |
+| `Soundboard_OmgBruh` | `omg-bruh-oh-hell-nah.wav` | `PlayerDeath` | Enabled | Plays when you die (one of several random death sounds). |
+| `Soundboard_EmotionalDamage` | `emotional-damage-meme.wav` | `PlayerDeath` | Enabled | Plays when you die (one of several random death sounds). |
+| `Soundboard_SixtySeven` | `67-SQlv2Xv.wav` | `CyanLizardJump` | Enabled | Plays when a Cyan Lizard jumps. |
+| `Soundboard_AwwSoCute` | `aww-so-cute-ishowspeed.wav` | `PlayerGrabYeek` | Enabled | Plays when you grab a Yeek. |
+| `Soundboard_ChupaloGuayaco` | `chupalo-guayaco.wav` | `ScavengerThrowSpear` | Enabled | Plays when a Scavenger throws a spear (one of several random sounds). |
+| `Soundboard_EnriqueYell` | `ennnnriiiiqqqqueeeeeeee.wav` | `ScavengerThrowSpear` | Enabled | Plays when a Scavenger throws a spear (one of several random sounds). |
+| `Soundboard_GoofyYell` | `goofy-yell.wav` | `ScavengerThrowSpear` | Enabled | Plays when a Scavenger throws a spear (one of several random sounds). |
+| `Soundboard_MarioYell` | `mario-yell.wav` | `ScavengerThrowSpear` | Enabled | Plays when a Scavenger throws a spear (one of several random sounds). |
+| `Soundboard_OhioRingtone` | `ohio-ringtone.wav` | `ScavengerThrowSpear` | Enabled | Plays when a Scavenger throws a spear (one of several random sounds). |
+| `Soundboard_QuandaleDingle` | `quandale-dingle.wav` | `ScavengerThrowSpear` | Enabled | Plays when a Scavenger throws a spear (one of several random sounds). |
+| `Soundboard_Syfm` | `syfm-loud.wav` | `ScavengerDeath` | Enabled | Plays when a Scavenger dies (one of several random sounds). |
+| `Soundboard_TheyreEatingMyFlesh` | `theyre-eating-my-flesh.wav` | `PlayerBitByLizard` | Enabled | Plays when a Lizard bites you. |
+| `Soundboard_GahDayum` | `gah-dayum.wav` | `PlayerBitByLizard` | Enabled | Plays when a Lizard bites you. |
+| `Soundboard_KeyboardMeme` | `keyboard-meme.wav` | `PlayerHitByDartMaggot` | Enabled | Plays when a Spitter Spider's dart maggot sticks into you. |
+| `Soundboard_HomerBarts` | `homer-lets-the-barts-out.wav` | `PlayerEnterShelter` | Enabled | Plays when a shelter door closes (one of several random sounds). |
+| `Soundboard_GalaxyMeme` | `galaxy-meme.wav` | `PlayerEnterShelter` | Enabled | Plays when a shelter door closes (one of several random sounds). |
+| `Soundboard_HelloMfer` | `hello-m-f-er.wav` | `CreatureEnteredOccupiedShelter` | Enabled | Plays when any creature enters a shelter that already has a player in it (one of several random sounds). |
+| `Soundboard_ImGonnaCome` | `im-gonna-come.wav` | `PlayerGrabExplosive` | Enabled | Plays when you pick up an explosive spear or a scavenger grenade (one of several random sounds). |
+| `Soundboard_Jackpot` | `i-just-hit-the-jackpot.wav` | `PlayerGrabExplosive` | Enabled | Plays when you pick up an explosive spear or a scavenger grenade (one of several random sounds). |
+| `Soundboard_DamnHeThicc` | `damn-he-thicc.wav` | `PlayerSpottedByMajorThreat` | Enabled | Plays when a Red Lizard, Red Centipede, King Vulture, or Long Legs first notices you (one of several random sounds). |
+| `Soundboard_EmotionalDamage_Threat` | `emotional-damage-meme.wav` | `PlayerSpottedByMajorThreat` | Enabled | Plays when a Red Lizard, Red Centipede, King Vulture, or Long Legs first notices you (one of several random sounds). |
+| `Soundboard_Gigachad` | `gigachad-theme-music.wav` | `PlayerSpottedByMajorThreat` | Enabled | Plays when a Red Lizard, Red Centipede, King Vulture, or Long Legs first notices you (one of several random sounds). |
+| `Soundboard_FlashbangGahDayum` | `flashbang-gah-dayum.wav` | `FlareBombThrown` | Enabled | Plays when a flashbang (Flare Bomb) is thrown. |
+| `Soundboard_Mine` | `mine.wav` | `PlayerSpottedByMiros` | Enabled | Plays when a Miros Bird or Miros Vulture first notices you. |
 
 This table is hand-maintained; the source of truth for each sound's
 description and menu label is [`mod/soundeffects/meta.json`](mod/soundeffects/meta.json).
@@ -206,16 +234,24 @@ Wired up in `src/EventHooks.cs`:
 | `ScavengerDeath` | A Scavenger dies (`Creature.Die`) |
 | `LizardDeath` | A Lizard dies (`Creature.Die`) |
 | `SpiderDeath` | A Spider or BigSpider dies (`Spider.Die` / `BigSpider.Die`) |
-| `PlayerSpottedByPredator` | A Lizard (other than Cyan), Spider/BigSpider, or Vulture first notices you (`Tracker.CreatureNoticed`) - fires once per sighting, not continuously while it's chasing you |
+| `PlayerSpottedByPredator` | A Lizard, Spider/BigSpider, or Vulture first notices you (except the ones with their own events above) (`Tracker.CreatureNoticed`) - fires once per sighting, not continuously while it's chasing you |
 | `SnailExplosion` | A Snail dies/explodes (`Snail.Die`) |
 | `PlayerSpottedByScavenger` | A Scavenger first notices you (`Tracker.CreatureNoticed`) - separate from `PlayerSpottedByPredator` since Scavengers aren't strictly hostile |
 | `PlayerSpottedByCyanLizard` | Specifically a Cyan Lizard first notices you (`Tracker.CreatureNoticed`) - takes priority over `PlayerSpottedByPredator` for that one lizard color |
+| `PlayerSpottedByMiros` | A Miros Bird, or a Miros Vulture (`Vulture.IsMiros`), first notices you (`Tracker.CreatureNoticed`) - takes priority over `PlayerSpottedByPredator` for Miros Vultures |
 | `CicadaOrLanternMouseDeath` | A Cicada ("squidcada") or Lantern Mouse dies (`Cicada.Die` / `LanternMouse.Die`) |
 | `RegionGateTransition` | A region gate's door-opening sequence starts (`RegionGate.OPENCLOSE`) - heuristic, not confirmed strictly one-shot |
 | `PlayerJumpWithCicada` | The slugcat jumps while grasping a Cicada ("squidcada") (`Player.Jump` + grasp check) - fires alongside `PlayerJump`, not instead of it |
 | `PlayerArtificerPyroJump` | Artificer does an explosion-boosted jump (`Player.ClassMechanicsArtificer`, edge-detected on `pyroJumpped`) |
 | `VultureGrubSignal` | A thrown Vulture Grub starts emitting its call (`VultureGrub.InitiateSignal`), which summons nearby vultures |
 | `CreatureEnteredOccupiedShelter` | Any creature moves into a shelter room that already has a player in it (`Creature.NewRoom`) - some creature types override `NewRoom` themselves and may not trigger this, same caveat as the death-event hooks above |
+| `CyanLizardJump` | A Cyan Lizard jumps (`LizardJumpModule.Jump`, with a 1s per-lizard cooldown in case it fires more than once per leap) |
+| `PlayerGrabYeek` | The slugcat grabs a Yeek (`Creature.Grab`) |
+| `ScavengerThrowSpear` | A Scavenger throws a spear (`Spear.Thrown`; covers normal and explosive spears, but not MSC's `ElectricSpear`, which overrides `Thrown` itself) |
+| `PlayerBitByLizard` | A Lizard's bite lands on the player (`Lizard.Bite`) |
+| `PlayerHitByDartMaggot` | A Spitter Spider's dart maggot sticks into the player (`DartMaggot.Update`, fires once per maggot) |
+| `PlayerSpottedByMajorThreat` | A Red Lizard, Red Centipede, King Vulture, or Long Legs first notices you (`Tracker.CreatureNoticed`) - takes priority over `PlayerSpottedByPredator` for those creatures |
+| `FlareBombThrown` | A flashbang (`FlareBomb`) is thrown by anyone (`FlareBomb.Thrown`) |
 
 If multiple enabled sounds share the same event key, one group is chosen at
 random each time that event fires, and everything in that group plays

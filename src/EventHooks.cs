@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -32,9 +33,30 @@ namespace SoundboardMod
 
         public static void Apply(Harmony harmony)
         {
-            harmony.PatchAll(typeof(EventHooks).Assembly);
+            // Patch each hook class on its own instead of PatchAll, so a hook
+            // that fails to resolve (e.g. a renamed game method) is logged
+            // and skipped rather than aborting every hook after it.
+            int failed = 0;
+            foreach (Type type in typeof(EventHooks).Assembly.GetTypes())
+            {
+                if (!type.IsDefined(typeof(HarmonyPatch), false))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    harmony.CreateClassProcessor(type).Patch();
+                }
+                catch (Exception e)
+                {
+                    failed++;
+                    Log.LogError($"Hook {type.Name} failed to apply and was skipped: {e.Message}");
+                }
+            }
+
             int patchedCount = harmony.GetPatchedMethods().Count();
-            Log.LogInfo($"Harmony patched {patchedCount} method(s).");
+            Log.LogInfo($"Harmony patched {patchedCount} method(s), {failed} hook class(es) failed.");
         }
 
         // --- Player ---------------------------------------------------
@@ -168,6 +190,10 @@ namespace SoundboardMod
                 {
                     Trigger("PlayerGrabSlugcat", player);
                 }
+                else if (obj is MoreSlugcats.Yeek)
+                {
+                    Trigger("PlayerGrabYeek", player);
+                }
             }
         }
 
@@ -253,6 +279,112 @@ namespace SoundboardMod
             private static void Postfix(VultureGrub __instance)
             {
                 Trigger("VultureGrubSignal", __instance);
+            }
+        }
+
+        // --- Lizards -------------------------------------------------------
+
+        // LizardJumpModule.Jump() is the launch itself (InitiateJump is the
+        // wind-up decision). Not confirmed strictly one-shot per jump (no
+        // decompiler available), so there's a short per-lizard cooldown to
+        // keep a single leap from stacking sounds.
+        [HarmonyPatch(typeof(LizardJumpModule), nameof(LizardJumpModule.Jump))]
+        private static class LizardJumpModule_Jump_Patch
+        {
+            private const float CooldownSeconds = 1f;
+            private static readonly ConditionalWeakTable<Lizard, StrongBox<float>> LastJumpTime = new ConditionalWeakTable<Lizard, StrongBox<float>>();
+
+            [HarmonyPostfix]
+            private static void Postfix(Lizard ___lizard)
+            {
+                Lizard lizard = ___lizard;
+                if (lizard == null || !IsCreatureType(lizard, CreatureTemplate.Type.CyanLizard))
+                {
+                    return;
+                }
+
+                StrongBox<float> last = LastJumpTime.GetValue(lizard, _ => new StrongBox<float>(float.NegativeInfinity));
+                if (Time.time - last.Value < CooldownSeconds)
+                {
+                    return;
+                }
+
+                last.Value = Time.time;
+                Trigger("CyanLizardJump", lizard);
+            }
+        }
+
+        // Lizard.Bite(chunk) is the bite that actually lands on a body chunk.
+        [HarmonyPatch(typeof(Lizard), "Bite")]
+        private static class Lizard_Bite_Patch
+        {
+            [HarmonyPostfix]
+            private static void Postfix(BodyChunk chunk)
+            {
+                if (chunk?.owner is Player player)
+                {
+                    Trigger("PlayerBitByLizard", player);
+                }
+            }
+        }
+
+        // --- Thrown weapons --------------------------------------------------
+
+        // Weapon.Thrown is virtual and most weapon types override it, but
+        // Spear (and ExplosiveSpear, which inherits it) is covered here.
+        // MSC's ElectricSpear overrides Thrown separately and isn't hooked,
+        // so a Scavenger throwing one of those won't trigger this.
+        [HarmonyPatch(typeof(Spear), nameof(Spear.Thrown))]
+        private static class Spear_Thrown_Patch
+        {
+            [HarmonyPostfix]
+            private static void Postfix(Creature thrownBy)
+            {
+                if (thrownBy is Scavenger)
+                {
+                    Trigger("ScavengerThrowSpear", thrownBy);
+                }
+            }
+        }
+
+        // Fires for any thrower (player or otherwise), positioned at the bomb.
+        [HarmonyPatch(typeof(FlareBomb), nameof(FlareBomb.Thrown))]
+        private static class FlareBomb_Thrown_Patch
+        {
+            [HarmonyPostfix]
+            private static void Postfix(FlareBomb __instance)
+            {
+                Trigger("FlareBombThrown", __instance);
+            }
+        }
+
+        // --- Spitter spider ----------------------------------------------------
+        // The spit projectile is a DartMaggot. Rather than trust that
+        // ChangeMode runs after stuckInChunk is assigned, watch each maggot's
+        // state every update and fire once, the first time it's seen stuck in
+        // a Player. ___stuckInChunk is Harmony's way of reading the private
+        // field of the same name.
+
+        [HarmonyPatch(typeof(DartMaggot), nameof(DartMaggot.Update))]
+        private static class DartMaggot_Update_Patch
+        {
+            private static readonly ConditionalWeakTable<DartMaggot, object> AlreadyReported = new ConditionalWeakTable<DartMaggot, object>();
+
+            [HarmonyPostfix]
+            private static void Postfix(DartMaggot __instance, BodyChunk ___stuckInChunk)
+            {
+                if (__instance.mode != DartMaggot.Mode.StuckInChunk || !(___stuckInChunk?.owner is Player player))
+                {
+                    return;
+                }
+
+                if (AlreadyReported.TryGetValue(__instance, out _))
+                {
+                    return;
+                }
+
+                AlreadyReported.Add(__instance, null);
+                Trigger("PlayerHitByDartMaggot", player);
             }
         }
 
@@ -360,7 +492,20 @@ namespace SoundboardMod
                 {
                     Trigger("PlayerSpottedByScavenger", player);
                 }
-                else if (predator is Lizard lizard && lizard.abstractCreature.creatureTemplate.type == CreatureTemplate.Type.CyanLizard)
+                else if (predator is DaddyLongLegs
+                    || IsCreatureType(predator, CreatureTemplate.Type.RedLizard)
+                    || IsCreatureType(predator, CreatureTemplate.Type.RedCentipede)
+                    || IsCreatureType(predator, CreatureTemplate.Type.KingVulture))
+                {
+                    // Takes priority over the generic predator sound below.
+                    Trigger("PlayerSpottedByMajorThreat", player);
+                }
+                else if (predator is MirosBird || (predator is Vulture vulture && vulture.IsMiros))
+                {
+                    // Miros Vultures are ordinary Vulture objects flagged IsMiros.
+                    Trigger("PlayerSpottedByMiros", player);
+                }
+                else if (IsCreatureType(predator, CreatureTemplate.Type.CyanLizard))
                 {
                     Trigger("PlayerSpottedByCyanLizard", player);
                 }
@@ -373,14 +518,24 @@ namespace SoundboardMod
 
         // --- Shared playback logic --------------------------------------
 
-        private static void Trigger(string eventKey, Creature creature)
+        private static void Trigger(string eventKey, PhysicalObject source)
         {
-            if (creature?.room == null || creature.bodyChunks == null || creature.bodyChunks.Length == 0)
+            if (source?.room == null || source.bodyChunks == null || source.bodyChunks.Length == 0)
             {
                 return;
             }
 
-            TriggerAt(eventKey, creature.room, creature.bodyChunks[0].pos);
+            TriggerAt(eventKey, source.room, source.bodyChunks[0].pos);
+        }
+
+        /// <summary>
+        /// True if obj is a creature of the given template type - needed to
+        /// tell apart variants that share a class (Red/Cyan/etc. Lizard are
+        /// all just "Lizard", King Vulture is a "Vulture", ...).
+        /// </summary>
+        private static bool IsCreatureType(PhysicalObject obj, CreatureTemplate.Type type)
+        {
+            return obj is Creature creature && creature.abstractCreature?.creatureTemplate?.type == type;
         }
 
         /// <summary>
