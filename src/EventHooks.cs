@@ -166,6 +166,16 @@ namespace SoundboardMod
             }
         }
 
+        [HarmonyPatch(typeof(Snail), nameof(Snail.Die))]
+        private static class Snail_Die_Patch
+        {
+            [HarmonyPostfix]
+            private static void Postfix(Snail __instance)
+            {
+                Trigger("SnailExplosion", __instance);
+            }
+        }
+
         // --- Shelter -----------------------------------------------------
 
         [HarmonyPatch(typeof(ShelterDoor), "DoorClosed")]

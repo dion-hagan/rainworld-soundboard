@@ -15,12 +15,13 @@
 [ADD]Soundboard_Example_Beep/vol=0.5 : examplebeep
 [ADD]Soundboard_AnimeWow/vol=0.4 : anime-wow-sound-effect
 [ADD]Soundboard_DiscordLeave/vol=0.4 : discord-leave-noise
-[ADD]Soundboard_Fah/vol=0.4 : fahhhhhhhhhhhhhh
+[ADD]Soundboard_Fah/vol=0.4/minPitch=0.1/maxPitch=1.0 : fahhhhhhhhhhhhhh
 [ADD]Soundboard_FortniteDeath/vol=0.4: fortnite-death
 [ADD]Soundboard_Gunshot/vol=0.4 : gunshot-one
-[ADD]Soundboard_HubIntro/vol=0.5 : hub-intro-sound
-[ADD]Soundboard_RipGranny/vol=0.3 : rip-my-granny-loud-asf
-[ADD]Soundboard_Romance/vol=0.4 : romanceeeeeeeeeeeeee
+[ADD]Soundboard_HubIntro/vol=0.5/pitch=1.0 : hub-intro-sound
+[ADD]Soundboard_FortniteDeath_Lizard/vol=0.4/pitch=1.0 : fortnite-death
+[ADD]Soundboard_Romance/vol=0.4/pitch=1.0 : romanceeeeeeeeeeeeee
 [ADD]Soundboard_VineBoom/vol=0.4 : vine-boom
-[ADD]Soundboard_GoodBoy/vol=0.4 : what-a-good-boy
-[ADD]Soundboard_BennyHill/vol=0.4 : benny-hill
+[ADD]Soundboard_GoodBoy/vol=0.4/pitch=1.0 : what-a-good-boy
+[ADD]Soundboard_BennyHill/vol=0.4/pitch=1.0 : benny-hill
+[ADD]Soundboard_YameteKudasai/vol=0.4/pitch=1.0 : yamete-kudasai

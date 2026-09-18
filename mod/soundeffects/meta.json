@@ -60,7 +60,7 @@
       "id": "Soundboard_FortniteDeath_Lizard",
       "displayName": "FortniteDeath (Lizard)",
       "description": "Plays when a Lizard dies.",
-      "file": "fornite-death.wav",
+      "file": "fortnite-death.wav",
       "event": "LizardDeath",
       "defaultEnabled": true
     },
@@ -94,6 +94,14 @@
       "description": "Plays when a Lizard, Spider/BigSpider, or Vulture first notices you.",
       "file": "benny-hill.wav",
       "event": "PlayerSpottedByPredator",
+      "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_YameteKudasai",
+      "displayName": "Yamete Kudasai",
+      "description": "Plays when a Snail explodes.",
+      "file": "yamete-kudasai.wav",
+      "event": "SnailExplosion",
       "defaultEnabled": true
     }
   ]

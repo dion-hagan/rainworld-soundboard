@@ -29,11 +29,12 @@ out for your own whenever you like.
 | `Soundboard_FortniteDeath` | `fortnite-death.wav` | `SpiderDeath` | Enabled | Plays when a Spider or Big Spider dies. |
 | `Soundboard_Gunshot` | `gunshot-one.wav` | `PlayerThrowExplosiveSpear` | Enabled | Plays when you throw an explosive spear. |
 | `Soundboard_HubIntro` | `hub-intro-sound.wav` | `PlayerEnterShelter` | Enabled | Plays when a shelter door closes (typically right after you enter for the cycle). |
-| `Soundboard_RipGranny` | `rip-my-granny-loud-asf.wav` | `LizardDeath` | Enabled | Plays when a Lizard dies. |
+| `Soundboard_FortniteDeath_Lizard` | `fortnite-death.wav` | `LizardDeath` | Enabled | Plays when a Lizard dies (reuses the Fortnite death clip). |
 | `Soundboard_Romance` | `romanceeeeeeeeeeeeee.wav` | `PlayerGrabSlugcat` | Enabled | Plays when you pick up another slugcat onto your back. |
 | `Soundboard_VineBoom` | `vine-boom.wav` | `PlayerHardLanding` | Enabled | Plays on a hard landing - falling from a height taller than the slugcat. |
 | `Soundboard_GoodBoy` | `what-a-good-boy.wav` | `PlayerEatCreature` | Enabled | Plays when you eat a creature (meat), as opposed to fruit/plants. |
 | `Soundboard_BennyHill` | `benny-hill.wav` | `PlayerSpottedByPredator` | Enabled | Plays when a Lizard, Spider/BigSpider, or Vulture first notices you. |
+| `Soundboard_YameteKudasai` | `yamete-kudasai.wav` | `SnailExplosion` | Enabled | Plays when a Snail explodes. |
 
 This table is hand-maintained; the source of truth for each sound's
 description and menu label is [`mod/soundeffects/meta.json`](mod/soundeffects/meta.json).
@@ -183,6 +184,7 @@ Wired up in `src/EventHooks.cs`:
 | `LizardDeath` | A Lizard dies (`Creature.Die`) |
 | `SpiderDeath` | A Spider or BigSpider dies (`Spider.Die` / `BigSpider.Die`) |
 | `PlayerSpottedByPredator` | A Lizard, Spider/BigSpider, or Vulture first notices you (`Tracker.CreatureNoticed`) - fires once per sighting, not continuously while it's chasing you |
+| `SnailExplosion` | A Snail dies/explodes (`Snail.Die`) |
 
 If multiple enabled sounds share the same event key, one is chosen at random
 each time that event fires (see `ChooseSound` in `EventHooks.cs`).
