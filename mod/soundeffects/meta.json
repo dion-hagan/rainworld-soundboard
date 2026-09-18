@@ -1,0 +1,100 @@
+{
+  "sounds": [
+    {
+      "id": "Soundboard_Example_Beep",
+      "displayName": "Example Beep (test sound)",
+      "description": "A short placeholder beep used to verify the mod is installed and working correctly. Safe to delete once you add your own sounds.",
+      "file": "examplebeep.wav",
+      "event": "PlayerJump",
+      "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_AnimeWow",
+      "displayName": "Anime Wow",
+      "description": "Plays when you pick up an explosive spear or a scavenger grenade.",
+      "file": "anime-wow-sound-effect.wav",
+      "event": "PlayerGrabExplosive",
+      "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_DiscordLeave",
+      "displayName": "Discord Leave Noise",
+      "description": "Plays when a Scavenger dies.",
+      "file": "discord-leave-noise.wav",
+      "event": "ScavengerDeath",
+      "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_Fah",
+      "displayName": "Fahhhhhhhhhhhhhh",
+      "description": "Plays when you die.",
+      "file": "fahhhhhhhhhhhhhh.wav",
+      "event": "PlayerDeath",
+      "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_FortniteDeath",
+      "displayName": "Fortnite Death",
+      "description": "Plays when a Spider or Big Spider dies.",
+      "file": "fortnite-death.wav",
+      "event": "SpiderDeath",
+      "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_Gunshot",
+      "displayName": "Gunshot",
+      "description": "Plays when you throw an explosive spear.",
+      "file": "gunshot-one.wav",
+      "event": "PlayerThrowExplosiveSpear",
+      "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_HubIntro",
+      "displayName": "Hub Intro",
+      "description": "Plays when a shelter door closes (typically right after you enter for the cycle).",
+      "file": "hub-intro-sound.wav",
+      "event": "PlayerEnterShelter",
+      "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_RipGranny",
+      "displayName": "Rip My Granny",
+      "description": "Plays when a Lizard dies.",
+      "file": "rip-my-granny-loud-asf.wav",
+      "event": "LizardDeath",
+      "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_Romance",
+      "displayName": "Romance",
+      "description": "Plays when you pick up another slugcat onto your back.",
+      "file": "romanceeeeeeeeeeeeee.wav",
+      "event": "PlayerGrabSlugcat",
+      "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_VineBoom",
+      "displayName": "Vine Boom",
+      "description": "Plays on a hard landing - falling from a height taller than the slugcat and hitting the ground.",
+      "file": "vine-boom.wav",
+      "event": "PlayerHardLanding",
+      "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_GoodBoy",
+      "displayName": "What A Good Boy",
+      "description": "Plays when you eat a creature (meat), as opposed to fruit/plants.",
+      "file": "what-a-good-boy.wav",
+      "event": "PlayerEatCreature",
+      "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_BennyHill",
+      "displayName": "Benny Hill",
+      "description": "Plays when a Lizard, Spider/BigSpider, or Vulture first notices you.",
+      "file": "benny-hill.wav",
+      "event": "PlayerSpottedByPredator",
+      "defaultEnabled": true
+    }
+  ]
+}

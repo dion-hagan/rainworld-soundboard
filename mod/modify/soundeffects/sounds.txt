@@ -1,0 +1,26 @@
+// Custom Soundboard - registered sound effects
+//
+// Format:   [ADD]SoundID/globalParams : filename/params, filename2/params
+//
+// Rules (see README.md "Adding a new sound" section for the full guide):
+//   - The SoundID here MUST also be declared in soundeffects/meta.json
+//     (that's what makes it show up in the in-game options menu).
+//   - Sound FILE names must not contain underscores, unless you are
+//     providing numbered variants (e.g. myclip_1, myclip_2).
+//   - Files go in ../../soundeffects/ (NOT in this modify/ folder).
+//   - vol / minVol / maxVol / pitch / minPitch / maxPitch / dopplerFac
+//     are all supported, see the tutorial this mod is based on:
+//     https://gist.github.com/EtiTheSpirit/b66450898bfb559c8578a4de04dc1029
+
+[ADD]Soundboard_Example_Beep/vol=0.5 : examplebeep
+[ADD]Soundboard_AnimeWow/vol=0.6 : anime-wow-sound-effect
+[ADD]Soundboard_DiscordLeave/vol=0.6 : discord-leave-noise
+[ADD]Soundboard_Fah/vol=0.6 : fahhhhhhhhhhhhhh
+[ADD]Soundboard_FortniteDeath/vol=0.6 : fortnite-death
+[ADD]Soundboard_Gunshot/vol=0.6 : gunshot-one
+[ADD]Soundboard_HubIntro/vol=0.6 : hub-intro-sound
+[ADD]Soundboard_RipGranny/vol=0.6 : rip-my-granny-loud-asf
+[ADD]Soundboard_Romance/vol=0.6 : romanceeeeeeeeeeeeee
+[ADD]Soundboard_VineBoom/vol=0.6 : vine-boom
+[ADD]Soundboard_GoodBoy/vol=0.6 : what-a-good-boy
+[ADD]Soundboard_BennyHill/vol=0.6 : benny-hill

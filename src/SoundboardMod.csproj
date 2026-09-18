@@ -1,0 +1,66 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <AssemblyName>SoundboardMod</AssemblyName>
+    <RootNamespace>SoundboardMod</RootNamespace>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <!-- The game and BepInEx assemblies below aren't redistributable, so
+         don't copy them next to our own output. -->
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- BepInEx + Harmony, from the game's own BepInEx/core folder -->
+  <ItemGroup>
+    <Reference Include="BepInEx">
+      <HintPath>$(RainWorldBepInExCorePath)\BepInEx.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="0Harmony">
+      <HintPath>$(RainWorldBepInExCorePath)\0Harmony.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- MonoMod HookGen output: provides the On.X.Y hook API (e.g. On.RainWorld.OnModsInit) -->
+    <Reference Include="HOOKS-Assembly-CSharp">
+      <HintPath>$(RainWorldPath)\BepInEx\plugins\HOOKS-Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!-- Game + Unity assemblies, from RainWorld_Data/Managed -->
+  <ItemGroup>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(RainWorldManagedPath)\Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>$(RainWorldManagedPath)\UnityEngine.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(RainWorldManagedPath)\UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.JSONSerializeModule">
+      <HintPath>$(RainWorldManagedPath)\UnityEngine.JSONSerializeModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!-- Drop the built DLL straight into the deployable mod folder's plugins/ -->
+  <Target Name="CopyToModFolder" AfterTargets="Build">
+    <ItemGroup>
+      <ModOutputFiles Include="$(TargetDir)$(AssemblyName).dll" />
+      <ModOutputFiles Include="$(TargetDir)$(AssemblyName).pdb" Condition="Exists('$(TargetDir)$(AssemblyName).pdb')" />
+    </ItemGroup>
+    <Copy SourceFiles="@(ModOutputFiles)" DestinationFolder="$(MSBuildThisFileDirectory)..\mod\plugins\" />
+  </Target>
+
+</Project>

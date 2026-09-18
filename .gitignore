@@ -1,0 +1,6 @@
+bin/
+obj/
+*.user
+mod/plugins/*.dll
+mod/plugins/*.pdb
+.vs/
