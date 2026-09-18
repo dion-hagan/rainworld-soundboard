@@ -122,14 +122,15 @@ install for you - equivalent to running:
 
 ## Installing / testing in-game
 
-1. Run the deploy script (above), or manually copy the `mod/` folder's
-   *contents* into
+1. Run the deploy script (above), or on a machine with no .NET SDK/dev
+   setup, run it with `-SkipBuild` to just copy the already-committed
+   `mod/plugins/SoundboardMod.dll` as-is instead of rebuilding:
+   ```powershell
+   ./scripts/deploy.ps1 -SkipBuild
+   ```
+   You can also skip the script entirely and manually copy the `mod/`
+   folder's *contents* into
    `<Rain World install>/RainWorld_Data/StreamingAssets/mods/dion_soundboard/`.
-   The built `SoundboardMod.dll` is committed to this repo under
-   `mod/plugins/`, so a plain manual copy works on a machine with no .NET
-   SDK or dev setup at all - only use `deploy.ps1` (which always rebuilds
-   first) on a machine where you've got the toolchain from "Prerequisites"
-   above.
 2. Launch Rain World, go to **Options -> Mods**, and enable **Custom Soundboard**.
 3. Restart the game (required - the sound-merge system only runs on launch).
 4. Start/continue a game and jump - you should hear the example beep.
