@@ -103,6 +103,14 @@
       "file": "yamete-kudasai.wav",
       "event": "SnailExplosion",
       "defaultEnabled": true
+    },
+    {
+      "id": "Soundboard_ScavengerSpotted",
+      "displayName": "Can I Put My Balls In Your Jaws",
+      "description": "Plays when a Scavenger first notices you.",
+      "file": "can-i-put-my-balls-in-your-jaws.wav",
+      "event": "PlayerSpottedByScavenger",
+      "defaultEnabled": true
     }
   ]
 }

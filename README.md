@@ -35,6 +35,7 @@ out for your own whenever you like.
 | `Soundboard_GoodBoy` | `what-a-good-boy.wav` | `PlayerEatCreature` | Enabled | Plays when you eat a creature (meat), as opposed to fruit/plants. |
 | `Soundboard_BennyHill` | `benny-hill.wav` | `PlayerSpottedByPredator` | Enabled | Plays when a Lizard, Spider/BigSpider, or Vulture first notices you. |
 | `Soundboard_YameteKudasai` | `yamete-kudasai.wav` | `SnailExplosion` | Enabled | Plays when a Snail explodes. |
+| `Soundboard_ScavengerSpotted` | `can-i-put-my-balls-in-your-jaws.wav` | `PlayerSpottedByScavenger` | Enabled | Plays when a Scavenger first notices you. |
 
 This table is hand-maintained; the source of truth for each sound's
 description and menu label is [`mod/soundeffects/meta.json`](mod/soundeffects/meta.json).
@@ -185,6 +186,7 @@ Wired up in `src/EventHooks.cs`:
 | `SpiderDeath` | A Spider or BigSpider dies (`Spider.Die` / `BigSpider.Die`) |
 | `PlayerSpottedByPredator` | A Lizard, Spider/BigSpider, or Vulture first notices you (`Tracker.CreatureNoticed`) - fires once per sighting, not continuously while it's chasing you |
 | `SnailExplosion` | A Snail dies/explodes (`Snail.Die`) |
+| `PlayerSpottedByScavenger` | A Scavenger first notices you (`Tracker.CreatureNoticed`) - separate from `PlayerSpottedByPredator` since Scavengers aren't strictly hostile |
 
 If multiple enabled sounds share the same event key, one is chosen at random
 each time that event fires (see `ChooseSound` in `EventHooks.cs`).

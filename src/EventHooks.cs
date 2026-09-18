@@ -206,7 +206,11 @@ namespace SoundboardMod
                 }
 
                 PhysicalObject predator = __instance.AI?.creature?.realizedObject;
-                if (predator is Lizard || predator is Spider || predator is BigSpider || predator is Vulture)
+                if (predator is Scavenger)
+                {
+                    Trigger("PlayerSpottedByScavenger", player);
+                }
+                else if (predator is Lizard || predator is Spider || predator is BigSpider || predator is Vulture)
                 {
                     Trigger("PlayerSpottedByPredator", player);
                 }
