@@ -24,7 +24,7 @@ namespace SoundboardMod
         // contact, not a real-world unit. Empirically measured: normal jump
         // landings top out around ~9.4, a drop from a tall pole hit ~22.9.
         // Threshold set between the two with some margin.
-        private const float HardLandingSpeedThreshold = 20f;
+        private const float HardLandingSpeedThreshold = 30f;
 
         private static readonly ManualLogSource Log = BepInEx.Logging.Logger.CreateLogSource("SoundboardMod");
 

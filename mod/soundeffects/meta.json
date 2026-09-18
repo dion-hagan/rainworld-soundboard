@@ -57,10 +57,10 @@
       "defaultEnabled": true
     },
     {
-      "id": "Soundboard_RipGranny",
-      "displayName": "Rip My Granny",
+      "id": "Soundboard_FortniteDeath_Lizard",
+      "displayName": "FortniteDeath (Lizard)",
       "description": "Plays when a Lizard dies.",
-      "file": "rip-my-granny-loud-asf.wav",
+      "file": "fornite-death.wav",
       "event": "LizardDeath",
       "defaultEnabled": true
     },
