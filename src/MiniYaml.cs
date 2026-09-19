@@ -34,7 +34,10 @@ namespace SoundboardMod
         /// <summary>1-based last line the value occupies (same as Line for one-line values).</summary>
         public int EndLine;
 
-        /// <summary>For block mappings: the column their keys start at. Lets a new key be added in line with the others.</summary>
+        /// <summary>
+        /// For block mappings: the column their keys start at. For block lists: the column of
+        /// their "-". Lets a new key or item be added in line with the others.
+        /// </summary>
         public int Indent;
 
         /// <summary>True for "[a, b]" and "{k: v}" values.</summary>
@@ -266,7 +269,7 @@ namespace SoundboardMod
 
             private YamlNode ParseSequence(int indent)
             {
-                var node = new YamlNode { Kind = YamlKind.Sequence, Items = new List<YamlNode>(), Line = lines[pos].Number };
+                var node = new YamlNode { Kind = YamlKind.Sequence, Items = new List<YamlNode>(), Line = lines[pos].Number, Indent = indent };
 
                 while (pos < lines.Count && lines[pos].Indent == indent && IsDash(lines[pos].Text))
                 {

@@ -316,6 +316,56 @@ namespace SoundboardMod
         }
 
         /// <summary>
+        /// Adds a sound to an event - what SAVE does on the options screen's Add Sound
+        /// page. The sound is written into the player's soundboard.yaml (at the end of the
+        /// event's list, keeping the rest of the file as it was) and the config is re-read,
+        /// so it works immediately. Returns null on success, otherwise a reason for the player.
+        /// <paramref name="written"/> says whether the sound made it into the file: it can be
+        /// true together with a reason, if only the re-read afterwards went wrong - the caller
+        /// must not offer to add it again then, or it would be in the file twice.
+        /// </summary>
+        public static string AddSound(NewSound sound, out bool written)
+        {
+            written = false;
+            if (Locations == null || ConfigPath != Locations.UserConfigPath)
+            {
+                return "the game isn't using your own soundboard.yaml right now (see the problems listed), so there's nothing to save it to";
+            }
+
+            try
+            {
+                string text = File.ReadAllText(Locations.UserConfigPath);
+                YamlEditor.Result result = SoundAdder.Add(text, sound, Catalog);
+                if (!result.Ok)
+                {
+                    return result.Error;
+                }
+
+                File.WriteAllText(Locations.UserConfigPath, result.Text);
+                written = true;
+            }
+            catch (Exception e)
+            {
+                Log.LogError($"Couldn't add a sound to {Locations.UserConfigPath}: {e}");
+                return "couldn't write soundboard.yaml (" + e.Message + ")";
+            }
+
+            Log.LogInfo($"Added {sound.File} to {sound.EventName} (volume {sound.Volume.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)}, delay {sound.Delay.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)}s) in {Locations.UserConfigPath}");
+
+            try
+            {
+                Reload();
+            }
+            catch (Exception e)
+            {
+                Log.LogError($"Added the sound, but re-reading soundboard.yaml failed: {e}");
+                return "it was added to soundboard.yaml, but re-reading the file failed (" + e.Message + ") - press RELOAD CONFIG or restart the game";
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// An event just happened. Plays the next enabled entry from its list
         /// (if the config has one). pos is where it happened in the room, or
         /// null for a sound with no position (played centred).

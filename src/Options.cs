@@ -9,17 +9,21 @@ using UnityEngine;
 namespace SoundboardMod
 {
     /// <summary>
-    /// Builds the mod's in-game options screen (Options -> Mods -> Custom Soundboard):
-    /// buttons to reload the config and open its folder, a list of any
+    /// Builds the mod's in-game options screen (Options -> Mods -> Custom Soundboard).
+    /// It has two tabs:
+    ///
+    /// "Sounds": buttons to reload the config and open its folder, a list of any
     /// problems found in soundboard.yaml, and one checkbox per sound entry.
     ///
-    /// soundboard.yaml is the only place on/off state really lives. The
-    /// checkboxes are a normal Remix editing screen over it: they start from the
-    /// file's "enabled:" values every time the screen opens, ticking one marks a
-    /// pending change (so SAVE, REVERT and the "unsaved changes" prompt all work
-    /// like on any other mod), and SAVE writes the changes into the file. The
-    /// values Remix itself remembers between launches are never trusted - the
-    /// file always wins - so the two can't drift apart.
+    /// "Add Sound": dropdowns for an event and a sound file plus number boxes for
+    /// volume and delay; SAVE adds that sound to the event's list in soundboard.yaml.
+    ///
+    /// soundboard.yaml is the only place any of this really lives. Both tabs are a
+    /// normal Remix editing screen over it: they start from the file every time
+    /// the screen opens, changing anything marks a pending change (so SAVE, REVERT
+    /// and the "unsaved changes" prompt all work like on any other mod), and SAVE
+    /// writes the changes into the file. The values Remix itself remembers between
+    /// launches are never trusted - the file always wins - so the two can't drift apart.
     /// </summary>
     public class Options : OptionInterface
     {
@@ -52,11 +56,18 @@ namespace SoundboardMod
                 EnsureSetting(choice);
             }
 
-            // Remix builds this screen once per launch, but each time the page is opened it reloads
-            // its own saved copy of the settings into the checkboxes. That copy can be stale (or
-            // from an older version of this mod), so on every open the boxes are re-seeded from
-            // soundboard.yaml, which is the only thing that counts.
+            CreatePickerSettings();
+
+            // Each time the page is opened Remix reloads its own saved copy of the settings into
+            // the widgets. That copy can be stale (or from an older version of this mod), so on
+            // every open the boxes are re-seeded from soundboard.yaml, which is the only thing that
+            // counts - and the Add Sound form from what this mod last knew about it.
             OnActivate += RefreshToggles;
+            OnActivate += SeedPicker;
+
+            // The widgets are gone once the menu is left; anything that runs before the next
+            // Initialize must not touch them.
+            OnUnload += ForgetPicker;
         }
 
         private Configurable<bool> EnsureSetting(SoundChoice choice)
@@ -86,7 +97,7 @@ namespace SoundboardMod
 
             SoundboardConfig soundboard = SoundboardRuntime.Config;
             OpTab tab = new OpTab(this, "Sounds");
-            Tabs = new OpTab[] { tab };
+            Tabs = new OpTab[] { tab, BuildAddSoundTab() };
 
             var enableAllButton = new OpSimpleButton(new Vector2(20f, 505f), new Vector2(105f, 30f), "ENABLE ALL")
             {
@@ -124,7 +135,7 @@ namespace SoundboardMod
 
             tab.AddItems(
                 new OpLabel(20f, 560f, "Custom Soundboard", true),
-                new OpLabel(20f, 538f, "Tick or untick sounds, then press SAVE to write them into soundboard.yaml. Or edit that file (OPEN FOLDER) and RELOAD CONFIG.", false),
+                new OpLabel(20f, 538f, "Tick or untick sounds, then press SAVE. To add a new sound, use the Add Sound tab - or edit soundboard.yaml (OPEN FOLDER) and RELOAD CONFIG.", false),
                 enableAllButton,
                 disableAllButton,
                 reloadButton,
@@ -242,11 +253,11 @@ namespace SoundboardMod
         /// file (not from a list of clicks), so a reverted or repeated click can
         /// never write the wrong thing.
         /// </summary>
-        private void CommitPending()
+        private string CommitPending()
         {
             if (checkBoxesById.Count == 0)
             {
-                return; // no screen: the game is just loading its saved settings
+                return null; // no screen: the game is just loading its saved settings
             }
 
             var changes = new List<KeyValuePair<string, bool>>();
@@ -264,11 +275,49 @@ namespace SoundboardMod
 
             if (changes.Count == 0)
             {
-                return;
+                return null;
             }
 
             string problem = SoundboardRuntime.SetEnabled(changes);
-            ShowStatus(problem ?? "Saved " + changes.Count + " change(s) to soundboard.yaml.");
+            return problem ?? "Saved " + changes.Count + " change(s) to soundboard.yaml.";
+        }
+
+        /// <summary>
+        /// Everything SAVE does, in order: first the checkbox changes, then the sound
+        /// from the Add Sound form. That order matters: adding a sound re-reads the
+        /// whole file (so it plays straight away), which would otherwise throw away
+        /// checkbox changes that hadn't been written yet.
+        /// </summary>
+        private void SaveScreen()
+        {
+            string ticked = null;
+            try
+            {
+                ticked = CommitPending();
+            }
+            catch (Exception e)
+            {
+                Log.LogError($"Saving the checkbox changes to soundboard.yaml failed: {e}");
+                ticked = "Couldn't save to soundboard.yaml: " + e.Message;
+            }
+
+            string added = null;
+            try
+            {
+                added = CommitPicker();
+            }
+            catch (Exception e)
+            {
+                Log.LogError($"Adding the sound to soundboard.yaml failed: {e}");
+                added = "Couldn't add the sound: " + e.Message;
+                ShowPickerStatus(added);
+            }
+
+            string message = string.Join(" ", new[] { ticked, added }.Where(m => !string.IsNullOrEmpty(m)));
+            if (message.Length > 0)
+            {
+                ShowStatus(message);
+            }
         }
 
         private void SetAll(bool on)
@@ -362,11 +411,11 @@ namespace SoundboardMod
                 {
                     try
                     {
-                        options.CommitPending();
+                        options.SaveScreen();
                     }
                     catch (Exception e)
                     {
-                        Log.LogError($"Saving the checkbox changes to soundboard.yaml failed: {e}");
+                        Log.LogError($"Saving to soundboard.yaml failed: {e}");
                         options.ShowStatus("Couldn't save to soundboard.yaml: " + e.Message);
                     }
                 }
@@ -378,8 +427,9 @@ namespace SoundboardMod
             try
             {
                 string message = SoundboardRuntime.Reload();
-                ShowStatus(message + " New entries show up after a game restart.");
+                ShowStatus(message + " New entries show up in the list the next time you open the Mods menu.");
                 RefreshProblems();
+                RefreshSoundList();
             }
             catch (Exception e)
             {
@@ -405,6 +455,413 @@ namespace SoundboardMod
             }
 
             Log.LogInfo($"Config folder: {folder}");
+        }
+
+        // ===================================================================================
+        //  Add Sound tab
+        // ===================================================================================
+
+        private const string PickEventKey = "AddSound_Event";
+        private const string PickSoundKey = "AddSound_Sound";
+        private const string PickVolumeKey = "AddSound_Volume";
+        private const string PickDelayKey = "AddSound_Delay";
+
+        private const int DefaultVolumePercent = 100;
+        private const int MaxVolumePercent = (int)(NewSound.MaxVolume * 100f);
+
+        private static readonly Color PickerErrorColor = new Color(1f, 0.45f, 0.4f);
+
+        // The form's Remix settings. Created once, like the checkbox ones (Remix doesn't allow a key twice).
+        private Configurable<string> pickEvent;
+        private Configurable<string> pickSound;
+        private Configurable<int> pickVolume;
+        private Configurable<float> pickDelay;
+
+        // What's on the page right now. All null while the menu is closed, or if the page couldn't be built.
+        private OpComboBox eventBox;
+        private OpComboBox soundBox;
+        private PickerUpdown volumeBox;
+        private PickerUpdown delayBox;
+        private OpLabelLong eventInfoLabel;
+        private OpLabelLong soundInfoLabel;
+        private OpLabelLong pickStatusLabel;
+        private Color pickStatusColor;
+
+        // A failed build leaves the form's settings bound to widgets Remix never got to unload,
+        // so they can't be used again: the page then just explains that it isn't available.
+        private bool pickerBroken;
+
+        // What the form shows whenever the page is opened: blank, or - after an add that
+        // failed - the choices that weren't added, so a typo in the file doesn't cost the player their picks.
+        private PickerForm pickerState = new PickerForm();
+
+        private sealed class PickerForm
+        {
+            public string Event = string.Empty;
+            public string Sound = string.Empty;
+            public int VolumePercent = DefaultVolumePercent;
+            public float Delay;
+        }
+
+        /// <summary>
+        /// A number box whose shown number can be re-drawn after ForceValue. ForceValue changes
+        /// the value without telling the box, which is what's wanted when re-seeding the form
+        /// (it mustn't count as an unsaved change) - but a number box only rewrites its digits
+        /// when told its value changed.
+        /// </summary>
+        private sealed class PickerUpdown : OpUpdown
+        {
+            public PickerUpdown(Configurable<int> setting, Vector2 pos, float width)
+                : base(setting, pos, width)
+            {
+            }
+
+            public PickerUpdown(Configurable<float> setting, Vector2 pos, float width, byte decimals)
+                : base(setting, pos, width, decimals)
+            {
+            }
+
+            public void Redraw()
+            {
+                Change();
+            }
+        }
+
+        private void CreatePickerSettings()
+        {
+            try
+            {
+                pickEvent = config.Bind(PickEventKey, string.Empty, new ConfigurableInfo("The event the new sound plays for."));
+                pickSound = config.Bind(PickSoundKey, string.Empty, new ConfigurableInfo("The audio file the new sound plays."));
+                pickVolume = config.Bind(PickVolumeKey, DefaultVolumePercent, new ConfigAcceptableRange<int>(0, MaxVolumePercent));
+                pickDelay = config.Bind(PickDelayKey, 0f, new ConfigAcceptableRange<float>(0f, NewSound.MaxDelay));
+            }
+            catch (Exception e)
+            {
+                Log.LogWarning($"Couldn't create the settings for the Add Sound page, so it won't be available: {e.Message}");
+                pickerBroken = true;
+            }
+        }
+
+        private OpTab BuildAddSoundTab()
+        {
+            var page = new OpTab(this, "Add Sound");
+            ForgetPicker();
+
+            if (!pickerBroken)
+            {
+                try
+                {
+                    page.AddItems(AddSoundItems());
+                    return page;
+                }
+                catch (Exception e)
+                {
+                    Log.LogError($"Couldn't build the Add Sound page: {e}");
+                    pickerBroken = true;
+                    ForgetPicker();
+                }
+            }
+
+            page.AddItems(
+                new OpLabel(20f, 560f, "Add a Sound", true),
+                new OpLabelLong(new Vector2(20f, 480f), new Vector2(560f, 60f), "This page couldn't be set up (the reason is in BepInEx/LogOutput.log). You can still add sounds by editing soundboard.yaml - press OPEN FOLDER on the Sounds tab.")
+                {
+                    allowOverflow = false,
+                });
+            return page;
+        }
+
+        private UIelement[] AddSoundItems()
+        {
+            var events = new List<ListItem>();
+            foreach (EventInfo info in SoundboardRuntime.Catalog.All)
+            {
+                events.Add(new ListItem(info.Name) { desc = info.Description });
+            }
+
+            List<string> files = SoundLibrary.List(SoundboardRuntime.Locations.SoundFolders);
+
+            eventInfoLabel = new OpLabelLong(new Vector2(170f, 372f), new Vector2(400f, 72f), string.Empty)
+            {
+                allowOverflow = false,
+            };
+
+            soundInfoLabel = new OpLabelLong(new Vector2(170f, 282f), new Vector2(400f, 40f), SoundCountText(files.Count))
+            {
+                allowOverflow = false,
+            };
+
+            pickStatusLabel = new OpLabelLong(new Vector2(20f, 60f), new Vector2(560f, 80f), string.Empty)
+            {
+                allowOverflow = false,
+            };
+            pickStatusColor = pickStatusLabel.color;
+
+            volumeBox = new PickerUpdown(pickVolume, new Vector2(170f, 238f), 100f)
+            {
+                description = "How loud the sound is, as a percentage of the file's own volume. 100 = as recorded, 50 = half as loud, 200 = twice as loud.",
+            };
+
+            delayBox = new PickerUpdown(pickDelay, new Vector2(170f, 194f), 100f, 1)
+            {
+                description = "Seconds to wait after the event before the sound plays. 0 = right away.",
+            };
+
+            // The dropdowns go in last: a list that opens over other widgets has to be drawn on top of them.
+            soundBox = files.Count == 0
+                ? null
+                : new OpComboBox(pickSound, new Vector2(170f, 328f), 400f, files.Select(f => new ListItem(f)).ToList())
+                {
+                    listHeight = 8,
+                    description = "The audio file to play. Click for the list, or start typing to search it.",
+                };
+
+            eventBox = new OpComboBox(pickEvent, new Vector2(170f, 452f), 400f, events)
+            {
+                listHeight = 10,
+                description = "The in-game event that makes the sound play. Click for the list (hover a name to see what it means), or start typing to search it.",
+            };
+
+            eventBox.OnValueUpdate += (box, value, oldValue) => UpdateEventInfo();
+
+            var items = new List<UIelement>
+            {
+                new OpLabel(20f, 560f, "Add a Sound", true),
+                new OpLabelLong(new Vector2(20f, 486f), new Vector2(560f, 64f), "Pick an event and a sound file, set how loud it is and how long to wait, then press SAVE. The sound is added to the end of that event's list in soundboard.yaml and works straight away.")
+                {
+                    allowOverflow = false,
+                },
+                new OpLabel(20f, 456f, "When this happens:", false),
+                new OpLabel(20f, 332f, "Play this sound:", false),
+                new OpLabel(20f, 243f, "Volume:", false),
+                new OpLabel(20f, 199f, "Delay:", false),
+                new OpLabel(280f, 243f, "%  (100 = as recorded)", false),
+                new OpLabel(280f, 199f, "seconds after the event", false),
+                eventInfoLabel,
+                soundInfoLabel,
+                pickStatusLabel,
+                volumeBox,
+                delayBox,
+            };
+
+            if (soundBox != null)
+            {
+                items.Add(soundBox);
+            }
+
+            items.Add(eventBox);
+            UpdateEventInfo();
+            return items.ToArray();
+        }
+
+        private static string SoundCountText(int count)
+        {
+            return count == 0
+                ? "No sound files found. Press OPEN FOLDER on the Sounds tab, put .wav, .ogg or .mp3 files in the sounds folder, then press RELOAD CONFIG."
+                : count + " sound file(s) to choose from. To add your own, press OPEN FOLDER on the Sounds tab, drop them in the sounds folder and press RELOAD CONFIG.";
+        }
+
+        private void UpdateEventInfo()
+        {
+            if (eventInfoLabel == null || eventBox == null)
+            {
+                return;
+            }
+
+            string name = eventBox.value;
+            EventInfo info = string.IsNullOrEmpty(name) ? null : SoundboardRuntime.Catalog?.All.FirstOrDefault(i => i.Name == name);
+            eventInfoLabel.text = info == null ? "Pick the event the sound should play for." : info.Description;
+        }
+
+        private void ForgetPicker()
+        {
+            eventBox = null;
+            soundBox = null;
+            volumeBox = null;
+            delayBox = null;
+            eventInfoLabel = null;
+            soundInfoLabel = null;
+            pickStatusLabel = null;
+        }
+
+        /// <summary>The page was opened: show what the form should hold (Remix's own remembered values are ignored).</summary>
+        private void SeedPicker()
+        {
+            ApplyForm(pickerState);
+        }
+
+        private void ApplyForm(PickerForm form)
+        {
+            try
+            {
+                // ForceValue rather than value =: this must not count as a change the player made.
+                eventBox?.ForceValue(Known(eventBox, form.Event));
+                soundBox?.ForceValue(Known(soundBox, form.Sound));
+
+                if (volumeBox != null)
+                {
+                    volumeBox.ForceValue(form.VolumePercent.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                    volumeBox.Redraw();
+                }
+
+                if (delayBox != null)
+                {
+                    delayBox.ForceValue(form.Delay.ToString("F1", System.Globalization.CultureInfo.InvariantCulture));
+                    delayBox.Redraw();
+                }
+
+                UpdateEventInfo();
+            }
+            catch (Exception e)
+            {
+                Log.LogDebug($"Couldn't reset the Add Sound form: {e.Message}");
+            }
+        }
+
+        /// <summary>The name if it's in the box's list, otherwise "" (shown as ---): a file may have been deleted since.</summary>
+        private static string Known(OpComboBox box, string name)
+        {
+            return !string.IsNullOrEmpty(name) && box.GetItemList().Any(item => item.name == name) ? name : string.Empty;
+        }
+
+        private PickerForm ReadPicker()
+        {
+            return new PickerForm
+            {
+                Event = eventBox.value ?? string.Empty,
+                Sound = soundBox?.value ?? string.Empty,
+                VolumePercent = volumeBox != null ? volumeBox.valueInt : DefaultVolumePercent,
+                Delay = delayBox != null ? delayBox.valueFloat : 0f,
+            };
+        }
+
+        /// <summary>
+        /// The player pressed SAVE: if an event and a sound are picked, add that sound to
+        /// soundboard.yaml. Returns a message for the status line, or null if there was
+        /// nothing to add. A failure leaves the picks in the form.
+        /// </summary>
+        private string CommitPicker()
+        {
+            if (eventBox == null || volumeBox == null || delayBox == null)
+            {
+                return null; // no page: the game is just loading its saved settings, or the page couldn't be built
+            }
+
+            PickerForm form = ReadPicker();
+            bool noEvent = string.IsNullOrEmpty(form.Event);
+            bool noSound = string.IsNullOrEmpty(form.Sound);
+            if (noEvent && noSound)
+            {
+                pickerState = form; // only the numbers may have been touched
+                return null;
+            }
+
+            if (noEvent || noSound)
+            {
+                pickerState = form;
+                string incomplete = "Add Sound: pick " + (noEvent ? "an event" : "a sound") + " too - nothing was added.";
+                ShowPickerStatus(incomplete, true);
+                return incomplete;
+            }
+
+            var sound = new NewSound
+            {
+                EventName = form.Event,
+                File = form.Sound,
+                Volume = form.VolumePercent / 100f,
+                Delay = (float)Math.Round(form.Delay, 1),
+            };
+
+            string problem = SoundboardRuntime.AddSound(sound, out bool written);
+            if (!written)
+            {
+                pickerState = form;
+                string failed = "Couldn't add the sound: " + problem + ". Your choices are still on the Add Sound tab.";
+                ShowPickerStatus(failed, true);
+                return failed;
+            }
+
+            pickerState = new PickerForm();
+            ApplyForm(pickerState);
+
+            string added = "Added \"" + SoundboardConfigParser.PrettyName(form.Sound) + "\" to " + form.Event + ".";
+            if (problem != null)
+            {
+                added += " But " + problem + ".";
+                ShowPickerStatus(added, true);
+            }
+            else
+            {
+                ShowPickerStatus(added + " It plays now, and shows up on the Sounds tab the next time you open the Mods menu.", false);
+            }
+
+            try
+            {
+                RefreshProblems();
+            }
+            catch (Exception e)
+            {
+                Log.LogDebug($"Couldn't refresh the problem list: {e.Message}");
+            }
+
+            return added;
+        }
+
+        private void ShowPickerStatus(string text, bool isProblem)
+        {
+            if (pickStatusLabel != null)
+            {
+                pickStatusLabel.text = text;
+                pickStatusLabel.color = isProblem ? PickerErrorColor : pickStatusColor;
+            }
+        }
+
+        private void ShowPickerStatus(string text)
+        {
+            ShowPickerStatus(text, true);
+        }
+
+        /// <summary>
+        /// After RELOAD CONFIG: adds files that have appeared in the sounds folder to the
+        /// dropdown, and drops ones that have gone, without touching what's selected.
+        /// </summary>
+        private void RefreshSoundList()
+        {
+            if (soundBox == null)
+            {
+                return;
+            }
+
+            try
+            {
+                List<string> files = SoundLibrary.List(SoundboardRuntime.Locations.SoundFolders);
+                var have = new HashSet<string>(soundBox.GetItemList().Select(item => item.name));
+                var want = new HashSet<string>(files);
+
+                ListItem[] appeared = files.Where(f => !have.Contains(f)).Select(f => new ListItem(f)).ToArray();
+                string[] gone = have.Where(n => !want.Contains(n)).ToArray();
+
+                if (appeared.Length > 0)
+                {
+                    soundBox.AddItems(true, appeared);
+                }
+
+                // A dropdown can't be emptied, so if every file vanished the old list stays.
+                if (gone.Length > 0 && files.Count > 0)
+                {
+                    soundBox.RemoveItems(false, gone);
+                }
+
+                if (soundInfoLabel != null)
+                {
+                    soundInfoLabel.text = SoundCountText(files.Count);
+                }
+            }
+            catch (Exception e)
+            {
+                Log.LogWarning($"Couldn't refresh the list of sound files: {e.Message}");
+            }
         }
     }
 }

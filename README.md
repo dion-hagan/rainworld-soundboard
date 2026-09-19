@@ -12,7 +12,9 @@ https://github.com/user-attachments/assets/29a73c3b-f976-43dd-b9c5-7516e414860d
 Plays your own sound effects when things happen in Rain World: you die, you jump, you eat, a
 Green Lizard spots you, you fall too fast, you change rooms, a scavenger throws a spear... **One
 text file, `soundboard.yaml`, decides which sound plays for which event** - along with how loud it
-is and how long to wait before it plays. No coding, no rebuilding, and no game restart to try a change.
+is and how long to wait before it plays. You can edit that file by hand, or use the **Add Sound**
+tab in the mod's options screen to pick an event and a sound from dropdowns. No coding, no
+rebuilding, and no game restart to try a change.
 
 *(Versions before 1.0.0 needed a recompile plus two data files per sound. If you have a `0.1.0`
 setup, see [Upgrading from 0.1.0](#upgrading-from-010).)*
@@ -27,6 +29,9 @@ setup, see [Upgrading from 0.1.0](#upgrading-from-010).)*
    - open `soundboard.yaml` in Notepad (or any text editor) and point an event at them.
 4. Back in the game, press **RELOAD CONFIG**. Done - jump around and listen.
 
+Prefer not to touch the file? Use the **Add Sound** tab instead - see
+[Adding a sound from the options screen](#adding-a-sound-from-the-options-screen).
+
 The options screen also has a checkbox for every sound so you can switch individual ones off
 without editing anything - **tick or untick them, then press SAVE and the change is written into
 `soundboard.yaml`**, so the file and the screen always agree (REVERT, or leaving without saving, discards
@@ -40,6 +45,29 @@ the change) - and it lists any problems it found in your file (with line numbers
 > time the game starts it copies the template into the data folder for you. Edit the copy in the data
 > folder; editing the template changes nothing (the options screen will point this out if it notices).
 > Delete your copy if you ever want the defaults back.
+
+## Adding a sound from the options screen
+
+Open **Options → Mods → Custom Soundboard** and switch to the **Add Sound** tab:
+
+1. **When this happens** - pick an event from the dropdown (click it and scroll, or just start typing to
+   search; hover a name in the list to see what it means).
+2. **Play this sound** - pick a `.wav`, `.ogg` or `.mp3` from your `sounds` folder or the ones that came with
+   the mod. Dropped new files into the folder? Press **RELOAD CONFIG** on the Sounds tab and they show up.
+3. **Volume** (a percentage, `100` = as recorded) and **Delay** (seconds after the event) - the same
+   `volume:` and `delay:` options described below.
+4. Press **SAVE**. The sound is added to the end of that event's list in your `soundboard.yaml` and starts
+   working straight away. If the event wasn't in the file yet, it's added too. Everything else in the file -
+   your comments, layout and other entries - is left exactly as it was.
+
+A few things to know:
+
+- Like the checkboxes, nothing is written until you press **SAVE**; leaving without saving discards what you picked.
+- If the file has a mistake in it (the Sounds tab lists them with line numbers), the sound isn't added and your
+  picks stay on the tab so you can fix the file, press RELOAD CONFIG, and save again.
+- The new entry appears in the Sounds tab's checkbox list the next time you open the Mods menu (it plays
+  right away either way).
+- This page only *adds*. To remove or change an entry, untick it on the Sounds tab or edit the file.
 
 ## Writing `soundboard.yaml`
 
@@ -371,11 +399,13 @@ SoundboardMod/
 │  ├─ SoundboardConfig.cs      Turns the YAML into typed config + a list of issues
 │  ├─ EventCatalog.cs          Every event name + description; forgiving name matching
 │  ├─ ConfigFiles.cs           Where config/sounds live; finds audio files
-│  ├─ YamlEditor.cs            Edits an entry's enabled/disabled line in place (checkbox -> file)
+│  ├─ YamlEditor.cs            Edits soundboard.yaml's text in place: an entry's enabled line, or appending a sound
+│  ├─ SoundAdder.cs            Builds and double-checks a new entry before it's written (Add Sound tab -> file)
+│  ├─ SoundLibrary.cs          Lists the audio files the Add Sound dropdown offers
 │  ├─ SoundboardRuntime.cs     Loads/reloads the config, picks what to play, applies volume/delay
 │  ├─ SoundRegistry.cs         Loads audio files and adds them to the game's SoundLoader at runtime
 │  ├─ EventHooks.cs            Harmony patches that turn game moments into event names
-│  ├─ Options.cs               The in-game options screen
+│  ├─ Options.cs               The in-game options screen (Sounds tab + Add Sound tab)
 │  └─ Cooldown.cs, DelayQueue.cs, FallTracker.cs, SoundRotation.cs   Small game-independent helpers
 ├─ tests/SoundboardMod.Tests/  xUnit tests for everything that doesn't need the game
 ├─ mod/                        The deployable Rain World mod folder
@@ -437,3 +467,5 @@ by the game). VS Code: *Ctrl+Shift+B* builds, and there are `test` and `deploy` 
 `disabled:` accepted) and added `scripts/sync-config.ps1`. `mod/modinfo.json`, the `[BepInPlugin]` version in
 `Plugin.cs` and the tag should agree. `v1.0.2` made the options-screen checkboxes work like any Remix setting
 (tick, then SAVE writes them into `soundboard.yaml`) and re-seeds them from the file every time the page opens.
+`v1.1.0` added the **Add Sound** tab: event and sound dropdowns plus volume/delay boxes, and SAVE appends the
+sound to the event's list in `soundboard.yaml`.

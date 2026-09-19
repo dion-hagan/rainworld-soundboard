@@ -5,10 +5,11 @@ using System.Text.RegularExpressions;
 namespace SoundboardMod
 {
     /// <summary>
-    /// Changes an entry's on/off switch directly in the text of
-    /// soundboard.yaml - used when a checkbox is ticked in the options screen.
-    /// It edits lines rather than re-writing the file from a data model, so the
-    /// player's comments, blank lines, quoting and layout all survive.
+    /// Changes soundboard.yaml directly in its text - to switch an entry on or
+    /// off (a checkbox in the options screen) or to add a sound to an event (the
+    /// "Add Sound" page). It edits lines rather than re-writing the file from a
+    /// data model, so the player's comments, blank lines, quoting and layout all
+    /// survive.
     ///
     /// The switch is written as "enabled: false" (or, if the entry already
     /// uses "disabled:", that key is kept and flipped). Turning an entry back
@@ -187,6 +188,265 @@ namespace SoundboardMod
             string tail = content.Substring(close); // "}" plus any comment
             lines[start] = before + ", enabled: false " + tail + cr;
             return Result.Success(Join(lines));
+        }
+
+        // --- adding a sound --------------------------------------------------------
+
+        /// <summary>
+        /// Adds a sound to the end of an event's list - what the options screen's
+        /// "Add Sound" page does. The event's block is extended in place (the new
+        /// item lines up with the existing ones); an event that isn't in the file yet
+        /// gets a new block at the end of 'events:', and a file with no 'events:'
+        /// section gets one. Everything else in the file is left exactly as it was.
+        ///
+        /// Unlike SetEnabled this parses the text itself, so it always works from
+        /// the current line numbers.
+        /// </summary>
+        /// <param name="eventName">The event's canonical name, written as the key if the event is new.</param>
+        /// <param name="file">File name relative to the sounds folder.</param>
+        /// <param name="options">Extra keys for the entry, already formatted ("volume" -> "0.5"). Empty writes a bare "- file.wav".</param>
+        public static Result AddSound(string text, string eventName, string file, IReadOnlyList<KeyValuePair<string, string>> options)
+        {
+            YamlNode root;
+            try
+            {
+                root = MiniYaml.Parse(text);
+            }
+            catch (YamlParseException e)
+            {
+                return Result.Failure(text, "soundboard.yaml has an error on line " + e.Line + " (" + e.Message + ") - fix that first");
+            }
+
+            if (root.Kind != YamlKind.Mapping)
+            {
+                return Result.Failure(text, "soundboard.yaml should be made of 'settings:' and 'events:' sections");
+            }
+
+            var lines = new List<string>(text.Split('\n'));
+            if (root.EndLine > lines.Count)
+            {
+                return Result.Failure(text, "the file uses old-style line endings that can't be edited automatically - add the sound by hand");
+            }
+
+            YamlEntry events = null;
+            foreach (YamlEntry entry in root.Entries)
+            {
+                if (NameMatch.Normalize(entry.Key) == "events")
+                {
+                    events = entry;
+                    break;
+                }
+            }
+
+            // No 'events:' at all: start the section after everything that's there.
+            if (events == null)
+            {
+                var section = new List<string> { "events:", "  " + eventName + ":" };
+                section.AddRange(BlockItem(file, options, 4));
+                int last = LastContentLine(lines);
+                if (last >= 0)
+                {
+                    section.Insert(0, string.Empty);
+                }
+
+                InsertAfter(lines, last, section);
+                return Result.Success(Join(lines));
+            }
+
+            int eventsIndex = events.Line - 1;
+            if (eventsIndex < 0 || eventsIndex >= lines.Count)
+            {
+                return Result.Failure(text, "the file changed since it was read");
+            }
+
+            // "events:" with nothing under it.
+            if (events.Value.IsNull)
+            {
+                if (!EndsWithBareColon(lines[eventsIndex]))
+                {
+                    return Result.Failure(text, "'events:' on line " + events.Line + " has something after the colon - add the sound by hand");
+                }
+
+                var section = new List<string> { "  " + eventName + ":" };
+                section.AddRange(BlockItem(file, options, 4));
+                InsertAfter(lines, eventsIndex, section);
+                return Result.Success(Join(lines));
+            }
+
+            YamlNode eventList = events.Value;
+            if (eventList.Kind != YamlKind.Mapping || eventList.IsFlow)
+            {
+                return Result.Failure(text, "'events:' on line " + events.Line + " isn't written as a plain list of event names, so it can't be edited automatically - add the sound by hand");
+            }
+
+            string wanted = NameMatch.Normalize(eventName);
+            YamlEntry match = null;
+            foreach (YamlEntry entry in eventList.Entries)
+            {
+                if (NameMatch.Normalize(entry.Key) == wanted)
+                {
+                    match = entry; // the last block for the event: the new sound goes at the end of its rotation
+                }
+            }
+
+            int keyIndent = eventList.Indent;
+
+            // Lists are indented by however much the player already indents them under their event name.
+            int dashIndent = keyIndent + 2;
+            foreach (YamlEntry entry in eventList.Entries)
+            {
+                if (entry.Value.Kind == YamlKind.Sequence && !entry.Value.IsFlow)
+                {
+                    dashIndent = entry.Value.Indent;
+                    break;
+                }
+            }
+
+            // A new event: a block after the last one, set apart by a blank line like the others.
+            if (match == null)
+            {
+                var block = new List<string> { string.Empty, new string(' ', keyIndent) + eventName + ":" };
+                block.AddRange(BlockItem(file, options, dashIndent));
+                InsertAfter(lines, eventList.EndLine - 1, block);
+                return Result.Success(Join(lines));
+            }
+
+            YamlNode value = match.Value;
+
+            // "PlayerDeath:" with the list commented out or removed.
+            if (value.IsNull)
+            {
+                if (!EndsWithBareColon(lines[match.Line - 1]))
+                {
+                    return Result.Failure(text, "'" + match.Key + "' on line " + match.Line + " has something after the colon - add the sound by hand");
+                }
+
+                InsertAfter(lines, match.Line - 1, BlockItem(file, options, dashIndent));
+                return Result.Success(Join(lines));
+            }
+
+            if (value.Kind == YamlKind.Sequence && !value.IsFlow)
+            {
+                InsertAfter(lines, value.EndLine - 1, BlockItem(file, options, value.Indent));
+                return Result.Success(Join(lines));
+            }
+
+            if (value.Kind == YamlKind.Sequence)
+            {
+                return AddToFlowList(text, lines, value, FlowItem(file, options));
+            }
+
+            return Result.Failure(text, "'" + match.Key + "' on line " + match.Line + " has a single sound that isn't written as a list ('- file.wav'), so another can't be added automatically - turn it into a list first");
+        }
+
+        // "PlayerDeath: [a.wav, b.wav]"  ->  "PlayerDeath: [a.wav, b.wav, c.wav]"
+        private static Result AddToFlowList(string text, List<string> lines, YamlNode list, string item)
+        {
+            if (list.Line != list.EndLine)
+            {
+                return Result.Failure(text, "the list starting on line " + list.Line + " is written across several lines inside [ ] - add the sound by hand");
+            }
+
+            int index = list.Line - 1;
+            string line = lines[index];
+            string cr = line.EndsWith("\r") ? "\r" : string.Empty;
+            string content = line.TrimEnd('\r');
+            string code = MiniYaml.StripComment(content);
+            int close = code.LastIndexOf(']');
+            if (close < 0)
+            {
+                return Result.Failure(text, "couldn't find the end of the [ ] on line " + list.Line);
+            }
+
+            string before = code.Substring(0, close).TrimEnd();
+            string tail = content.Substring(close); // "]" plus any comment
+            lines[index] = before + (before.EndsWith("[") ? string.Empty : ", ") + item + tail + cr;
+            return Result.Success(Join(lines));
+        }
+
+        private static List<string> BlockItem(string file, IReadOnlyList<KeyValuePair<string, string>> options, int indent)
+        {
+            string pad = new string(' ', indent);
+            if (options.Count == 0)
+            {
+                return new List<string> { pad + "- " + Scalar(file) };
+            }
+
+            var item = new List<string> { pad + "- file: " + Scalar(file) };
+            foreach (KeyValuePair<string, string> option in options)
+            {
+                item.Add(pad + "  " + option.Key + ": " + option.Value);
+            }
+
+            return item;
+        }
+
+        private static string FlowItem(string file, IReadOnlyList<KeyValuePair<string, string>> options)
+        {
+            if (options.Count == 0)
+            {
+                return Scalar(file);
+            }
+
+            var parts = new List<string> { "file: " + Scalar(file) };
+            foreach (KeyValuePair<string, string> option in options)
+            {
+                parts.Add(option.Key + ": " + option.Value);
+            }
+
+            return "{ " + string.Join(", ", parts) + " }";
+        }
+
+        /// <summary>
+        /// A file name as YAML text: plain if it's made only of ordinary characters,
+        /// otherwise 'single quoted' (the only escape there is '' for a quote).
+        /// </summary>
+        internal static string Scalar(string value)
+        {
+            bool plain = value.Length > 0 && (char.IsLetterOrDigit(value[0]) || value[0] == '_');
+            foreach (char c in value)
+            {
+                if (!(char.IsLetterOrDigit(c) || c == ' ' || c == '_' || c == '-' || c == '.' || c == '(' || c == ')' || c == '+' || c == '/'))
+                {
+                    plain = false;
+                    break;
+                }
+            }
+
+            if (plain && value.Trim() == value)
+            {
+                return value;
+            }
+
+            return "'" + value.Replace("'", "''") + "'";
+        }
+
+        private static bool EndsWithBareColon(string line)
+        {
+            return MiniYaml.StripComment(line.TrimEnd('\r')).TrimEnd().EndsWith(":");
+        }
+
+        private static int LastContentLine(List<string> lines)
+        {
+            for (int i = lines.Count - 1; i >= 0; i--)
+            {
+                if (lines[i].Trim().Length > 0)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        /// <summary>Inserts lines after lines[index] (or at the very top if index is -1), copying that line's line ending.</summary>
+        private static void InsertAfter(List<string> lines, int index, List<string> block)
+        {
+            string cr = index >= 0 && lines[index].EndsWith("\r") ? "\r" : string.Empty;
+            for (int i = 0; i < block.Count; i++)
+            {
+                lines.Insert(index + 1 + i, block[i] + cr);
+            }
         }
 
         /// <summary>Inserts a new line after lines[index], copying that line's line ending.</summary>
