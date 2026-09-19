@@ -1,283 +1,262 @@
 This is possibly the dumbest thing I've ever written. It's just a simple soundboard mod for me and my friends to play around with
-in Rainworld. I couldn't find anything general purpose like this. Feel free to use it/extend it - if people wind up liking the concept, I can make it easier to configure/setup/generalize it further.
+in Rainworld. I couldn't find anything general purpose like this. Feel free to use it/extend it.
 
 Note: This is AI-assisted code -- I reviewed it, but didn't play close attention to architecture.
 
 # Custom Soundboard (Rain World mod)
 
-A BepInEx mod for Rain World that plays your own `.wav` sound effects when
-specific in-game events happen (player death, jumping, eating, etc), with an
-in-game options menu that lists every registered sound and lets you enable or
-disable each one individually, or all at once.
+Plays your own sound effects when things happen in Rain World: you die, you jump, you eat, a
+Green Lizard spots you, you fall too fast, you change rooms, a scavenger throws a spear... **One
+text file, `soundboard.yaml`, decides which sound plays for which event** - along with how loud it
+is and how long to wait before it plays. No coding, no rebuilding, and no game restart to try a change.
 
-Sound loading follows the approach described in
-[EtiTheSpirit's "Rain World New Sound Tutorial"](https://gist.github.com/EtiTheSpirit/b66450898bfb559c8578a4de04dc1029):
-sounds are declared as `SoundID`s in code and attached to `.wav` files through
-the game's own data-merge system (`modify/soundeffects/sounds.txt`). This
-means sounds get full support for volume/pitch randomization, doppler, and
-positional audio, same as vanilla sounds - but it also means **the game needs
-a restart whenever you add or edit a sound** (see below).
+*(Versions before 1.0.0 needed a recompile plus two data files per sound. If you have a `0.1.0`
+setup, see [Upgrading from 0.1.0](#upgrading-from-010).)*
 
-This repo started as a **skeleton** (one placeholder beep, `examplebeep.wav`,
-to verify everything works) and now also ships a small set of meme/soundboard
-clips wired up to real gameplay events as a working example set - swap them
-out for your own whenever you like.
+## Quick start
 
-## Sound effects
+1. Install the mod and enable **Custom Soundboard** under **Options → Mods**, then restart the game.
+   It comes with a set of example sounds so you can hear it working straight away.
+2. Open **Options → Mods → Custom Soundboard**. Press **OPEN FOLDER**.
+3. In that folder:
+   - drop your own `.wav`, `.ogg` or `.mp3` files into the `sounds` folder, and
+   - open `soundboard.yaml` in Notepad (or any text editor) and point an event at them.
+4. Back in the game, press **RELOAD CONFIG**. Done - jump around and listen.
 
-| ID | File | Triggers on | Default | Description |
-|---|---|---|---|---|
-| `Soundboard_Example_Beep` | `examplebeep.wav` | `PlayerJump` | Enabled | A short placeholder beep used to verify the mod is installed and working correctly. Safe to delete once you add your own sounds. |
-| `Soundboard_AnimeWow` | `anime-wow-sound-effect.wav` | `PlayerGrabExplosive` | Enabled | Plays when you pick up an explosive spear or a scavenger grenade. |
-| `Soundboard_DiscordLeave` | `discord-leave-noise.wav` | `ScavengerDeath` | Enabled | Plays when a Scavenger dies. |
-| `Soundboard_Fah` | `fahhhhhhhhhhhhhh.wav` | `PlayerDeath` | Enabled | Plays when you die. |
-| `Soundboard_FortniteDeath` | `fortnite-death.wav` | `SpiderDeath` | Enabled | Plays when a Spider or Big Spider dies. |
-| `Soundboard_Gunshot` | `gunshot-one.wav` | `PlayerThrowExplosiveSpear` | Enabled | Plays when you throw an explosive spear. |
-| `Soundboard_HubIntro` | `hub-intro-sound.wav` | `PlayerEnterShelter` | Enabled | Plays when a shelter door closes (typically right after you enter for the cycle). |
-| `Soundboard_FortniteDeath_Lizard` | `fortnite-death.wav` | `LizardDeath` | Enabled | Plays when a Lizard dies. |
-| `Soundboard_Romance` | `romanceeeeeeeeeeeeee.wav` | `PlayerGrabSlugcat` | Enabled | Plays when you pick up another slugcat onto your back. |
-| `Soundboard_VineBoom` | `vine-boom.wav` | `PlayerHardLanding` | Enabled | Plays on a hard landing - falling from a height taller than the slugcat and hitting the ground. |
-| `Soundboard_GoodBoy` | `what-a-good-boy.wav` | `PlayerEatCreature` | Enabled | Plays when you eat a creature (meat), as opposed to fruit/plants. |
-| `Soundboard_BennyHill` | `benny-hill.wav` | `PlayerSpottedByPredator` | Enabled | Plays when a Lizard, Spider/BigSpider, or Vulture first notices you (Cyan Lizards, Red Lizards, King Vultures, and Miros Vultures have their own sounds instead). |
-| `Soundboard_YameteKudasai` | `yamete-kudasai.wav` | `SnailExplosion` | Enabled | Plays when a Snail pops - its stunning shockwave blast (including when you jump on one). |
-| `Soundboard_ScavengerSpotted` | `can-i-put-my-balls-in-your-jaws.wav` | `PlayerSpottedByScavenger` | Enabled | Plays when a Scavenger first notices you - alternating with Enrique+Indian Song (which play together). |
-| `Soundboard_AnimeAhh` | `anime-ahh.wav` | `CicadaOrLanternMouseDeath` | Enabled | Plays when a Cicada ("squidcada") or Lantern Mouse dies. |
-| `Soundboard_BoneCrack` | `bone-crack.wav` | `PlayerHardLanding` | Enabled | Plays on a hard landing, taking turns with Vine Boom. |
-| `Soundboard_FartMeme` | `fartmeme.wav` | `ScavengerDeath` | Enabled | Plays when a Scavenger dies, taking turns with We Do Not Care and Discord Leave Noise. |
-| `Soundboard_WeDoNotCare` | `we-do-not-care.wav` | `ScavengerDeath` | Enabled | Plays when a Scavenger dies, taking turns with Fart Meme and Discord Leave Noise. |
-| `Soundboard_MusicaElevador` | `musica-elevador-short.wav` | `RegionGateTransition` | Enabled | Plays when a region gate starts its transition (the gate begins closing around you and the next region starts loading). |
-| `Soundboard_HatsuneMikuWeee` | `hatsune-miku-weeeeeeee.wav` | `PlayerJumpWithCicada` | Enabled | Plays when you jump while holding a Cicada ("squidcada"). |
-| `Soundboard_Enrique` | `enrique.wav` | `PlayerSpottedByScavenger` | Enabled | Plays together with Indian Song (taking turns with Can I Put My Balls In Your Jaws) when a Scavenger first notices you. |
-| `Soundboard_IndianSong` | `indian-song.wav` | `PlayerSpottedByScavenger` | Enabled | Plays together with Enrique (taking turns with Can I Put My Balls In Your Jaws) when a Scavenger first notices you. |
-| `Soundboard_Meow` | `m-e-o-w.wav` | `PlayerArtificerPyroJump` | Enabled | Plays when Artificer does a pyro jump (explosion-boosted "double jump"), at most once every 10 seconds. |
-| `Soundboard_Scatman` | `scatman.wav` | `PlayerSpottedByCyanLizard` | Enabled | Plays when a Cyan Lizard first notices you (instead of Benny Hill). |
-| `Soundboard_NuclearAlarm` | `nuclear-alarm-siren.wav` | `VultureGrubSignal` | Enabled | Plays when a thrown Vulture Grub starts emitting its signal, calling nearby vultures (about a second after the throw). |
-| `Soundboard_FbiOpenUp` | `fbi-open-up-sfx.wav` | `CreatureEnteredOccupiedShelter` | Enabled | Plays when any creature enters a shelter that already has a player in it. |
-| `Soundboard_FahhSlowed` | `fahh-slowed.wav` | `PlayerDeath` | Enabled | Plays when you die (takes its turn in the death-sound rotation). |
-| `Soundboard_ICantDoNathan` | `i-cant-do-nathan.wav` | `PlayerDeath` | Enabled | Plays when you die (takes its turn in the death-sound rotation). |
-| `Soundboard_IGotThis` | `i-got-this-fahhhhhh.wav` | `PlayerDeath` | Enabled | Plays when you die (takes its turn in the death-sound rotation). |
-| `Soundboard_MiauTriste` | `miau-triste.wav` | `PlayerDeath` | Enabled | Plays when you die (takes its turn in the death-sound rotation). |
-| `Soundboard_OmgBruh` | `omg-bruh-oh-hell-nah.wav` | `PlayerDeath` | Enabled | Plays when you die (takes its turn in the death-sound rotation). |
-| `Soundboard_EmotionalDamage` | `emotional-damage-meme.wav` | `PlayerDeath` | Enabled | Plays when you die (takes its turn in the death-sound rotation). |
-| `Soundboard_SixtySeven` | `67-SQlv2Xv.wav` | `CyanLizardJump` | Enabled | Plays when a Cyan Lizard jumps. |
-| `Soundboard_AwwSoCute` | `aww-so-cute-ishowspeed.wav` | `PlayerGrabYeek` | Enabled | Plays when you grab a Yeek. |
-| `Soundboard_ChupaloGuayaco` | `chupalo-guayaco.wav` | `ScavengerThrowSpear` | Enabled | Plays when a Scavenger throws a spear (takes its turn in this event's sound rotation). |
-| `Soundboard_EnriqueYell` | `ennnnriiiiqqqqueeeeeeee.wav` | `ScavengerThrowSpear` | Enabled | Plays when a Scavenger throws a spear (takes its turn in this event's sound rotation). |
-| `Soundboard_GoofyYell` | `goofy-yell.wav` | `ScavengerThrowSpear` | Enabled | Plays when a Scavenger throws a spear (takes its turn in this event's sound rotation). |
-| `Soundboard_MarioYell` | `mario-yell.wav` | `ScavengerThrowSpear` | Enabled | Plays when a Scavenger throws a spear (takes its turn in this event's sound rotation). |
-| `Soundboard_OhioRingtone` | `ohio-ringtone.wav` | `ScavengerThrowSpear` | Enabled | Plays when a Scavenger throws a spear (takes its turn in this event's sound rotation). |
-| `Soundboard_QuandaleDingle` | `quandale-dingle.wav` | `ScavengerThrowSpear` | Enabled | Plays when a Scavenger throws a spear (takes its turn in this event's sound rotation). |
-| `Soundboard_Syfm` | `syfm-loud.wav` | `ScavengerDeath` | Enabled | Plays when a Scavenger dies (takes its turn in this event's sound rotation). |
-| `Soundboard_TheyreEatingMyFlesh` | `theyre-eating-my-flesh.wav` | `PlayerBitByLizard` | Enabled | Plays when a Lizard bites you. |
-| `Soundboard_GahDayum` | `gah-dayum.wav` | `PlayerBitByLizard` | Enabled | Plays when a Lizard bites you. |
-| `Soundboard_KeyboardMeme` | `keyboard-meme.wav` | `PlayerHitByDartMaggot` | Enabled | Plays when a Spitter Spider's dart maggot sticks into you. |
-| `Soundboard_HomerBarts` | `homer-lets-the-barts-out.wav` | `PlayerEnterShelter` | Enabled | Plays when a shelter door closes (takes its turn in this event's sound rotation). |
-| `Soundboard_GalaxyMeme` | `galaxy-meme.wav` | `PlayerEnterShelter` | Enabled | Plays when a shelter door closes (takes its turn in this event's sound rotation). |
-| `Soundboard_HelloMfer` | `hello-m-f-er.wav` | `CreatureEnteredOccupiedShelter` | Enabled | Plays when any creature enters a shelter that already has a player in it (takes its turn in this event's sound rotation). |
-| `Soundboard_ImGonnaCome` | `im-gonna-come.wav` | `PlayerGrabExplosive` | Enabled | Plays when you pick up an explosive spear or a scavenger grenade (takes its turn in this event's sound rotation). |
-| `Soundboard_Jackpot` | `i-just-hit-the-jackpot.wav` | `PlayerGrabExplosive` | Enabled | Plays when you pick up an explosive spear or a scavenger grenade (takes its turn in this event's sound rotation). |
-| `Soundboard_DamnHeThicc` | `damn-he-thicc.wav` | `PlayerSpottedByMajorThreat` | Enabled | Plays when a Red Lizard, Red Centipede, King Vulture, or Long Legs first notices you (takes its turn in this event's sound rotation). |
-| `Soundboard_EmotionalDamage_Threat` | `emotional-damage-meme.wav` | `PlayerSpottedByMajorThreat` | Enabled | Plays when a Red Lizard, Red Centipede, King Vulture, or Long Legs first notices you (takes its turn in this event's sound rotation). |
-| `Soundboard_Gigachad` | `gigachad-theme-music.wav` | `PlayerSpottedByMajorThreat` | Enabled | Plays when a Red Lizard, Red Centipede, King Vulture, or Long Legs first notices you (takes its turn in this event's sound rotation). |
-| `Soundboard_FlashbangGahDayum` | `flashbang-gah-dayum.wav` | `FlareBombThrown` | Enabled | Plays when a flashbang (Flare Bomb) is thrown. |
-| `Soundboard_Mine` | `mine.wav` | `PlayerSpottedByMiros` | Enabled | Plays when a Miros Bird or Miros Vulture first notices you. |
+The options screen also has a checkbox for every sound so you can switch individual ones off
+without editing anything, and it lists any problems it found in your file (with line numbers).
 
-This table is hand-maintained; the source of truth for each sound's
-description and menu label is [`mod/soundeffects/meta.json`](mod/soundeffects/meta.json).
-Update both when you add or change a sound.
+> **Where is my config?** In the game's data folder (`%USERPROFILE%\AppData\LocalLow\Videocult\Rain World\Soundboard`
+> on Windows), *not* in the mod's own folder - Steam overwrites that whenever the mod updates, which would
+> wipe your changes. The first time the game starts it puts a copy of the default `soundboard.yaml`
+> there. Delete that copy if you ever want the defaults back.
 
-> **Note:** `PlayerHardLanding` uses a fall-speed threshold
-> (`HardLandingSpeedThreshold` in `EventHooks.cs`, currently `20`) tuned from
-> real in-game measurements: normal jump landings topped out around `~9.4`,
-> a drop from a tall pole hit `~22.9`. Adjust it if it fires too often/rarely.
-> Also, "Spearmaster spearing a creature for food pips" (a MoreSlugcats-only
-> mechanic) wasn't wired up - no verified stable hook was found for it, so
-> `what-a-good-boy.wav` currently only covers "ate a creature directly".
+## Writing `soundboard.yaml`
 
-## Project layout
+The file has two sections. `events:` is the important one.
+
+```yaml
+settings:
+  hard-landing-speed: 30
+
+events:
+  PlayerDeath:
+    - boom.wav                 # simplest form: just a file name
+    - file: sad-trombone.wav   # or with options
+      volume: 0.5
+      delay: 1.5
+```
+
+Under an event name, list what should play. Each list item is a file name, or a block of options:
+
+| Option | What it does | Default |
+|---|---|---|
+| `file` | The audio file, from your `sounds` folder (`.wav`, `.ogg`, `.mp3`; the extension is optional; sub-folders work: `funny/boom.wav`). | *required* |
+| `volume` | `1` = as recorded, `0.5` = half as loud, `2` = twice (0 to 10). | `1` |
+| `delay` | Seconds to wait after the event before the sound plays (0 to 120). | `0` |
+| `name` | The label shown in the options screen. | made from the file name |
+| `description` | A tooltip for the options screen. | what the event is |
+| `enabled` | `false` = starts switched off (can be turned on in the options screen). | `true` |
+
+There's also a compact one-line form: `- { file: boom.wav, volume: 0.5, delay: 1 }`.
+
+### Taking turns
+
+If an event has **several items, they take turns**: the first time it happens the first item plays,
+the next time the second, and so on around again. So `PlayerDeath` with seven items plays a different
+death sound each time. Items switched off in the options screen are skipped.
+
+### Playing sounds together
+
+To make one step of the rotation play **several sounds at once**, use `together`:
+
+```yaml
+  PlayerSpottedByScavenger:
+    - can-i-put-my-balls-in-your-jaws.wav       # step 1: one sound
+    - together:                                 # step 2: both of these at once
+        - enrique.wav
+        - file: indian-song.wav
+          volume: 0.2
+      volume: 0.8       # optional: multiplies each sound's volume
+      delay: 0.5        # optional: added to each sound's delay
+      name: "Enrique + Indian song"
+```
+
+### Settings
+
+A few events have numbers you may want to tune. All are optional.
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `hard-landing-speed` | `30` | Impact speed that counts as a hard landing (`PlayerHardLanding`). |
+| `terminal-velocity` | `40` | Fall speed that triggers `PlayerTerminalVelocity`. |
+| `player-jump-cooldown` | `2` | Seconds between `PlayerJumpCooldown` sounds. |
+| `artificer-pyro-jump-cooldown` | `10` | Seconds between Artificer pyro-jump sounds. |
+| `spotted-cooldown` | `10` | Seconds before the same creature can "spot" you again. |
+| `debug` | `false` | `true` writes every event that fires to `BepInEx/LogOutput.log` (great for working out why a sound doesn't play, and for finding good speed values). |
+
+Falling in Rain World has no real speed cap, so "terminal velocity" is just a speed *you* pick.
+With `debug: true` the log shows the impact speed of every landing, which is the easiest way to
+choose a value you like.
+
+### Tips
+
+- Indent with **spaces**, never tabs. Lines that line up belong together.
+- Put quotes around text containing a colon or `#`: `name: "Fire: hot"`.
+- Write decimals with a dot: `0.5`, not `0,5`.
+- Event names are forgiving: `PlayerDeath`, `player death` and `player-death` all work.
+- Typos get a hint: *"'PlayerDeth' isn't an event this mod knows... Did you mean 'PlayerDeath'?"*
+- If the file has a syntax error the mod falls back to the default config (and tells you so on the
+  options screen); if you press RELOAD CONFIG with an error in it, nothing changes.
+- Replacing a sound? Save your new file over the old one with the same name and press RELOAD CONFIG.
+
+## Events
+
+These are all the built-in events. The same list (including every creature type, even ones added by
+other mods) is written to `events.txt` in your config folder each time the game starts.
+
+**Every creature type also gets its own two events**, named after the creature the way the game spells it:
+
+- `<Creature>Death` - e.g. `GreenLizardDeath`, `KingVultureDeath`, `BigSpiderDeath`, `EggBugDeath`
+- `PlayerSpottedBy<Creature>` - e.g. `PlayerSpottedByRedLizard`, `PlayerSpottedByScavenger`, `PlayerSpottedByMirosBird`
+
+Grouped events like `LizardDeath` (any lizard) or `PlayerSpottedByPredator` are in the tables below.
+When something matches both, both events fire, so you can give a specific creature its own sound
+and still have a generic one for the rest. (Each event's rotation is separate.)
+
+### The player
+
+| Event | Fires when |
+|---|---|
+| `PlayerDeath` | The slugcat dies. |
+| `PlayerJump` | The slugcat jumps. Every single jump, no limit - see PlayerJumpCooldown for a rate-limited version. |
+| `PlayerJumpCooldown` | The slugcat jumps, but at most once per 'player-jump-cooldown' seconds (setting, default 2). Good for longer sounds that shouldn't pile up. |
+| `PlayerJumpWithCicada` | The slugcat jumps while holding a Cicada ("squidcada"). Fires alongside PlayerJump. |
+| `PlayerArtificerPyroJump` | Artificer's explosion-boosted jump, at most once per 'artificer-pyro-jump-cooldown' seconds (setting, default 10). |
+| `PlayerHardLanding` | The slugcat lands hard: impact speed above 'hard-landing-speed' (setting, default 30). |
+| `PlayerTerminalVelocity` | The slugcat falls at 'terminal-velocity' speed or faster (setting, default 40). Fires once per fall, when the speed is first reached. |
+| `PlayerEat` | The slugcat eats anything - fruit, plants or meat. |
+| `PlayerEatCreature` | The slugcat eats a creature (meat) rather than fruit or plants. |
+| `PlayerGrabExplosive` | The slugcat picks up an explosive spear or a scavenger bomb. |
+| `PlayerGrabSlugcat` | The slugcat picks up another slugcat. |
+| `PlayerGrabYeek` | The slugcat grabs a Yeek. |
+| `PlayerThrowExplosiveSpear` | The slugcat throws an explosive spear. |
+| `PlayerBitByLizard` | A lizard's bite lands on the slugcat. |
+| `PlayerHitByDartMaggot` | A Spitter Spider's dart maggot sticks into the slugcat. |
+| `PlayerRoomTransition` | The slugcat moves from one room into another (through a pipe/shortcut). |
+| `PlayerEnterShelter` | A shelter door closes with you inside. |
+
+### The world
+
+| Event | Fires when |
+|---|---|
+| `RegionGateTransition` | A region gate starts carrying you into the next region. |
+| `CreatureEnteredOccupiedShelter` | Any creature walks into a shelter that already has a player in it. |
+| `SnailExplosion` | A snail pops (its stunning shockwave). |
+| `VultureGrubSignal` | A thrown vulture grub starts calling for vultures. |
+| `FlareBombThrown` | A flashbang is thrown by anyone. |
+| `CyanLizardJump` | A Cyan Lizard leaps. |
+| `ScavengerThrowSpear` | A scavenger throws a spear. |
+
+### Creatures dying
+
+| Event | Fires when |
+|---|---|
+| `LizardDeath` | Any lizard dies (all colours). For one colour use e.g. RedLizardDeath. |
+| `SpiderDeath` | A Spider or any Big Spider variant dies. |
+| `CicadaOrLanternMouseDeath` | A cicada or lantern mouse dies. |
+
+### The player being spotted
+
+| Event | Fires when |
+|---|---|
+| `PlayerSpottedByPredator` | A lizard, spider or vulture notices you - except scavengers, Cyan Lizards, Miros and the 'major threats' below, which have their own events. Once per creature per 'spotted-cooldown' seconds (setting, default 10). |
+| `PlayerSpottedByMajorThreat` | A Red Lizard, Red Centipede, King Vulture or Daddy Long Legs notices you. |
+| `PlayerSpottedByMiros` | A Miros Bird or Miros Vulture notices you. |
+
+<!-- 30 events -->
+
+## Something not working?
+
+1. Open **Options → Mods → Custom Soundboard**: problems in the file are listed at the top with line numbers.
+2. Set `debug: true` under `settings:`, press RELOAD CONFIG, then look at `BepInEx/LogOutput.log` in the
+   game folder. Every event that fires is logged along with the sound chosen, so you can tell
+   "the event never happened" apart from "the event happened but nothing is set up for it".
+3. A sound file that can't be played (corrupt, or an odd format) is reported by name. Re-saving it as a
+   plain `.wav` (16-bit PCM) with a free editor like Audacity always works.
+4. Sounds you've switched off with the checkboxes are skipped - **ENABLE ALL** turns everything back on.
+
+## Upgrading from 0.1.0
+
+Everything the old `meta.json` + `sounds.txt` pair did is now one entry in `soundboard.yaml`:
+
+| 0.1.0 | 1.0.0 |
+|---|---|
+| `"file": "boom.wav"` in `meta.json` | `file: boom.wav` |
+| `"event": "PlayerDeath"` | put it under `PlayerDeath:` |
+| `vol=0.4` in `sounds.txt` | `volume: 0.4` |
+| `"displayName"` / `"description"` | `name:` / `description:` |
+| `"defaultEnabled": false` | `enabled: false` |
+| `"group": "X"` on several sounds | one `together:` list |
+| order in `meta.json` | order of the list |
+
+The shipped `soundboard.yaml` is the old set of sounds converted this way. Sound files moved from
+`soundeffects/` to `sounds/`. The on/off checkboxes start from scratch (their saved keys changed).
+`PlayerDeath` and the other death events now fire once per death rather than on every `Die()` call.
+
+## For developers
 
 ```
 SoundboardMod/
-├─ src/                          C# source (the BepInEx plugin)
-│  ├─ SoundboardMod.csproj
-│  ├─ Plugin.cs                  Entry point (BepInPlugin)
-│  ├─ SoundboardData.cs          Loads meta.json, registers SoundIDs
-│  ├─ Options.cs                 In-game options menu (OptionInterface)
-│  └─ EventHooks.cs              Harmony patches that trigger sounds
-├─ mod/                          The deployable Rain World mod folder
+├─ src/                        C# source (the BepInEx plugin)
+│  ├─ Plugin.cs                Entry point
+│  ├─ MiniYaml.cs              Small dependency-free YAML-subset parser with friendly errors
+│  ├─ SoundboardConfig.cs      Turns the YAML into typed config + a list of issues
+│  ├─ EventCatalog.cs          Every event name + description; forgiving name matching
+│  ├─ ConfigFiles.cs           Where config/sounds live; finds audio files
+│  ├─ SoundboardRuntime.cs     Loads/reloads the config, picks what to play, applies volume/delay
+│  ├─ SoundRegistry.cs         Loads audio files and adds them to the game's SoundLoader at runtime
+│  ├─ EventHooks.cs            Harmony patches that turn game moments into event names
+│  ├─ Options.cs               The in-game options screen
+│  └─ Cooldown.cs, DelayQueue.cs, FallTracker.cs, SoundRotation.cs   Small game-independent helpers
+├─ tests/SoundboardMod.Tests/  xUnit tests for everything that doesn't need the game
+├─ mod/                        The deployable Rain World mod folder
 │  ├─ modinfo.json
-│  ├─ soundeffects/
-│  │  ├─ meta.json               Menu labels/descriptions/event mapping
-│  │  └─ examplebeep.wav         Placeholder test sound
-│  ├─ modify/soundeffects/
-│  │  └─ sounds.txt              Registers .wav files against SoundIDs
-│  └─ plugins/                   Build output (SoundboardMod.dll) goes here
-├─ scripts/deploy.ps1            Build + copy mod/ into your Rain World install
-└─ Directory.Build.props         Points the build at your Rain World install
+│  ├─ soundboard.yaml          The default config (copied to the player's data folder on first run)
+│  ├─ sounds/                  The bundled example sounds
+│  └─ plugins/                 Build output (SoundboardMod.dll) lands here
+└─ scripts/deploy.ps1          Build + copy mod/ into your Rain World install
 ```
 
-## Prerequisites
+**How sounds get into the game.** The game normally learns about sounds from `modify/soundeffects/sounds.txt`,
+merged only when mods are *applied* from the menu - before plugins run - so a plugin can't use it for the
+current launch. Instead `SoundRegistry` loads each file with `UnityWebRequestMultimedia`, registers a
+`SoundID`, and adds it to the tables inside the game's own `SoundLoader` (private `soundTriggers` /
+`allAudio`, by reflection), so playback still goes through `Room.PlaySound` with all its positional-audio
+behaviour. If a game update changes those fields, `SoundRegistry.Available` turns false and the reason is
+logged and shown on the options screen; nothing else breaks.
 
-- **.NET SDK** (8.0 or later) - used to compile the plugin.
-- **VS Code** with the **C# Dev Kit** (or C#) extension, for editing/IntelliSense/build tasks.
-- A Rain World install with **BepInEx** already present (the game ships with
-  it as of Downpour; check for a `BepInEx` folder next to `RainWorld.exe`).
+**Adding a hook.** Add a nested `[HarmonyPatch]` class to `EventHooks.cs` that calls
+`Trigger("YourEventName", thing)`, and add `YourEventName` to `EventCatalog` so it appears in `events.txt`
+and validates in the config. Per-creature events (`<Creature>Death`, `PlayerSpottedBy<Creature>`) need no
+hook at all: they're generated from the game's creature list.
 
-By default the project assumes Rain World is installed at
-`C:\Program Files (x86)\Steam\steamapps\common\Rain World`. If yours is
-elsewhere, either set an environment variable before building:
+**Build and test** (needs the .NET SDK, and a Rain World install with BepInEx; set `RAINWORLD_PATH` if
+it isn't in the default Steam location):
 
 ```powershell
-$env:RAINWORLD_PATH = "D:\Games\Rain World"
+dotnet build src/SoundboardMod.csproj                   # builds and copies the DLL into mod/plugins
+dotnet test tests/SoundboardMod.Tests                   # 90+ tests; no game needed
+./scripts/deploy.ps1                                    # build + install into your Rain World mods folder
+./scripts/deploy.ps1 -SkipBuild                         # install the DLL that's already in mod/plugins
 ```
 
-or edit `Directory.Build.props` directly.
+`deploy.ps1` also removes files left over from 0.1.0 (the old `sounds.txt` would otherwise still be merged
+by the game). VS Code: *Ctrl+Shift+B* builds, and there are `test` and `deploy` tasks.
 
-> **Note on `dotnet` on PATH:** this machine already had a runtime-only
-> install of .NET at `C:\Program Files\dotnet\` on the *system* PATH, which
-> always gets checked before anything on your *user* PATH - so a plain
-> `dotnet build` in an arbitrary terminal will say "No .NET SDKs were found"
-> even though the SDK is installed (at `%USERPROFILE%\.dotnet`). The VS Code
-> build task and `deploy.ps1` both work around this automatically by
-> prepending the SDK's folder to PATH for that command only. If you want
-> a plain `dotnet` to work everywhere, run
-> `winget install --id Microsoft.DotNet.SDK.8 -e` yourself and accept the
-> UAC prompt when it appears - that installs the SDK into the same
-> `C:\Program Files\dotnet\` the system already resolves to.
+> `dotnet` on PATH: some machines have a runtime-only .NET on the *system* PATH that shadows the SDK.
+> The VS Code tasks and `deploy.ps1` prepend `%USERPROFILE%\.dotnet` to work around it; otherwise
+> `winget install --id Microsoft.DotNet.SDK.8 -e`.
 
-## Building
-
-```bash
-dotnet build src/SoundboardMod.csproj
-```
-
-This restores `Microsoft.NETFramework.ReferenceAssemblies` (so you don't need
-a full .NET Framework install to target `net472`) and references BepInEx,
-Harmony, `Assembly-CSharp.dll` and the Unity engine DLLs straight out of your
-Rain World install - none of those files are copied into this repo. A
-post-build step copies the compiled `SoundboardMod.dll` into `mod/plugins/`
-automatically.
-
-In VS Code: `Ctrl+Shift+B` runs the default build task. There's also a
-"deploy (build + copy to Rain World mods folder)" task (Terminal -> Run Task)
-that builds and then copies the whole `mod/` folder into your Rain World
-install for you - equivalent to running:
-
-```powershell
-./scripts/deploy.ps1
-```
-
-## Installing / testing in-game
-
-1. Run the deploy script (above), or on a machine with no .NET SDK/dev
-   setup, run it with `-SkipBuild` to just copy the already-committed
-   `mod/plugins/SoundboardMod.dll` as-is instead of rebuilding:
-   ```powershell
-   ./scripts/deploy.ps1 -SkipBuild
-   ```
-   You can also skip the script entirely and manually copy the `mod/`
-   folder's *contents* into
-   `<Rain World install>/RainWorld_Data/StreamingAssets/mods/dion_soundboard/`.
-2. Launch Rain World, go to **Options -> Mods**, and enable **Custom Soundboard**.
-3. Restart the game (required - the sound-merge system only runs on launch).
-4. Start/continue a game and jump - you should hear the example beep.
-5. Open **Options -> Mods -> Custom Soundboard** (the gear/arrow icon next to
-   the mod) to see the sound list and its Enable All / Disable All buttons.
-
-## Adding your own sound
-
-1. Convert your sound to `.wav` (or `.ogg`) and drop it in `mod/soundeffects/`.
-   File names must not contain underscores unless you're providing numbered
-   variants (`myclip_1.wav`, `myclip_2.wav`, ...).
-2. Register it in `mod/modify/soundeffects/sounds.txt`:
-   ```
-   [ADD]MyCoolSound/vol=0.5 : myclip
-   ```
-   See the comments at the top of that file, or the
-   [tutorial](https://gist.github.com/EtiTheSpirit/b66450898bfb559c8578a4de04dc1029),
-   for all supported parameters (volume/pitch ranges, doppler, etc).
-3. Add an entry to `mod/soundeffects/meta.json` with the **same id**:
-   ```json
-   {
-     "id": "MyCoolSound",
-     "displayName": "My Cool Sound",
-     "description": "Plays when I do the thing.",
-     "file": "myclip.wav",
-     "event": "PlayerJump",
-     "defaultEnabled": true
-   }
-   ```
-   The `event` value must match one of the event keys wired up in
-   `src/EventHooks.cs` (see below), or a new one you add yourself.
-
-   Optionally add a `"group"` string. When multiple *enabled* sounds share
-   both the same `event` and the same `group`, they're treated as one unit:
-   the rotation steps through groups (not individual sounds), and every
-   sound in the current group plays together. Sounds with no `group` are
-   their own group of one, so e.g. two grouped sounds sharing an event with
-   one ungrouped sound alternate between "the ungrouped one alone" and
-   "both grouped ones together" - see `Soundboard_Enrique` /
-   `Soundboard_IndianSong` (grouped) vs `Soundboard_ScavengerSpotted`
-   (ungrouped) in `meta.json` for a working example.
-4. Rebuild/redeploy, restart the game, and toggle it on in the mods menu.
-
-### Available event keys
-
-Wired up in `src/EventHooks.cs`:
-
-| Event key | Fires when |
-|---|---|
-| `PlayerDeath` | The slugcat dies (`Player.Die`) |
-| `PlayerJump` | The slugcat jumps (`Player.Jump`) - easiest one to test with |
-| `PlayerEat` | The slugcat eats anything, food or creature (`Player.ObjectEaten`) |
-| `PlayerEatCreature` | ...specifically when what it ate was a creature (meat) |
-| `PlayerGrabExplosive` | The slugcat picks up an `ExplosiveSpear` or `ScavengerBomb` (`Creature.Grab`) |
-| `PlayerGrabSlugcat` | The slugcat picks up another slugcat onto its back (`Creature.Grab`) |
-| `PlayerThrowExplosiveSpear` | The slugcat throws an `ExplosiveSpear` (`Player.ThrownSpear`) |
-| `PlayerHardLanding` | The slugcat hits the ground above a fall-speed threshold (`Player.TerrainImpact`) |
-| `PlayerEnterShelter` | A shelter door closes (`ShelterDoor.DoorClosed`, fired once per door - the game calls it every frame while the door stays shut) |
-| `ScavengerDeath` | A Scavenger dies (`Creature.Die`) |
-| `LizardDeath` | A Lizard dies (`Creature.Die`) |
-| `SpiderDeath` | A Spider or BigSpider dies (`Spider.Die` / `BigSpider.Die`) |
-| `PlayerSpottedByPredator` | A Lizard, Spider/BigSpider, or Vulture first notices you (except the ones with their own events above) (`Tracker.CreatureNoticed`) - fires once per sighting, not continuously while it's chasing you (a creature that loses track of you and re-notices you can trigger it again, but each individual creature is limited to once per 10 seconds, so a predator that keeps flickering in and out of sight doesn't replay the sound constantly; different creatures each have their own cooldown). All the "spotted by" events work this way |
-| `SnailExplosion` | A Snail pops (`Snail.Click`): the stunning shockwave blast that happens when a live snail is hit hard, dropped fast, bumped, or jumped on. Killing a snail doesn't set it off (`Snail.Die` does nothing extra) |
-| `PlayerSpottedByScavenger` | A Scavenger first notices you (`Tracker.CreatureNoticed`) - separate from `PlayerSpottedByPredator` since Scavengers aren't strictly hostile |
-| `PlayerSpottedByCyanLizard` | Specifically a Cyan Lizard first notices you (`Tracker.CreatureNoticed`) - takes priority over `PlayerSpottedByPredator` for that one lizard color |
-| `PlayerSpottedByMiros` | A Miros Bird, or a Miros Vulture (`Vulture.IsMiros`), first notices you (`Tracker.CreatureNoticed`) - takes priority over `PlayerSpottedByPredator` for Miros Vultures |
-| `CicadaOrLanternMouseDeath` | A Cicada ("squidcada") or Lantern Mouse dies (`Cicada.Die` / `LanternMouse.Die`) |
-| `RegionGateTransition` | A region gate starts its transition - the moment it begins closing around you and loading the next region (`OverWorld.GateRequestsSwitchInitiation`, called once per gate use) |
-| `PlayerJumpWithCicada` | The slugcat jumps while grasping a Cicada ("squidcada") (`Player.Jump` + grasp check) - fires alongside `PlayerJump`, not instead of it |
-| `PlayerArtificerPyroJump` | Artificer does an explosion-boosted jump (`Player.ClassMechanicsArtificer`, edge-detected on `pyroJumpped`, with a 10 second cooldown per player) |
-| `VultureGrubSignal` | A thrown Vulture Grub starts emitting its call (`VultureGrub.InitiateSignal`), which summons nearby vultures. Fires about a second after the throw: tossing the grub starts a 40-tick countdown first |
-| `CreatureEnteredOccupiedShelter` | Any creature moves into a shelter room that already has a player in it (`Creature.NewRoom`) - some creature types override `NewRoom` themselves and may not trigger this, same caveat as the death-event hooks above |
-| `CyanLizardJump` | A Cyan Lizard jumps (`LizardJumpModule.Jump`, called once per leap) |
-| `PlayerGrabYeek` | The slugcat grabs a Yeek (`Creature.Grab`) |
-| `ScavengerThrowSpear` | A Scavenger throws a spear (`Spear.Thrown`; covers every spear type - explosive and MSC electric spears call through to it) |
-| `PlayerBitByLizard` | A Lizard's bite lands on the player (`Lizard.Bite`) |
-| `PlayerHitByDartMaggot` | A Spitter Spider's dart maggot sticks into the player (`DartMaggot.Update`, fires once per maggot) |
-| `PlayerSpottedByMajorThreat` | A Red Lizard, Red Centipede, King Vulture, or Long Legs first notices you (`Tracker.CreatureNoticed`) - takes priority over `PlayerSpottedByPredator` for those creatures |
-| `FlareBombThrown` | A flashbang (`FlareBomb`) is thrown by anyone (`FlareBomb.Thrown`) |
-
-If multiple enabled sounds share the same event key, they take turns: each
-time that event fires, the next group in `meta.json` order plays (everything
-in a group plays together), and after the last one it loops back to the
-first, so a sound isn't repeated until the others have had a turn. Sounds you
-switch off in the menu are skipped but keep their place in the order. The
-rotation restarts from the first sound each time the game launches. See
-`ChooseGroup` in `EventHooks.cs` and `SoundRotation.cs`, and the `group`
-field described above.
-
-To hook a different event, add another Harmony patch in `EventHooks.cs`
-following the same pattern (patch a method, call `Trigger("YourEventKey", creature)`
-or `TriggerAt`/`TriggerNonPositional` directly), then reference
-`"YourEventKey"` from any sound's `"event"` field in `meta.json`. A couple of
-the patches above target `private` game methods, so they're referenced by
-string name (`"ThrownSpear"`) rather than `nameof(...)` - `nameof` only works
-on members your code could otherwise call directly.
-
-## How enable/disable works
-
-Every sound gets its own persisted `Configurable<bool>` (Rain World's mod
-config system), shown as a checkbox in the options menu. `EventHooks` checks
-that value before playing a sound, so disabling one just silences it - no
-restart needed for toggling on/off, only for adding/changing sounds themselves.
+**Releases** are git tags: `v0.1.0` is the last version with `meta.json`/`sounds.txt`; `v1.0.0` introduced
+`soundboard.yaml`. `mod/modinfo.json`, the `[BepInPlugin]` version in `Plugin.cs` and the tag should agree.

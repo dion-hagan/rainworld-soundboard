@@ -53,8 +53,29 @@ if (-not (Test-Path $RainWorldPath)) {
 
 Write-Host "Copying mod/ -> $modDest ..." -ForegroundColor Cyan
 New-Item -ItemType Directory -Force -Path $modDest | Out-Null
+
+# Versions before 1.0.0 kept sounds in soundeffects/ and registered them in
+# modify/soundeffects/sounds.txt. Copy-Item never deletes, so an old install
+# would keep both - and the game would go on merging the stale sounds.txt.
+$legacy = @(
+    (Join-Path $modDest "modify\soundeffects\sounds.txt"),
+    (Join-Path $modDest "soundeffects")
+)
+foreach ($path in $legacy) {
+    if (Test-Path $path) {
+        Write-Host "Removing leftover from an older version: $path" -ForegroundColor Yellow
+        Remove-Item -Path $path -Recurse -Force
+    }
+}
+$legacyModify = Join-Path $modDest "modify\soundeffects"
+if ((Test-Path $legacyModify) -and -not (Get-ChildItem $legacyModify -Force)) { Remove-Item $legacyModify -Force }
+$legacyModifyRoot = Join-Path $modDest "modify"
+if ((Test-Path $legacyModifyRoot) -and -not (Get-ChildItem $legacyModifyRoot -Force)) { Remove-Item $legacyModifyRoot -Force }
+
 Copy-Item -Path (Join-Path $modSource '*') -Destination $modDest -Recurse -Force
 
 Write-Host ""
-Write-Host "Done. Now, in-game: Options -> Mods -> enable 'Custom Soundboard' -> restart." -ForegroundColor Green
-Write-Host "(A restart is required whenever soundeffects/meta.json or modify/soundeffects/sounds.txt change.)"
+Write-Host "Done. Now, in-game: Options -> Mods -> enable 'Custom Soundboard' -> apply/restart." -ForegroundColor Green
+Write-Host "After that, soundboard.yaml changes need no restart: press RELOAD CONFIG in the mod's options screen."
+Write-Host "(Your personal copy of soundboard.yaml lives in the game's data folder - OPEN FOLDER in the options screen finds it.)"
+Write-Host "(Deploying never touches it. To try the shipped defaults again, delete that copy and restart.)"

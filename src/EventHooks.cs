@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using BepInEx.Logging;
 using HarmonyLib;
@@ -11,25 +12,20 @@ namespace SoundboardMod
     /// <summary>
     /// Game-event hooks that trigger soundboard playback. Every nested
     /// *_Patch class below patches one real game method and calls
-    /// Trigger(...)/TriggerAt(...) with an event key. Sounds in
-    /// soundeffects/meta.json reference these keys via their "event" field -
-    /// multiple sounds can share a key, and they take turns in meta.json
-    /// order (skipping any that are switched off in the menu).
+    /// Trigger(...)/TriggerAt(...) with an event key. What plays for a key is
+    /// decided by soundboard.yaml (see SoundboardRuntime.Fire) - nothing in
+    /// here knows about particular sounds.
     ///
     /// To add a new hook: add another nested class patching whatever method
-    /// fires at the moment you care about, then call Trigger/TriggerAt with
-    /// a new event key of your choosing.
+    /// fires at the moment you care about, call Trigger/TriggerAt with a new
+    /// event key, and add that key to EventCatalog so it shows up in
+    /// events.txt and validates in the config.
     /// </summary>
     public static class EventHooks
     {
-        // Tune this if "hard landing" fires too often/rarely - it's the
-        // fall speed (in the game's internal units) at first ground
-        // contact, not a real-world unit. Empirically measured: normal jump
-        // landings top out around ~9.4, a drop from a tall pole hit ~22.9.
-        // Threshold set between the two with some margin.
-        private const float HardLandingSpeedThreshold = 30f;
-
         private static readonly ManualLogSource Log = BepInEx.Logging.Logger.CreateLogSource("SoundboardMod");
+
+        private static SoundboardSettings Settings => SoundboardRuntime.Settings;
 
         public static void Apply(Harmony harmony)
         {
@@ -55,29 +51,31 @@ namespace SoundboardMod
                 }
             }
 
+            int deathHooks = PatchCreatureDeaths(harmony);
+
             int patchedCount = harmony.GetPatchedMethods().Count();
-            Log.LogInfo($"Harmony patched {patchedCount} method(s), {failed} hook class(es) failed.");
+            Log.LogInfo($"Harmony patched {patchedCount} method(s) ({deathHooks} of them creature Die() methods), {failed} hook class(es) failed.");
         }
 
         // --- Player ---------------------------------------------------
 
-        [HarmonyPatch(typeof(Player), nameof(Player.Die))]
-        private static class Player_Die_Patch
-        {
-            [HarmonyPostfix]
-            private static void Postfix(Player __instance)
-            {
-                Trigger("PlayerDeath", __instance);
-            }
-        }
-
+        // PlayerJump fires on every jump; PlayerJumpCooldown is the same moment
+        // but at most once per "player-jump-cooldown" seconds for each player,
+        // for sounds too long to sit through on every hop.
         [HarmonyPatch(typeof(Player), nameof(Player.Jump))]
         private static class Player_Jump_Patch
         {
+            private static readonly Cooldown JumpCooldown = new Cooldown(() => Settings.PlayerJumpCooldown, () => Time.time);
+
             [HarmonyPostfix]
             private static void Postfix(Player __instance)
             {
                 Trigger("PlayerJump", __instance);
+
+                if (JumpCooldown.TryTrigger(__instance))
+                {
+                    Trigger("PlayerJumpCooldown", __instance);
+                }
 
                 if (IsHoldingCicada(__instance))
                 {
@@ -141,7 +139,12 @@ namespace SoundboardMod
             [HarmonyPostfix]
             private static void Postfix(Player __instance, System.Boolean firstContact, System.Single speed)
             {
-                if (firstContact && speed > HardLandingSpeedThreshold)
+                if (firstContact && Settings.Debug && speed > 10f)
+                {
+                    Log.LogInfo($"[landing] impact speed {speed:0.0} (hard-landing-speed is {Settings.HardLandingSpeed:0.#})");
+                }
+
+                if (firstContact && speed > Settings.HardLandingSpeed)
                 {
                     Trigger("PlayerHardLanding", __instance);
                 }
@@ -152,13 +155,13 @@ namespace SoundboardMod
         // track its last value per-player and only fire on the false->true
         // edge (otherwise this would re-trigger every frame it stays true).
         // Artificer can chain these jumps quickly, so each player also gets a
-        // 10s cooldown. The edge tracking below always updates, so a jump
+        // cooldown ("artificer-pyro-jump-cooldown", 10s by default). The edge tracking below always updates, so a jump
         // that's suppressed by the cooldown can't cause a stale edge later.
         [HarmonyPatch(typeof(Player), nameof(Player.ClassMechanicsArtificer))]
         private static class Player_ClassMechanicsArtificer_Patch
         {
             private static readonly ConditionalWeakTable<Player, StrongBox<bool>> LastPyroJumped = new ConditionalWeakTable<Player, StrongBox<bool>>();
-            private static readonly Cooldown PyroJumpCooldown = new Cooldown(10f, () => Time.time);
+            private static readonly Cooldown PyroJumpCooldown = new Cooldown(() => Settings.ArtificerPyroJumpCooldown, () => Time.time);
 
             [HarmonyPostfix]
             private static void Postfix(Player __instance)
@@ -201,48 +204,6 @@ namespace SoundboardMod
             }
         }
 
-        // --- Other creatures dying -------------------------------------
-        // Scavenger and Lizard don't override Die(), so patching the base
-        // Creature.Die catches them. Spider/BigSpider DO override Die(),
-        // so they each need their own patch.
-
-        [HarmonyPatch(typeof(Creature), nameof(Creature.Die))]
-        private static class Creature_Die_Patch
-        {
-            [HarmonyPostfix]
-            private static void Postfix(Creature __instance)
-            {
-                if (__instance is Scavenger)
-                {
-                    Trigger("ScavengerDeath", __instance);
-                }
-                else if (__instance is Lizard)
-                {
-                    Trigger("LizardDeath", __instance);
-                }
-            }
-        }
-
-        [HarmonyPatch(typeof(Spider), nameof(Spider.Die))]
-        private static class Spider_Die_Patch
-        {
-            [HarmonyPostfix]
-            private static void Postfix(Spider __instance)
-            {
-                Trigger("SpiderDeath", __instance);
-            }
-        }
-
-        [HarmonyPatch(typeof(BigSpider), nameof(BigSpider.Die))]
-        private static class BigSpider_Die_Patch
-        {
-            [HarmonyPostfix]
-            private static void Postfix(BigSpider __instance)
-            {
-                Trigger("SpiderDeath", __instance);
-            }
-        }
-
         // A Snail's "explosion" is Click(): the pop that plays Snail_Pop and
         // sends a stunning shockwave through the room. It runs for a live,
         // "triggered" snail (hit hard, dropped fast, bumped, or jumped on by
@@ -266,26 +227,6 @@ namespace SoundboardMod
                 {
                     Trigger("SnailExplosion", __instance);
                 }
-            }
-        }
-
-        [HarmonyPatch(typeof(Cicada), nameof(Cicada.Die))]
-        private static class Cicada_Die_Patch
-        {
-            [HarmonyPostfix]
-            private static void Postfix(Cicada __instance)
-            {
-                Trigger("CicadaOrLanternMouseDeath", __instance);
-            }
-        }
-
-        [HarmonyPatch(typeof(LanternMouse), nameof(LanternMouse.Die))]
-        private static class LanternMouse_Die_Patch
-        {
-            [HarmonyPostfix]
-            private static void Postfix(LanternMouse __instance)
-            {
-                Trigger("CicadaOrLanternMouseDeath", __instance);
             }
         }
 
@@ -493,20 +434,26 @@ namespace SoundboardMod
         // Tracker.CreatureNoticed is where a creature's AI starts tracking
         // something new - on first sight, or when something asks the tracker
         // for a creature it isn't tracking yet. We only care when that
-        // "something" is the player, and the tracker's owner is one of the
-        // predators we're after. It returns null (tracking nothing) if the
+        // "something" is the player. It returns null (tracking nothing) if the
         // creature isn't realized, is dead, or this AI never tracks it, and
         // callers that ask again each frame would hit that path repeatedly,
         // so only a non-null result counts as a real "noticed". The tracker
         // forgets creatures it hasn't seen for a while, and a creature that
         // keeps losing and re-finding the player would re-fire this
-        // constantly, so each creature gets a cooldown (SpottedCooldown).
+        // constantly, so each creature gets a cooldown (spotted-cooldown).
+        //
+        // Two kinds of event come out of one sighting:
+        //  - PlayerSpottedBy<CreatureType>, for every creature type the game
+        //    has (PlayerSpottedByGreenLizard, PlayerSpottedByKingVulture, ...).
+        //  - The older grouped events (Predator / MajorThreat / Miros / ...),
+        //    kept as they were: at most one of them per sighting, with the more
+        //    specific groups taking priority over the generic predator one.
 
         // Keyed on the creature's AbstractCreature, which outlives the
         // realized object, so a predator that leaves and re-enters the camera
         // range doesn't get a fresh cooldown. Each creature has its own, so
         // several different predators noticing you together can still all fire.
-        private static readonly Cooldown SpottedCooldown = new Cooldown(10f, () => Time.time);
+        private static readonly Cooldown SpottedCooldown = new Cooldown(() => Settings.SpottedCooldown, () => Time.time);
 
         [HarmonyPatch(typeof(Tracker), "CreatureNoticed")]
         private static class Tracker_CreatureNoticed_Patch
@@ -521,11 +468,23 @@ namespace SoundboardMod
 
                 AbstractCreature observer = __instance.AI?.creature;
                 PhysicalObject predator = observer?.realizedObject;
+                if (predator == null || predator is Player)
+                {
+                    return;
+                }
 
-                string eventKey = null;
+                var eventKeys = new List<string>();
+
+                string typeName = CreatureTypeName(predator);
+                if (typeName != null)
+                {
+                    eventKeys.Add(EventCatalog.SpottedKey(typeName));
+                }
+
+                string groupKey = null;
                 if (predator is Scavenger)
                 {
-                    eventKey = "PlayerSpottedByScavenger";
+                    groupKey = "PlayerSpottedByScavenger";
                 }
                 else if (predator is DaddyLongLegs
                     || IsCreatureType(predator, CreatureTemplate.Type.RedLizard)
@@ -533,31 +492,227 @@ namespace SoundboardMod
                     || IsCreatureType(predator, CreatureTemplate.Type.KingVulture))
                 {
                     // Takes priority over the generic predator sound below.
-                    eventKey = "PlayerSpottedByMajorThreat";
+                    groupKey = "PlayerSpottedByMajorThreat";
                 }
                 else if (predator is MirosBird || (predator is Vulture vulture && vulture.IsMiros))
                 {
                     // Miros Vultures are ordinary Vulture objects flagged IsMiros.
-                    eventKey = "PlayerSpottedByMiros";
+                    groupKey = "PlayerSpottedByMiros";
                 }
                 else if (IsCreatureType(predator, CreatureTemplate.Type.CyanLizard))
                 {
-                    eventKey = "PlayerSpottedByCyanLizard";
+                    groupKey = "PlayerSpottedByCyanLizard";
                 }
                 else if (predator is Lizard || predator is Spider || predator is BigSpider || predator is Vulture)
                 {
-                    eventKey = "PlayerSpottedByPredator";
+                    groupKey = "PlayerSpottedByPredator";
                 }
 
-                if (eventKey != null && SpottedCooldown.TryTrigger(observer))
+                if (groupKey != null)
                 {
-                    Trigger(eventKey, player);
+                    eventKeys.Add(groupKey);
+                }
+
+                if (eventKeys.Count > 0 && SpottedCooldown.TryTrigger(observer))
+                {
+                    TriggerAll(eventKeys, player);
+                }
+            }
+        }
+
+        // --- Creatures dying ------------------------------------------------
+        // Creature.Die is virtual and a long list of creature classes override
+        // it (some calling base.Die(), some not), so rather than one hand-written
+        // patch per class, every Die() declared by a Creature subclass in the
+        // game assembly is patched at startup with the same prefix/postfix.
+        //
+        // A death is reported when the creature's dead flag goes from false to
+        // true across the call - Creature.Die's body runs its tail every time
+        // it's called, so "Die() was called" alone would repeat for a corpse.
+        // Overrides call into base.Die(), so one death is seen by several
+        // patches in a single call chain; OnCreatureDied counts it only once.
+        //
+        // Events: <CreatureType>Death for every creature type (RedLizardDeath,
+        // BigSpiderDeath, ...), the older grouped ones (LizardDeath, SpiderDeath,
+        // ScavengerDeath - every scavenger variant, CicadaOrLanternMouseDeath),
+        // and PlayerDeath for the slugcat.
+
+        private static readonly ConditionalWeakTable<Creature, StrongBox<int>> LastDeathFrame = new ConditionalWeakTable<Creature, StrongBox<int>>();
+
+        private static int PatchCreatureDeaths(Harmony harmony)
+        {
+            var prefix = new HarmonyMethod(typeof(EventHooks).GetMethod(nameof(CreatureDiePrefix), BindingFlags.NonPublic | BindingFlags.Static));
+            var postfix = new HarmonyMethod(typeof(EventHooks).GetMethod(nameof(CreatureDiePostfix), BindingFlags.NonPublic | BindingFlags.Static));
+
+            int patched = 0;
+            foreach (Type type in typeof(Creature).Assembly.GetTypes())
+            {
+                if (!typeof(Creature).IsAssignableFrom(type))
+                {
+                    continue;
+                }
+
+                MethodInfo die = type.GetMethod("Die", BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly, null, Type.EmptyTypes, null);
+                if (die == null || die.IsAbstract)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    harmony.Patch(die, prefix, postfix);
+                    patched++;
+                }
+                catch (Exception e)
+                {
+                    Log.LogError($"Couldn't hook {type.Name}.Die and will miss those deaths: {e.Message}");
+                }
+            }
+
+            return patched;
+        }
+
+        private static void CreatureDiePrefix(Creature __instance, out bool __state)
+        {
+            __state = __instance.dead;
+        }
+
+        private static void CreatureDiePostfix(Creature __instance, bool __state)
+        {
+            if (!__state && __instance.dead)
+            {
+                OnCreatureDied(__instance);
+            }
+        }
+
+        private static void OnCreatureDied(Creature creature)
+        {
+            StrongBox<int> lastFrame = LastDeathFrame.GetValue(creature, _ => new StrongBox<int>(-1));
+            if (lastFrame.Value == Time.frameCount)
+            {
+                return; // already reported by another Die() further along this same call chain
+            }
+
+            lastFrame.Value = Time.frameCount;
+
+            if (creature is Player)
+            {
+                Trigger("PlayerDeath", creature);
+                return;
+            }
+
+            var eventKeys = new List<string>();
+
+            string typeName = CreatureTypeName(creature);
+            if (typeName != null)
+            {
+                eventKeys.Add(EventCatalog.DeathKey(typeName));
+            }
+
+            if (creature is Scavenger)
+            {
+                eventKeys.Add("ScavengerDeath");
+            }
+
+            if (creature is Lizard)
+            {
+                eventKeys.Add("LizardDeath");
+            }
+
+            if (creature is Spider || creature is BigSpider)
+            {
+                eventKeys.Add("SpiderDeath");
+            }
+
+            if (creature is Cicada || creature is LanternMouse)
+            {
+                eventKeys.Add("CicadaOrLanternMouseDeath");
+            }
+
+            TriggerAll(eventKeys, creature);
+        }
+
+        // --- Moving between rooms ---------------------------------------------
+        // Creature.NewRoom is called when a creature is placed in a room: on
+        // spawning, and again each time it comes out of a shortcut into a
+        // different room (Player.NewRoom calls base.NewRoom). The first call for
+        // a player is just it being placed in the level, so a transition is only
+        // counted when the player already had a room and it's a different one.
+        [HarmonyPatch(typeof(Creature), nameof(Creature.NewRoom))]
+        private static class Player_RoomTransition_Patch
+        {
+            private static readonly ConditionalWeakTable<Player, StrongBox<string>> LastRoom = new ConditionalWeakTable<Player, StrongBox<string>>();
+
+            [HarmonyPostfix]
+            private static void Postfix(Creature __instance, Room newRoom)
+            {
+                if (!(__instance is Player player) || player.isNPC || newRoom?.abstractRoom == null)
+                {
+                    return;
+                }
+
+                StrongBox<string> last = LastRoom.GetValue(player, _ => new StrongBox<string>(null));
+                string previous = last.Value;
+                last.Value = newRoom.abstractRoom.name;
+
+                if (previous != null && previous != last.Value)
+                {
+                    Trigger("PlayerRoomTransition", player);
+                }
+            }
+        }
+
+        // --- Falling fast --------------------------------------------------------
+        // Rain World has no speed cap on falling - gravity just keeps adding -
+        // so "terminal velocity" is a speed the player picks (terminal-velocity
+        // in the settings). FallTracker fires once when a fall first reaches it
+        // and re-arms after landing (or slowing right down, e.g. grabbing a pole).
+        [HarmonyPatch(typeof(Player), nameof(Player.Update))]
+        private static class Player_Update_FallSpeed_Patch
+        {
+            private static readonly ConditionalWeakTable<Player, FallTracker> Trackers = new ConditionalWeakTable<Player, FallTracker>();
+
+            [HarmonyPostfix]
+            private static void Postfix(Player __instance)
+            {
+                if (__instance.room == null || __instance.dead || __instance.bodyChunks == null || __instance.bodyChunks.Length == 0)
+                {
+                    return;
+                }
+
+                bool touching = false;
+                foreach (BodyChunk chunk in __instance.bodyChunks)
+                {
+                    if (chunk.ContactPoint.x != 0 || chunk.ContactPoint.y != 0)
+                    {
+                        touching = true;
+                        break;
+                    }
+                }
+
+                float downSpeed = -__instance.mainBodyChunk.vel.y;
+                FallTracker tracker = Trackers.GetValue(__instance, _ => new FallTracker());
+                if (tracker.Update(downSpeed, touching, Settings.TerminalVelocity))
+                {
+                    if (Settings.Debug)
+                    {
+                        Log.LogInfo($"[fall] reached terminal-velocity: falling at {downSpeed:0.0} (setting is {Settings.TerminalVelocity:0.#})");
+                    }
+
+                    Trigger("PlayerTerminalVelocity", __instance);
                 }
             }
         }
 
         // --- Shared playback logic --------------------------------------
 
+        /// <summary>
+        /// Something happened to/at source: plays its event, positioned at it
+        /// (the source's own room and position, so it pans and fades naturally).
+        /// Events about the player are heard even if the camera hasn't caught
+        /// up to the room yet; events about other creatures only if that room
+        /// is on screen.
+        /// </summary>
         private static void Trigger(string eventKey, PhysicalObject source)
         {
             if (source?.room == null || source.bodyChunks == null || source.bodyChunks.Length == 0)
@@ -565,7 +720,23 @@ namespace SoundboardMod
                 return;
             }
 
-            TriggerAt(eventKey, source.room, source.bodyChunks[0].pos);
+            SoundScope scope = source is Player ? SoundScope.Player : SoundScope.World;
+            SoundboardRuntime.Fire(eventKey, source.room, source.bodyChunks[0].pos, scope);
+        }
+
+        /// <summary>Several events for one thing happening (e.g. a Red Lizard dying is both RedLizardDeath and LizardDeath); each fires once.</summary>
+        private static void TriggerAll(IEnumerable<string> eventKeys, PhysicalObject source)
+        {
+            foreach (string key in eventKeys.Distinct())
+            {
+                Trigger(key, source);
+            }
+        }
+
+        /// <summary>The creature's type name as the game spells it ("RedLizard", "KingVulture", ...), or null.</summary>
+        private static string CreatureTypeName(PhysicalObject obj)
+        {
+            return (obj as Creature)?.abstractCreature?.creatureTemplate?.type?.value;
         }
 
         /// <summary>
@@ -578,91 +749,16 @@ namespace SoundboardMod
             return obj is Creature creature && creature.abstractCreature?.creatureTemplate?.type == type;
         }
 
-        /// <summary>
-        /// Plays every sound in the next group in line for the given event
-        /// key (if any), positioned in the world so it pans/attenuates
-        /// naturally. Sounds with no "group" in meta.json are their own group
-        /// of one; sounds sharing a group take their turn as a single unit
-        /// and all play together.
-        /// </summary>
+        /// <summary>Plays an event at a spot in a room, for things that aren't a PhysicalObject.</summary>
         private static void TriggerAt(string eventKey, Room room, Vector2 pos)
         {
-            if (room == null)
-            {
-                return;
-            }
-
-            foreach (SoundEntry entry in ChooseGroup(eventKey))
-            {
-                room.PlaySound(entry.soundId, pos, 1f, 1f);
-            }
+            SoundboardRuntime.Fire(eventKey, room, pos, SoundScope.World);
         }
 
-        /// <summary>Same as TriggerAt, but for events with no natural world position.</summary>
+        /// <summary>Plays an event with no position (centred), for things that are about the player rather than a spot in the world.</summary>
         private static void TriggerNonPositional(string eventKey, Room room)
         {
-            if (room == null)
-            {
-                return;
-            }
-
-            foreach (SoundEntry entry in ChooseGroup(eventKey))
-            {
-                room.PlaySound(entry.soundId);
-            }
-        }
-
-        // Which group played last for each event, so the next trigger moves on
-        // to the following one. In-memory only: every launch starts each
-        // event's rotation from its first sound again.
-        private static readonly Dictionary<string, string> LastPlayedGroup = new Dictionary<string, string>();
-
-        private static bool IsEnabled(SoundEntry entry)
-        {
-            return Options.Instance == null || Options.Instance.IsEnabled(entry.id);
-        }
-
-        /// <summary>
-        /// Picks the next group for eventKey and returns the enabled sounds in
-        /// it. Groups are visited in meta.json order and wrap around after the
-        /// last one (see SoundRotation), so a sound isn't repeated until every
-        /// other enabled group for that event has had a turn. A sound with no
-        /// "group" is its own group of one.
-        /// </summary>
-        private static List<SoundEntry> ChooseGroup(string eventKey)
-        {
-            // Every sound for this event, in meta.json order, bucketed by group.
-            // Disabled sounds stay in the list so they keep their place.
-            var order = new List<string>();
-            var groups = new Dictionary<string, List<SoundEntry>>();
-
-            foreach (SoundEntry entry in SoundboardData.Sounds)
-            {
-                if (entry.@event != eventKey || entry.soundId == null)
-                {
-                    continue;
-                }
-
-                string groupKey = string.IsNullOrEmpty(entry.group) ? entry.id : entry.group;
-                if (!groups.TryGetValue(groupKey, out List<SoundEntry> members))
-                {
-                    members = new List<SoundEntry>();
-                    groups[groupKey] = members;
-                    order.Add(groupKey);
-                }
-
-                members.Add(entry);
-            }
-
-            LastPlayedGroup.TryGetValue(eventKey, out string lastKey);
-            string next = SoundRotation.NextKey(order, key => groups[key].Any(IsEnabled), lastKey);
-            if (next == null)
-            {
-                return new List<SoundEntry>();
-            }
-
-            LastPlayedGroup[eventKey] = next;
-            return groups[next].Where(IsEnabled).ToList();
+            SoundboardRuntime.Fire(eventKey, room, null, SoundScope.Player);
         }
     }
 }

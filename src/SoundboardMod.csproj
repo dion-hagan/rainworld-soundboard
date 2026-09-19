@@ -48,8 +48,17 @@
       <HintPath>$(RainWorldManagedPath)\UnityEngine.CoreModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
-    <Reference Include="UnityEngine.JSONSerializeModule">
-      <HintPath>$(RainWorldManagedPath)\UnityEngine.JSONSerializeModule.dll</HintPath>
+    <!-- Loading the player's audio files (UnityWebRequestMultimedia -> AudioClip) -->
+    <Reference Include="UnityEngine.AudioModule">
+      <HintPath>$(RainWorldManagedPath)\UnityEngine.AudioModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UnityWebRequestModule">
+      <HintPath>$(RainWorldManagedPath)\UnityEngine.UnityWebRequestModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UnityWebRequestAudioModule">
+      <HintPath>$(RainWorldManagedPath)\UnityEngine.UnityWebRequestAudioModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>

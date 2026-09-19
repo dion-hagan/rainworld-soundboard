@@ -1,0 +1,275 @@
+# =============================================================================
+#  CUSTOM SOUNDBOARD  -  soundboard.yaml
+# =============================================================================
+#  This one file decides which sound plays when. Edit it with any text editor
+#  (Notepad is fine), save it, then either restart Rain World or open
+#  Options > Mods > Custom Soundboard and press RELOAD CONFIG.
+#
+#  WHERE THIS FILE LIVES
+#    Your personal copy sits in the game's data folder, so mod updates never
+#    overwrite your changes. Press OPEN FOLDER on the mod's options screen to
+#    jump straight to it. Put your own sound files (.wav, .ogg or .mp3) in the
+#    "sounds" folder next to this file. To start over with the defaults,
+#    delete this file - a fresh copy appears the next time the game starts.
+#
+#  THE BASICS
+#    Under "events:", write the name of something that can happen in the game,
+#    then list what should play. Every event name you can use is listed in
+#    events.txt, in the same folder as this file.
+#
+#      events:
+#        PlayerDeath:
+#          - boom.wav                  <- simplest form: just a file name
+#
+#    Add options underneath a file to tune it:
+#
+#          - file: boom.wav
+#            volume: 0.5               <- 1 = as recorded, 0.5 = half, 2 = double
+#            delay: 1.5                <- seconds to wait before it plays
+#            name: "Big Boom"          <- label in the options menu (optional)
+#            enabled: false            <- start switched off (optional)
+#
+#    Several entries under one event take turns: the first death plays the
+#    first sound, the next death plays the second, and so on, around again.
+#
+#    To play several sounds AT THE SAME TIME as a single step of that rotation:
+#
+#          - together:
+#              - boom.wav
+#              - file: crash.wav
+#                volume: 0.5
+#
+#  TIPS
+#    * Indent with spaces, never tabs. Lines that line up belong together.
+#    * Put quotes around text containing a colon or a #  ->  name: "Fire: hot"
+#    * Write decimals with a dot: 0.5, not 0,5.
+#    * If something is wrong, the options screen lists each problem with its
+#      line number, and everything else keeps working.
+# =============================================================================
+
+
+# Numbers that tune some of the built-in events. Safe to leave alone.
+settings:
+  hard-landing-speed: 30            # impact speed that counts as a hard landing
+  terminal-velocity: 40             # fall speed that triggers PlayerTerminalVelocity
+  player-jump-cooldown: 2           # seconds between PlayerJumpCooldown sounds
+  artificer-pyro-jump-cooldown: 10  # seconds between Artificer pyro-jump sounds
+  spotted-cooldown: 10              # seconds before the same creature can "spot" you again
+  debug: false                      # true = log every event to BepInEx/LogOutput.log
+
+
+# What plays when.
+events:
+
+  PlayerDeath:
+    - file: fahhhhhhhhhhhhhh.wav
+      volume: 0.2
+    - file: fahh-slowed.wav
+      volume: 0.3
+      name: "Fahh (Slowed)"
+    - file: i-cant-do-nathan.wav
+      volume: 0.3
+      name: "I Can't Do Nathan"
+    - file: i-got-this-fahhhhhh.wav
+      volume: 0.4
+    - file: miau-triste.wav
+      volume: 0.4
+    - file: omg-bruh-oh-hell-nah.wav
+      volume: 0.3
+      name: "OMG Bruh Oh Hell Nah"
+    - file: emotional-damage-meme.wav
+      volume: 0.3
+      name: "Emotional Damage"
+
+  PlayerJump:
+    - file: examplebeep.wav
+      volume: 0.5
+      name: "Example Beep (test sound)"
+
+  PlayerJumpWithCicada:
+    - file: hatsune-miku-weeeeeeee.wav
+      volume: 0.4
+      name: "Hatsune Miku Weee"
+
+  PlayerArtificerPyroJump:
+    - file: m-e-o-w.wav
+      volume: 0.4
+      name: "Meow"
+
+  PlayerHardLanding:
+    - file: vine-boom.wav
+      volume: 0.4
+    - file: bone-crack.wav
+      volume: 0.4
+
+  PlayerEatCreature:
+    - file: what-a-good-boy.wav
+      volume: 0.7
+
+  PlayerGrabExplosive:
+    - file: anime-wow-sound-effect.wav
+      volume: 0.4
+      name: "Anime Wow"
+    - file: im-gonna-come.wav
+      volume: 0.4
+      name: "I'm Gonna Come"
+    - file: i-just-hit-the-jackpot.wav
+      volume: 0.2
+
+  PlayerGrabSlugcat:
+    - file: romanceeeeeeeeeeeeee.wav
+      volume: 0.2
+      name: "Romance"
+
+  PlayerGrabYeek:
+    - file: aww-so-cute-ishowspeed.wav
+      volume: 0.4
+      name: "Aww So Cute (IShowSpeed)"
+
+  PlayerThrowExplosiveSpear:
+    - file: gunshot-one.wav
+      volume: 0.4
+      name: "Gunshot"
+
+  PlayerBitByLizard:
+    - file: theyre-eating-my-flesh.wav
+      volume: 0.3
+      name: "They're Eating My Flesh"
+    - file: gah-dayum.wav
+      volume: 0.4
+
+  PlayerHitByDartMaggot:
+    - file: keyboard-meme.wav
+      volume: 0.4
+
+  PlayerEnterShelter:
+    - file: hub-intro-sound.wav
+      volume: 0.5
+      name: "Hub Intro"
+    - file: homer-lets-the-barts-out.wav
+      volume: 0.4
+    - file: galaxy-meme.wav
+      volume: 0.4
+
+  RegionGateTransition:
+    - file: musica-elevador-short.wav
+      volume: 0.4
+      name: "Musica Elevador"
+
+  CreatureEnteredOccupiedShelter:
+    - file: fbi-open-up-sfx.wav
+      volume: 0.4
+      name: "FBI Open Up"
+    - file: hello-m-f-er.wav
+      volume: 0.4
+      name: "Hello M-F-er"
+
+  SnailExplosion:
+    - file: yamete-kudasai.wav
+      volume: 0.4
+
+  VultureGrubSignal:
+    - file: nuclear-alarm-siren.wav
+      volume: 0.4
+
+  FlareBombThrown:
+    - file: flashbang-gah-dayum.wav
+      volume: 0.3
+
+  CyanLizardJump:
+    - file: 67-SQlv2Xv.wav
+      volume: 0.2
+      name: "67"
+
+  ScavengerThrowSpear:
+    - file: chupalo-guayaco.wav
+      volume: 0.4
+    - file: ennnnriiiiqqqqueeeeeeee.wav
+      volume: 0.4
+      name: "Enrique Yell"
+    - file: goofy-yell.wav
+      volume: 0.2
+    - file: mario-yell.wav
+      volume: 0.2
+    - file: ohio-ringtone.wav
+      volume: 0.2
+    - file: quandale-dingle.wav
+      volume: 0.3
+
+  ScavengerDeath:
+    - file: discord-leave-noise.wav
+      volume: 0.4
+    - file: fartmeme.wav
+      volume: 0.4
+      name: "Fart Meme"
+    - file: we-do-not-care.wav
+      volume: 0.4
+    - file: syfm-loud.wav
+      volume: 0.2
+      name: "SYFM"
+
+  LizardDeath:
+    - file: fortnite-death.wav
+      volume: 0.5
+      name: "FortniteDeath (Lizard)"
+
+  SpiderDeath:
+    - file: fortnite-death.wav
+      volume: 0.4
+
+  CicadaOrLanternMouseDeath:
+    - file: anime-ahh.wav
+      volume: 0.4
+
+  PlayerSpottedByPredator:
+    - file: benny-hill.wav
+      volume: 0.2
+
+  PlayerSpottedByScavenger:
+    - file: can-i-put-my-balls-in-your-jaws.wav
+      volume: 0.4
+    - together:
+        - file: enrique.wav
+          volume: 0.5
+        - file: indian-song.wav
+          volume: 0.2
+
+  PlayerSpottedByCyanLizard:
+    - file: scatman.wav
+      volume: 0.4
+
+  PlayerSpottedByMajorThreat:
+    - file: damn-he-thicc.wav
+      volume: 0.4
+    - file: emotional-damage-meme.wav
+      volume: 0.3
+      name: "Emotional Damage (Threat)"
+    - file: gigachad-theme-music.wav
+      volume: 0.2
+      name: "Gigachad Theme"
+
+  PlayerSpottedByMiros:
+    - file: mine.wav
+      volume: 0.2
+
+
+  # ---------------------------------------------------------------------------
+  #  EVENTS WITH NO SOUNDS YET
+  #  Remove the "# " at the start of a line and point it at a file in your
+  #  sounds folder. See events.txt for everything else you can use.
+  # ---------------------------------------------------------------------------
+
+  # PlayerRoomTransition:             # every time you move from one room to another
+  #   - file: whoosh.wav
+  #
+  # PlayerTerminalVelocity:           # falling at (or above) the terminal-velocity setting
+  #   - file: falling-scream.wav
+  #
+  # PlayerJumpCooldown:               # like PlayerJump, but at most once per player-jump-cooldown seconds
+  #   - file: boing.wav
+  #
+  # GreenLizardDeath:                 # every creature has one:  <CreatureType>Death
+  #   - file: pop.wav
+  #
+  # PlayerSpottedByRedLizard:         # ...and one for being spotted:  PlayerSpottedBy<CreatureType>
+  #   - file: alert.wav

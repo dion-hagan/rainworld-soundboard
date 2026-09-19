@@ -5,6 +5,10 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SoundboardMod", "src\SoundboardMod.csproj", "{2C931FD6-C047-4026-91B4-269D8D43E3FA}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{1645052D-432F-43E7-BF9B-7256B0988DE9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SoundboardMod.Tests", "tests\SoundboardMod.Tests\SoundboardMod.Tests.csproj", "{CF366DA4-4783-42B6-8D8D-9416D77E0CE8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +22,12 @@ Global
 		{2C931FD6-C047-4026-91B4-269D8D43E3FA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2C931FD6-C047-4026-91B4-269D8D43E3FA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2C931FD6-C047-4026-91B4-269D8D43E3FA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CF366DA4-4783-42B6-8D8D-9416D77E0CE8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CF366DA4-4783-42B6-8D8D-9416D77E0CE8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CF366DA4-4783-42B6-8D8D-9416D77E0CE8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CF366DA4-4783-42B6-8D8D-9416D77E0CE8}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{CF366DA4-4783-42B6-8D8D-9416D77E0CE8} = {1645052D-432F-43E7-BF9B-7256B0988DE9}
 	EndGlobalSection
 EndGlobal

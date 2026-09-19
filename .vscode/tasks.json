@@ -19,6 +19,21 @@
       "problemMatcher": "$msCompile"
     },
     {
+      "label": "test",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "test",
+        "${workspaceFolder}/tests/SoundboardMod.Tests/SoundboardMod.Tests.csproj"
+      ],
+      "options": {
+        "env": { "PATH": "${userHome}/.dotnet;${env:PATH}" }
+      },
+      "group": { "kind": "test", "isDefault": true },
+      "presentation": { "reveal": "always" },
+      "problemMatcher": "$msCompile"
+    },
+    {
       "label": "deploy (build + copy to Rain World mods folder)",
       "type": "shell",
       "command": "powershell",

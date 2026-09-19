@@ -12,10 +12,19 @@ namespace SoundboardMod
     public sealed class Cooldown
     {
         private readonly ConditionalWeakTable<object, StrongBox<float>> lastTriggered = new ConditionalWeakTable<object, StrongBox<float>>();
-        private readonly float seconds;
+        private readonly Func<float> seconds;
         private readonly Func<float> clock;
 
         public Cooldown(float seconds, Func<float> clock)
+            : this(() => seconds, clock)
+        {
+        }
+
+        /// <summary>
+        /// The cooldown length is read on every check, so it can follow a
+        /// setting that changes while the game is running.
+        /// </summary>
+        public Cooldown(Func<float> seconds, Func<float> clock)
         {
             this.seconds = seconds;
             this.clock = clock;
@@ -31,7 +40,7 @@ namespace SoundboardMod
         {
             float now = clock();
             StrongBox<float> last = lastTriggered.GetValue(key, _ => new StrongBox<float>(float.NegativeInfinity));
-            if (now - last.Value < seconds)
+            if (now - last.Value < seconds())
             {
                 return false;
             }

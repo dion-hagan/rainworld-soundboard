@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Tests for the game-independent half of the mod (config parsing, event
+       names, delays, cooldowns...). The source files are compiled straight
+       into this project, so nothing here needs Rain World installed. -->
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>SoundboardMod.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\src\MiniYaml.cs" Link="Src\MiniYaml.cs" />
+    <Compile Include="..\..\src\EventCatalog.cs" Link="Src\EventCatalog.cs" />
+    <Compile Include="..\..\src\SoundboardConfig.cs" Link="Src\SoundboardConfig.cs" />
+    <Compile Include="..\..\src\ConfigFiles.cs" Link="Src\ConfigFiles.cs" />
+    <Compile Include="..\..\src\DelayQueue.cs" Link="Src\DelayQueue.cs" />
+    <Compile Include="..\..\src\FallTracker.cs" Link="Src\FallTracker.cs" />
+    <Compile Include="..\..\src\Cooldown.cs" Link="Src\Cooldown.cs" />
+    <Compile Include="..\..\src\SoundRotation.cs" Link="Src\SoundRotation.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

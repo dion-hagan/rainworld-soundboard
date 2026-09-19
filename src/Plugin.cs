@@ -4,7 +4,7 @@ using Menu.Remix.MixedUI;
 
 namespace SoundboardMod
 {
-    [BepInPlugin(MOD_ID, "Custom Soundboard", "0.1.0")]
+    [BepInPlugin(MOD_ID, "Custom Soundboard", "1.0.0")]
     public class Plugin : BaseUnityPlugin
     {
         public const string MOD_ID = "dion_soundboard";
@@ -35,9 +35,10 @@ namespace SoundboardMod
 
             harmony = new Harmony(MOD_ID);
 
-            // SoundIDs must exist before the sound system loads, so this
-            // has to happen here rather than later (e.g. on first menu open).
-            SoundboardData.Initialize();
+            // Reads soundboard.yaml and starts loading the sound files. Nothing
+            // here needs to happen before the game's own sound system is ready:
+            // sounds are added to it whenever it is.
+            SoundboardRuntime.Initialize(this);
 
             EventHooks.Apply(harmony);
 
