@@ -153,11 +153,13 @@ namespace SoundboardMod
             new EventInfo { Section = SectionWorld, Name = "CyanLizardJump", Description = "A Cyan Lizard leaps." },
             new EventInfo { Section = SectionWorld, Name = "ScavengerThrowSpear", Description = "A scavenger throws a spear." },
 
+            new EventInfo { Section = SectionCreatureDeath, Name = "ScavengerDeath", Description = "Any scavenger dies (every variant). For one variant use e.g. ScavengerEliteDeath." },
             new EventInfo { Section = SectionCreatureDeath, Name = "LizardDeath", Description = "Any lizard dies (all colours). For one colour use e.g. RedLizardDeath." },
             new EventInfo { Section = SectionCreatureDeath, Name = "SpiderDeath", Description = "A Spider or any Big Spider variant dies." },
             new EventInfo { Section = SectionCreatureDeath, Name = "CicadaOrLanternMouseDeath", Description = "A cicada or lantern mouse dies." },
 
             new EventInfo { Section = SectionSpotted, Name = "PlayerSpottedByPredator", Description = "A lizard, spider or vulture notices you - except scavengers, Cyan Lizards, Miros and the 'major threats' below, which have their own events. Once per creature per 'spotted-cooldown' seconds (setting, default 10)." },
+            new EventInfo { Section = SectionSpotted, Name = "PlayerSpottedByScavenger", Description = "Any scavenger (every variant) notices you. For one variant use e.g. PlayerSpottedByScavengerElite." },
             new EventInfo { Section = SectionSpotted, Name = "PlayerSpottedByMajorThreat", Description = "A Red Lizard, Red Centipede, King Vulture or Daddy Long Legs notices you." },
             new EventInfo { Section = SectionSpotted, Name = "PlayerSpottedByMiros", Description = "A Miros Bird or Miros Vulture notices you." },
         };

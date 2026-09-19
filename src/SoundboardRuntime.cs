@@ -31,8 +31,10 @@ namespace SoundboardMod
     {
         private static readonly ManualLogSource Log = BepInEx.Logging.Logger.CreateLogSource("SoundboardMod");
 
-        // Types in the game's creature list that aren't creatures anyone can meet.
-        private static readonly HashSet<string> NotRealCreatures = new HashSet<string> { "StandardGroundCreature", "LizardTemplate", "Slugcat" };
+        // Types in the game's creature list that don't get their own events: templates
+        // nobody can meet, and the slugcat types, which are Player objects and are
+        // covered by the Player* events instead (a slugpup dying is PlayerDeath).
+        private static readonly HashSet<string> NotRealCreatures = new HashSet<string> { "StandardGroundCreature", "LizardTemplate", "Slugcat", "SlugNPC" };
 
         private static readonly Dictionary<string, EventBinding> ByEvent = new Dictionary<string, EventBinding>();
 

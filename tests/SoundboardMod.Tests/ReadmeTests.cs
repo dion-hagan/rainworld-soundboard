@@ -33,6 +33,15 @@ namespace SoundboardMod.Tests
         }
 
         [Fact]
+        public void FullEventListIsInACollapsedSection()
+        {
+            string readme = ReadRepoFile("README.md");
+            Assert.Contains("<details>", readme);
+            Assert.DoesNotContain("<details open", readme);
+            Assert.Contains("Full list of every event name", readme);
+        }
+
+        [Fact]
         public void EveryEventUsedInTheShippedConfigIsKnown()
         {
             string yaml = ReadRepoFile(Path.Combine("mod", "soundboard.yaml"));

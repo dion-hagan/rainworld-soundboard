@@ -116,13 +116,15 @@ choose a value you like.
 
 ## Events
 
-These are all the built-in events. The same list (including every creature type, even ones added by
-other mods) is written to `events.txt` in your config folder each time the game starts.
+The tables below describe every built-in event. The complete list of names,
+including the per-creature ones, is in the collapsed section at the end of this chapter, and the mod
+also writes it to `events.txt` in your config folder each time the game starts (that copy includes
+creatures added by other mods).
 
 **Every creature type also gets its own two events**, named after the creature the way the game spells it:
 
 - `<Creature>Death` - e.g. `GreenLizardDeath`, `KingVultureDeath`, `BigSpiderDeath`, `EggBugDeath`
-- `PlayerSpottedBy<Creature>` - e.g. `PlayerSpottedByRedLizard`, `PlayerSpottedByScavenger`, `PlayerSpottedByMirosBird`
+- `PlayerSpottedBy<Creature>` - e.g. `PlayerSpottedByRedLizard`, `PlayerSpottedByMirosBird`
 
 Grouped events like `LizardDeath` (any lizard) or `PlayerSpottedByPredator` are in the tables below.
 When something matches both, both events fire, so you can give a specific creature its own sound
@@ -166,6 +168,7 @@ and still have a generic one for the rest. (Each event's rotation is separate.)
 
 | Event | Fires when |
 |---|---|
+| `ScavengerDeath` | Any scavenger dies (every variant). For one variant use e.g. ScavengerEliteDeath. |
 | `LizardDeath` | Any lizard dies (all colours). For one colour use e.g. RedLizardDeath. |
 | `SpiderDeath` | A Spider or any Big Spider variant dies. |
 | `CicadaOrLanternMouseDeath` | A cicada or lantern mouse dies. |
@@ -175,10 +178,153 @@ and still have a generic one for the rest. (Each event's rotation is separate.)
 | Event | Fires when |
 |---|---|
 | `PlayerSpottedByPredator` | A lizard, spider or vulture notices you - except scavengers, Cyan Lizards, Miros and the 'major threats' below, which have their own events. Once per creature per 'spotted-cooldown' seconds (setting, default 10). |
+| `PlayerSpottedByScavenger` | Any scavenger (every variant) notices you. For one variant use e.g. PlayerSpottedByScavengerElite. |
 | `PlayerSpottedByMajorThreat` | A Red Lizard, Red Centipede, King Vulture or Daddy Long Legs notices you. |
 | `PlayerSpottedByMiros` | A Miros Bird or Miros Vulture notices you. |
 
-<!-- 30 events -->
+<details>
+<summary><b>Full list of every event name (205)</b> - click to expand</summary>
+
+Every event you can put under `events:` in `soundboard.yaml`, as of Rain World v1.11.8 with the
+More Slugcats and Watcher creatures. Creatures added by other mods get the same two events
+automatically; the list the mod writes to `events.txt` always includes them.
+
+**Built-in events (32)** - described in the tables above:
+
+```
+PlayerDeath
+PlayerJump
+PlayerJumpCooldown
+PlayerJumpWithCicada
+PlayerArtificerPyroJump
+PlayerHardLanding
+PlayerTerminalVelocity
+PlayerEat
+PlayerEatCreature
+PlayerGrabExplosive
+PlayerGrabSlugcat
+PlayerGrabYeek
+PlayerThrowExplosiveSpear
+PlayerBitByLizard
+PlayerHitByDartMaggot
+PlayerRoomTransition
+PlayerEnterShelter
+RegionGateTransition
+CreatureEnteredOccupiedShelter
+SnailExplosion
+VultureGrubSignal
+FlareBombThrown
+CyanLizardJump
+ScavengerThrowSpear
+ScavengerDeath
+LizardDeath
+SpiderDeath
+CicadaOrLanternMouseDeath
+PlayerSpottedByPredator
+PlayerSpottedByScavenger
+PlayerSpottedByMajorThreat
+PlayerSpottedByMiros
+```
+
+**Per-creature events (88 creature types)** - one "dies" and one "notices you" event each:
+
+| Creature | Dies | Notices you |
+|---|---|---|
+| Angler | `AnglerDeath` | `PlayerSpottedByAngler` |
+| AquaCenti | `AquaCentiDeath` | `PlayerSpottedByAquaCenti` |
+| Barnacle | `BarnacleDeath` | `PlayerSpottedByBarnacle` |
+| BasiliskLizard | `BasiliskLizardDeath` | `PlayerSpottedByBasiliskLizard` |
+| BigEel | `BigEelDeath` | `PlayerSpottedByBigEel` |
+| BigJelly | `BigJellyDeath` | `PlayerSpottedByBigJelly` |
+| BigMoth | `BigMothDeath` | `PlayerSpottedByBigMoth` |
+| BigNeedleWorm | `BigNeedleWormDeath` | `PlayerSpottedByBigNeedleWorm` |
+| BigSandGrub | `BigSandGrubDeath` | `PlayerSpottedByBigSandGrub` |
+| BigSpider | `BigSpiderDeath` | `PlayerSpottedByBigSpider` |
+| BlackLizard | `BlackLizardDeath` | `PlayerSpottedByBlackLizard` |
+| BlizzardLizard | `BlizzardLizardDeath` | `PlayerSpottedByBlizzardLizard` |
+| BlueLizard | `BlueLizardDeath` | `PlayerSpottedByBlueLizard` |
+| BoxWorm | `BoxWormDeath` | `PlayerSpottedByBoxWorm` |
+| BrotherLongLegs | `BrotherLongLegsDeath` | `PlayerSpottedByBrotherLongLegs` |
+| Centipede | `CentipedeDeath` | `PlayerSpottedByCentipede` |
+| Centiwing | `CentiwingDeath` | `PlayerSpottedByCentiwing` |
+| CicadaA | `CicadaADeath` | `PlayerSpottedByCicadaA` |
+| CicadaB | `CicadaBDeath` | `PlayerSpottedByCicadaB` |
+| CyanLizard | `CyanLizardDeath` | `PlayerSpottedByCyanLizard` |
+| DaddyLongLegs | `DaddyLongLegsDeath` | `PlayerSpottedByDaddyLongLegs` |
+| Deer | `DeerDeath` | `PlayerSpottedByDeer` |
+| DrillCrab | `DrillCrabDeath` | `PlayerSpottedByDrillCrab` |
+| DropBug | `DropBugDeath` | `PlayerSpottedByDropBug` |
+| EelLizard | `EelLizardDeath` | `PlayerSpottedByEelLizard` |
+| EggBug | `EggBugDeath` | `PlayerSpottedByEggBug` |
+| FireBug | `FireBugDeath` | `PlayerSpottedByFireBug` |
+| FireSprite | `FireSpriteDeath` | `PlayerSpottedByFireSprite` |
+| Fly | `FlyDeath` | `PlayerSpottedByFly` |
+| Frog | `FrogDeath` | `PlayerSpottedByFrog` |
+| GarbageWorm | `GarbageWormDeath` | `PlayerSpottedByGarbageWorm` |
+| GrappleSnake | `GrappleSnakeDeath` | `PlayerSpottedByGrappleSnake` |
+| GreenLizard | `GreenLizardDeath` | `PlayerSpottedByGreenLizard` |
+| Hazer | `HazerDeath` | `PlayerSpottedByHazer` |
+| HunterDaddy | `HunterDaddyDeath` | `PlayerSpottedByHunterDaddy` |
+| IndigoLizard | `IndigoLizardDeath` | `PlayerSpottedByIndigoLizard` |
+| Inspector | `InspectorDeath` | `PlayerSpottedByInspector` |
+| JetFish | `JetFishDeath` | `PlayerSpottedByJetFish` |
+| JungleLeech | `JungleLeechDeath` | `PlayerSpottedByJungleLeech` |
+| KingVulture | `KingVultureDeath` | `PlayerSpottedByKingVulture` |
+| LanternMouse | `LanternMouseDeath` | `PlayerSpottedByLanternMouse` |
+| Leech | `LeechDeath` | `PlayerSpottedByLeech` |
+| Loach | `LoachDeath` | `PlayerSpottedByLoach` |
+| Millipede | `MillipedeDeath` | `PlayerSpottedByMillipede` |
+| MirosBird | `MirosBirdDeath` | `PlayerSpottedByMirosBird` |
+| MirosVulture | `MirosVultureDeath` | `PlayerSpottedByMirosVulture` |
+| MotherSpider | `MotherSpiderDeath` | `PlayerSpottedByMotherSpider` |
+| MothGrub | `MothGrubDeath` | `PlayerSpottedByMothGrub` |
+| Overseer | `OverseerDeath` | `PlayerSpottedByOverseer` |
+| PeachLizard | `PeachLizardDeath` | `PlayerSpottedByPeachLizard` |
+| PinkLizard | `PinkLizardDeath` | `PlayerSpottedByPinkLizard` |
+| PoleMimic | `PoleMimicDeath` | `PlayerSpottedByPoleMimic` |
+| Rat | `RatDeath` | `PlayerSpottedByRat` |
+| Rattler | `RattlerDeath` | `PlayerSpottedByRattler` |
+| RedCentipede | `RedCentipedeDeath` | `PlayerSpottedByRedCentipede` |
+| RedLizard | `RedLizardDeath` | `PlayerSpottedByRedLizard` |
+| RippleSpider | `RippleSpiderDeath` | `PlayerSpottedByRippleSpider` |
+| RotLoach | `RotLoachDeath` | `PlayerSpottedByRotLoach` |
+| Salamander | `SalamanderDeath` | `PlayerSpottedBySalamander` |
+| SandGrub | `SandGrubDeath` | `PlayerSpottedBySandGrub` |
+| Scavenger | `ScavengerDeath` | `PlayerSpottedByScavenger` |
+| ScavengerDisciple | `ScavengerDiscipleDeath` | `PlayerSpottedByScavengerDisciple` |
+| ScavengerElite | `ScavengerEliteDeath` | `PlayerSpottedByScavengerElite` |
+| ScavengerKing | `ScavengerKingDeath` | `PlayerSpottedByScavengerKing` |
+| ScavengerTemplar | `ScavengerTemplarDeath` | `PlayerSpottedByScavengerTemplar` |
+| SeaLeech | `SeaLeechDeath` | `PlayerSpottedBySeaLeech` |
+| SkyWhale | `SkyWhaleDeath` | `PlayerSpottedBySkyWhale` |
+| SmallCentipede | `SmallCentipedeDeath` | `PlayerSpottedBySmallCentipede` |
+| SmallMoth | `SmallMothDeath` | `PlayerSpottedBySmallMoth` |
+| SmallNeedleWorm | `SmallNeedleWormDeath` | `PlayerSpottedBySmallNeedleWorm` |
+| Snail | `SnailDeath` | `PlayerSpottedBySnail` |
+| Spider | `SpiderDeath` | `PlayerSpottedBySpider` |
+| SpitLizard | `SpitLizardDeath` | `PlayerSpottedBySpitLizard` |
+| SpitterSpider | `SpitterSpiderDeath` | `PlayerSpottedBySpitterSpider` |
+| StowawayBug | `StowawayBugDeath` | `PlayerSpottedByStowawayBug` |
+| Tardigrade | `TardigradeDeath` | `PlayerSpottedByTardigrade` |
+| TempleGuard | `TempleGuardDeath` | `PlayerSpottedByTempleGuard` |
+| TentaclePlant | `TentaclePlantDeath` | `PlayerSpottedByTentaclePlant` |
+| TerrorLongLegs | `TerrorLongLegsDeath` | `PlayerSpottedByTerrorLongLegs` |
+| TowerCrab | `TowerCrabDeath` | `PlayerSpottedByTowerCrab` |
+| TrainLizard | `TrainLizardDeath` | `PlayerSpottedByTrainLizard` |
+| TubeWorm | `TubeWormDeath` | `PlayerSpottedByTubeWorm` |
+| Vulture | `VultureDeath` | `PlayerSpottedByVulture` |
+| VultureGrub | `VultureGrubDeath` | `PlayerSpottedByVultureGrub` |
+| WhiteLizard | `WhiteLizardDeath` | `PlayerSpottedByWhiteLizard` |
+| Yeek | `YeekDeath` | `PlayerSpottedByYeek` |
+| YellowLizard | `YellowLizardDeath` | `PlayerSpottedByYellowLizard` |
+| ZoopLizard | `ZoopLizardDeath` | `PlayerSpottedByZoopLizard` |
+
+Notes: `ScavengerDeath` / `PlayerSpottedByScavenger` cover every scavenger variant, and `SpiderDeath`
+covers Spiders and all Big Spider variants (see the tables above). Slugcats (including slugpups) use the
+`Player...` events instead. Some creatures never notice anything (they have no senses), so their
+"notices you" event will simply never fire.
+
+</details>
 
 ## Something not working?
 
