@@ -10,7 +10,7 @@ namespace SoundboardMod
 {
     /// <summary>
     /// Builds the mod's in-game options screen (Options -> Mods -> Custom Soundboard).
-    /// It has two tabs:
+    /// It has three tabs:
     ///
     /// "Sounds": buttons to reload the config and open its folder, a list of any
     /// problems found in soundboard.yaml, and one checkbox per sound entry.
@@ -18,6 +18,9 @@ namespace SoundboardMod
     /// "Add Sound": dropdowns for an event and up to three sound files (each with number
     /// boxes for volume and delay) and a "play together" checkbox; SAVE adds that sound,
     /// or group of sounds, to the event's list in soundboard.yaml.
+    ///
+    /// "Edit Sound": pick an entry that's already in the file and change the volume and delay
+    /// of its sounds and its cooldown; SAVE writes just those numbers back in place.
     ///
     /// soundboard.yaml is the only place any of this really lives. Both tabs are a
     /// normal Remix editing screen over it: they start from the file every time
@@ -58,6 +61,7 @@ namespace SoundboardMod
             }
 
             CreatePickerSettings();
+            CreateEditSettings();
 
             // Each time the page is opened Remix reloads its own saved copy of the settings into
             // the widgets. That copy can be stale (or from an older version of this mod), so on
@@ -65,10 +69,12 @@ namespace SoundboardMod
             // counts - and the Add Sound form from what this mod last knew about it.
             OnActivate += RefreshToggles;
             OnActivate += SeedPicker;
+            OnActivate += SeedEditor;
 
             // The widgets are gone once the menu is left; anything that runs before the next
             // Initialize must not touch them.
             OnUnload += ForgetPicker;
+            OnUnload += ForgetEditor;
         }
 
         private Configurable<bool> EnsureSetting(SoundChoice choice)
@@ -98,7 +104,7 @@ namespace SoundboardMod
 
             SoundboardConfig soundboard = SoundboardRuntime.Config;
             OpTab tab = new OpTab(this, "Sounds");
-            Tabs = new OpTab[] { tab, BuildAddSoundTab() };
+            Tabs = new OpTab[] { tab, BuildAddSoundTab(), BuildEditTab() };
 
             var enableAllButton = new OpSimpleButton(new Vector2(20f, 505f), new Vector2(105f, 30f), "ENABLE ALL")
             {
@@ -136,7 +142,7 @@ namespace SoundboardMod
 
             tab.AddItems(
                 new OpLabel(20f, 560f, "Custom Soundboard", true),
-                new OpLabel(20f, 538f, "Tick or untick sounds, then press SAVE. To add a new sound, use the Add Sound tab - or edit soundboard.yaml (OPEN FOLDER) and RELOAD CONFIG.", false),
+                new OpLabel(20f, 538f, "Tick or untick sounds, then press SAVE. Add sounds on the Add Sound tab and change their numbers on Edit Sound - or edit soundboard.yaml (OPEN FOLDER) and RELOAD CONFIG.", false),
                 enableAllButton,
                 disableAllButton,
                 reloadButton,
@@ -302,6 +308,19 @@ namespace SoundboardMod
                 ticked = "Couldn't save to soundboard.yaml: " + e.Message;
             }
 
+            // Editing before adding: both re-read the file, and an edit is checked against the config as the screen showed it.
+            string edited = null;
+            try
+            {
+                edited = CommitEdit();
+            }
+            catch (Exception e)
+            {
+                Log.LogError($"Changing the sound in soundboard.yaml failed: {e}");
+                edited = "Couldn't change the sound: " + e.Message;
+                ShowEditStatus(edited, true);
+            }
+
             string added = null;
             try
             {
@@ -314,7 +333,7 @@ namespace SoundboardMod
                 ShowPickerStatus(added, true);
             }
 
-            string message = string.Join(" ", new[] { ticked, added }.Where(m => !string.IsNullOrEmpty(m)));
+            string message = string.Join(" ", new[] { ticked, edited, added }.Where(m => !string.IsNullOrEmpty(m)));
             if (message.Length > 0)
             {
                 ShowStatus(message);
@@ -432,6 +451,7 @@ namespace SoundboardMod
                 ShowStatus(message + " New entries show up in the list the next time you open the Mods menu.");
                 RefreshProblems();
                 RefreshSoundList();
+                RefreshEditor();
             }
             catch (Exception e)
             {
@@ -1006,6 +1026,450 @@ namespace SoundboardMod
             catch (Exception e)
             {
                 Log.LogWarning($"Couldn't refresh the list of sound files: {e.Message}");
+            }
+        }
+
+        // ===================================================================================
+        //  Edit Sound tab
+        // ===================================================================================
+
+        private const string EditEntryKey = "EditSound_Entry";
+        private const string EditCooldownKey = "EditSound_Cooldown";
+
+        // Like the Add Sound page, the rows are built up front and never added or removed while the
+        // screen is open: an entry with more sounds than this only has its first few editable.
+        private const int EditRowCount = 3;
+        private const int MaxShownFileName = 46;
+
+        private Configurable<string> editEntry;
+        private Configurable<float> editCooldown;
+        private readonly EditRow[] editRows = new EditRow[EditRowCount];
+
+        // What's on the page right now. All null while the menu is closed, or if the page couldn't be built.
+        private OpComboBox editBox;
+        private PickerUpdown editCooldownBox;
+        private OpLabelLong editInfoLabel;
+        private OpLabelLong editStatusLabel;
+        private Color editStatusColor;
+
+        private bool editorBroken;
+
+        // The entry the page shows whenever it's opened (the one just edited, or one picked but not yet saved).
+        private string editSelected = string.Empty;
+
+        /// <summary>One sound row: its Remix settings (kept for good), its widgets (rebuilt with the page) and which sound it currently shows.</summary>
+        private sealed class EditRow
+        {
+            public Configurable<int> Volume;
+            public Configurable<float> Delay;
+
+            public OpLabel FileLabel;
+            public PickerUpdown VolumeBox;
+            public PickerUpdown DelayBox;
+
+            /// <summary>The sound shown (SoundRef.Member and its file), or Member -1 when the row is empty.</summary>
+            public int Member = -1;
+            public string File = string.Empty;
+
+            public void ForgetWidgets()
+            {
+                FileLabel = null;
+                VolumeBox = null;
+                DelayBox = null;
+            }
+        }
+
+        private void CreateEditSettings()
+        {
+            try
+            {
+                editEntry = config.Bind(EditEntryKey, string.Empty, new ConfigurableInfo("The entry to change."));
+                editCooldown = config.Bind(EditCooldownKey, 0f, new ConfigAcceptableRange<float>(0f, NewSound.MaxCooldown));
+
+                for (int i = 0; i < EditRowCount; i++)
+                {
+                    string n = (i + 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    editRows[i] = new EditRow
+                    {
+                        Volume = config.Bind("EditSound_Volume" + n, DefaultVolumePercent, new ConfigAcceptableRange<int>(0, MaxVolumePercent)),
+                        Delay = config.Bind("EditSound_Delay" + n, 0f, new ConfigAcceptableRange<float>(0f, NewSound.MaxDelay)),
+                    };
+                }
+            }
+            catch (Exception e)
+            {
+                Log.LogWarning($"Couldn't create the settings for the Edit Sound page, so it won't be available: {e.Message}");
+                editorBroken = true;
+            }
+        }
+
+        private OpTab BuildEditTab()
+        {
+            var page = new OpTab(this, "Edit Sound");
+            ForgetEditor();
+
+            if (!editorBroken)
+            {
+                try
+                {
+                    page.AddItems(EditItems());
+                    return page;
+                }
+                catch (Exception e)
+                {
+                    Log.LogError($"Couldn't build the Edit Sound page: {e}");
+                    editorBroken = true;
+                    ForgetEditor();
+                }
+            }
+
+            page.AddItems(
+                new OpLabel(20f, 560f, "Edit a Sound", true),
+                new OpLabelLong(new Vector2(20f, 480f), new Vector2(560f, 60f), "This page couldn't be set up (the reason is in BepInEx/LogOutput.log). You can still change volume, delay and cooldown by editing soundboard.yaml - press OPEN FOLDER on the Sounds tab.")
+                {
+                    allowOverflow = false,
+                });
+            return page;
+        }
+
+        private UIelement[] EditItems()
+        {
+            // One dropdown item per entry, in the order they appear in the file. The name is the entry's id.
+            var entries = new List<ListItem>();
+            foreach (EventBinding binding in SoundboardRuntime.Config.Events)
+            {
+                foreach (SoundChoice choice in binding.Choices)
+                {
+                    entries.Add(new ListItem(choice.Id, binding.EventName + ": " + choice.Label, entries.Count)
+                    {
+                        desc = "Plays: " + string.Join(" + ", choice.Sounds.Select(s => s.File)),
+                    });
+                }
+            }
+
+            if (entries.Count == 0)
+            {
+                return new UIelement[]
+                {
+                    new OpLabel(20f, 560f, "Edit a Sound", true),
+                    new OpLabelLong(new Vector2(20f, 480f), new Vector2(560f, 60f), "There are no sounds to edit yet. Add one on the Add Sound tab, or edit soundboard.yaml (OPEN FOLDER on the Sounds tab).")
+                    {
+                        allowOverflow = false,
+                    },
+                };
+            }
+
+            editInfoLabel = new OpLabelLong(new Vector2(170f, 384f), new Vector2(400f, 60f), string.Empty)
+            {
+                allowOverflow = false,
+            };
+
+            editStatusLabel = new OpLabelLong(new Vector2(20f, 30f), new Vector2(560f, 110f), string.Empty)
+            {
+                allowOverflow = false,
+            };
+            editStatusColor = editStatusLabel.color;
+
+            editCooldownBox = new PickerUpdown(editCooldown, new Vector2(170f, 176f), 100f, 1)
+            {
+                description = "After this entry plays, it can't play again for this many seconds - the event's other entries still take their turns meanwhile. 0 = no limit. For a group of sounds it covers the whole group.",
+            };
+
+            float[] rowY = { 292f, 258f, 224f };
+            var widgets = new List<UIelement>();
+            for (int i = 0; i < EditRowCount; i++)
+            {
+                EditRow row = editRows[i];
+
+                row.FileLabel = new OpLabel(20f, rowY[i] + 5f, " ", false);
+
+                row.VolumeBox = new PickerUpdown(row.Volume, new Vector2(350f, rowY[i]), 100f)
+                {
+                    description = "How loud this sound is, as a percentage of the file's own volume. 100 = as recorded, 50 = half as loud, 200 = twice as loud.",
+                };
+
+                row.DelayBox = new PickerUpdown(row.Delay, new Vector2(460f, rowY[i]), 100f, 1)
+                {
+                    description = "Seconds to wait after the event before this sound plays. 0 = right away.",
+                };
+
+                widgets.Add(row.FileLabel);
+                widgets.Add(row.VolumeBox);
+                widgets.Add(row.DelayBox);
+            }
+
+            editBox = new OpComboBox(editEntry, new Vector2(170f, 452f), 400f, entries)
+            {
+                listHeight = 10,
+                description = "The entry to change. Click for the list (hover one to see its files), or start typing to search it.",
+            };
+
+            editBox.OnValueUpdate += (box, value, oldValue) => ShowEntry(value);
+
+            var items = new List<UIelement>
+            {
+                new OpLabel(20f, 560f, "Edit a Sound", true),
+                new OpLabelLong(new Vector2(20f, 486f), new Vector2(560f, 64f), "Pick an entry, change how loud its sounds are, how long they wait or its cooldown, then press SAVE. Only those numbers in soundboard.yaml change - to switch an entry off use the Sounds tab, to add one use Add Sound.")
+                {
+                    allowOverflow = false,
+                },
+                new OpLabel(20f, 456f, "Entry:", false),
+                new OpLabel(20f, 326f, "Sound", false),
+                new OpLabel(350f, 326f, "Volume (%)", false),
+                new OpLabel(460f, 326f, "Delay (seconds)", false),
+                new OpLabel(20f, 181f, "Cooldown:", false),
+                new OpLabel(280f, 181f, "seconds before it can play again (0 = no limit)", false),
+                editInfoLabel,
+                editStatusLabel,
+                editCooldownBox,
+            };
+
+            items.AddRange(widgets);
+
+            // The dropdown goes in last so its list is drawn on top of the rows beneath it.
+            items.Add(editBox);
+            return items.ToArray();
+        }
+
+        private void ForgetEditor()
+        {
+            editBox = null;
+            editCooldownBox = null;
+            editInfoLabel = null;
+            editStatusLabel = null;
+            foreach (EditRow row in editRows)
+            {
+                row?.ForgetWidgets();
+            }
+        }
+
+        /// <summary>The page was opened: show the entry it should be on (Remix's own remembered values are ignored).</summary>
+        private void SeedEditor()
+        {
+            if (editBox == null)
+            {
+                return;
+            }
+
+            try
+            {
+                string id = EntryKnown(editSelected) ? editSelected : string.Empty;
+                editBox.ForceValue(id);
+                ShowEntry(id);
+            }
+            catch (Exception e)
+            {
+                Log.LogDebug($"Couldn't reset the Edit Sound page: {e.Message}");
+            }
+        }
+
+        private bool EntryKnown(string id)
+        {
+            return !string.IsNullOrEmpty(id) && editBox != null && editBox.GetItemList().Any(item => item.name == id);
+        }
+
+        private static SoundChoice FindEntry(string id)
+        {
+            return string.IsNullOrEmpty(id) ? null : SoundboardRuntime.Config.Events.SelectMany(e => e.Choices).FirstOrDefault(c => c.Id == id);
+        }
+
+        private static int ToPercent(float volume)
+        {
+            return Mathf.Clamp((int)Math.Round(volume * 100f), 0, MaxVolumePercent);
+        }
+
+        /// <summary>
+        /// Loads an entry's numbers into the boxes. ForceValue rather than value =: showing an entry
+        /// mustn't count as a change the player made. Rows the entry has no sound for are greyed out.
+        /// </summary>
+        private void ShowEntry(string id)
+        {
+            if (editBox == null || editCooldownBox == null)
+            {
+                return;
+            }
+
+            try
+            {
+                SoundChoice choice = FindEntry(id);
+
+                for (int i = 0; i < EditRowCount; i++)
+                {
+                    EditRow row = editRows[i];
+                    SoundRef sound = choice != null && i < choice.Sounds.Count ? choice.Sounds[i] : null;
+
+                    row.Member = sound?.Member ?? -1;
+                    row.File = sound?.File ?? string.Empty;
+                    row.FileLabel.text = sound != null ? ShortenTo(sound.File, MaxShownFileName) : (choice != null ? "-" : " ");
+
+                    row.VolumeBox.ForceValue((sound != null ? ToPercent(sound.OwnVolume) : DefaultVolumePercent).ToString(System.Globalization.CultureInfo.InvariantCulture));
+                    row.VolumeBox.Redraw();
+                    row.DelayBox.ForceValue((sound != null ? sound.OwnDelay : 0f).ToString("F1", System.Globalization.CultureInfo.InvariantCulture));
+                    row.DelayBox.Redraw();
+                    row.VolumeBox.greyedOut = sound == null;
+                    row.DelayBox.greyedOut = sound == null;
+                }
+
+                editCooldownBox.ForceValue((choice != null ? choice.Cooldown : 0f).ToString("F1", System.Globalization.CultureInfo.InvariantCulture));
+                editCooldownBox.Redraw();
+                editCooldownBox.greyedOut = choice == null;
+
+                if (editInfoLabel != null)
+                {
+                    editInfoLabel.text = EntryInfo(choice);
+                }
+            }
+            catch (Exception e)
+            {
+                Log.LogDebug($"Couldn't show the entry on the Edit Sound page: {e.Message}");
+            }
+        }
+
+        private static string EntryInfo(SoundChoice choice)
+        {
+            if (choice == null)
+            {
+                return "Pick an entry to change its volume, delay and cooldown.";
+            }
+
+            string info = choice.Enabled ? string.Empty : "(switched off) ";
+            if (choice.Sounds.Count > EditRowCount)
+            {
+                info += "This entry has " + choice.Sounds.Count + " sounds; only the first " + EditRowCount + " can be edited here. ";
+            }
+
+            if (choice.Sounds.Count > 1)
+            {
+                info += "Volume and delay are set per sound; the cooldown covers the whole group.";
+            }
+
+            return info.Length > 0 ? info : "Plays: " + choice.Sounds[0].File;
+        }
+
+        private static string ShortenTo(string text, int max)
+        {
+            return text.Length <= max ? text : text.Substring(0, max - 3) + "...";
+        }
+
+        /// <summary>
+        /// The player pressed SAVE: whatever numbers on the page differ from what the entry has now
+        /// are written into soundboard.yaml. Returns a message for the status line, or null if there
+        /// was nothing to change. A failure leaves the boxes as the player set them.
+        /// </summary>
+        private string CommitEdit()
+        {
+            if (editBox == null || editCooldownBox == null)
+            {
+                return null; // no page: the game is just loading its saved settings, or the page couldn't be built
+            }
+
+            string id = editBox.value ?? string.Empty;
+            SoundChoice choice = FindEntry(id);
+            editSelected = choice != null ? id : string.Empty;
+            if (choice == null)
+            {
+                return null;
+            }
+
+            var tweak = new EntryTweak { ChoiceId = id };
+            var changed = new List<string>();
+
+            for (int i = 0; i < EditRowCount; i++)
+            {
+                EditRow row = editRows[i];
+                SoundRef sound = row.Member >= 0 ? choice.Sounds.FirstOrDefault(s => s.Member == row.Member && s.File == row.File) : null;
+                if (sound == null)
+                {
+                    continue;
+                }
+
+                int percent = row.VolumeBox.valueInt;
+                float delay = (float)Math.Round(row.DelayBox.valueFloat, 1);
+                var change = new SoundTweak { Member = row.Member, File = row.File };
+
+                if (percent != ToPercent(sound.OwnVolume))
+                {
+                    change.Volume = percent / 100f;
+                    changed.Add(choice.Sounds.Count > 1 ? sound.File + " volume " + percent + "%" : "volume " + percent + "%");
+                }
+
+                if (Math.Abs(delay - Math.Round(sound.OwnDelay, 1)) > 0.001)
+                {
+                    change.Delay = delay;
+                    changed.Add(choice.Sounds.Count > 1 ? sound.File + " delay " + delay.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) + "s" : "delay " + delay.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) + "s");
+                }
+
+                if (change.Volume.HasValue || change.Delay.HasValue)
+                {
+                    tweak.Sounds.Add(change);
+                }
+            }
+
+            float cooldown = (float)Math.Round(editCooldownBox.valueFloat, 1);
+            if (Math.Abs(cooldown - Math.Round(choice.Cooldown, 1)) > 0.001)
+            {
+                tweak.Cooldown = cooldown;
+                changed.Add("cooldown " + cooldown.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) + "s");
+            }
+
+            if (tweak.Cooldown == null && tweak.Sounds.Count == 0)
+            {
+                return null; // nothing differs from the file: say nothing
+            }
+
+            string problem = SoundboardRuntime.EditEntry(tweak, out bool written);
+            if (!written)
+            {
+                if (problem == null)
+                {
+                    return null; // the file already says this
+                }
+
+                string failed = "Couldn't change the sound: " + problem + ". Your numbers are still on the Edit Sound tab.";
+                ShowEditStatus(failed, true);
+                return failed;
+            }
+
+            ShowEntry(id); // now shows the numbers as saved (the config has just been re-read)
+
+            string done = "Changed \"" + choice.Label + "\" (" + string.Join(", ", changed) + ").";
+            if (problem != null)
+            {
+                done += " But " + problem + ".";
+                ShowEditStatus(done, true);
+            }
+            else
+            {
+                ShowEditStatus(done + " It takes effect now.", false);
+            }
+
+            try
+            {
+                RefreshProblems();
+            }
+            catch (Exception e)
+            {
+                Log.LogDebug($"Couldn't refresh the problem list: {e.Message}");
+            }
+
+            return done;
+        }
+
+        private void ShowEditStatus(string text, bool isProblem)
+        {
+            if (editStatusLabel != null)
+            {
+                editStatusLabel.text = text;
+                editStatusLabel.color = isProblem ? PickerErrorColor : editStatusColor;
+            }
+        }
+
+        /// <summary>After RELOAD CONFIG: shows the selected entry as the re-read file has it (the file always wins).</summary>
+        private void RefreshEditor()
+        {
+            if (editBox != null)
+            {
+                ShowEntry(editBox.value);
             }
         }
     }

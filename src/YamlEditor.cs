@@ -484,6 +484,251 @@ namespace SoundboardMod
             return -1;
         }
 
+        // --- changing options of entries that are already there ------------------------------
+
+        /// <summary>Set the option Key on the sound or entry whose first line in the file is Line.</summary>
+        public sealed class OptionEdit
+        {
+            public int Line;
+            public string Key;
+
+            /// <summary>Already formatted ("0.5").</summary>
+            public string Value;
+        }
+
+        /// <summary>
+        /// Changes options on existing entries and on the sounds inside "together" groups - what
+        /// the options screen's "Edit Sound" page does. An option that's already written has just
+        /// its value replaced (the player's comment on that line stays); one that isn't is added
+        /// as a new line in line with the entry's other keys, and a bare "- file.wav" is
+        /// expanded to "- file: file.wav" to make room. Nothing is ever removed, and everything
+        /// else in the file is left exactly as it was.
+        ///
+        /// Edits name their target by the line its item starts on in the CURRENT text (the
+        /// parser's SoundChoice.Line / SoundRef.Line). Shapes that can't be edited safely - a
+        /// sound written inside an inline [ ] list, or several on one line - are refused with a
+        /// reason, and then nothing is changed.
+        /// </summary>
+        public static Result SetOptions(string text, IReadOnlyList<OptionEdit> edits)
+        {
+            if (edits.Count == 0)
+            {
+                return Result.Success(text);
+            }
+
+            YamlNode root;
+            try
+            {
+                root = MiniYaml.Parse(text);
+            }
+            catch (YamlParseException e)
+            {
+                return Result.Failure(text, "soundboard.yaml has an error on line " + e.Line + " (" + e.Message + ") - fix that first");
+            }
+
+            var lines = new List<string>(text.Split('\n'));
+            if (root.Kind != YamlKind.Mapping || root.EndLine > lines.Count)
+            {
+                return Result.Failure(text, "soundboard.yaml can't be edited automatically - change it by hand");
+            }
+
+            YamlEntry events = root.Entries.FirstOrDefault(e => NameMatch.Normalize(e.Key) == "events");
+            if (events == null || events.Value.Kind != YamlKind.Mapping || events.Value.IsFlow)
+            {
+                return Result.Failure(text, "'events:' isn't written as a plain list of event names, so it can't be edited automatically - change it by hand");
+            }
+
+            // Every entry and every sound inside a group, by the line it starts on.
+            var nodes = new Dictionary<int, YamlNode>();
+            var shared = new HashSet<int>();
+            Action<YamlNode> register = node =>
+            {
+                if (nodes.ContainsKey(node.Line))
+                {
+                    shared.Add(node.Line);
+                }
+                else
+                {
+                    nodes[node.Line] = node;
+                }
+            };
+
+            foreach (YamlEntry ev in events.Value.Entries)
+            {
+                if (ev.Value.IsNull)
+                {
+                    continue;
+                }
+
+                foreach (YamlNode item in ev.Value.Kind == YamlKind.Sequence ? ev.Value.Items : new List<YamlNode> { ev.Value })
+                {
+                    if (item.IsNull)
+                    {
+                        continue;
+                    }
+
+                    register(item);
+                    YamlEntry together = item.Kind == YamlKind.Mapping ? item.Find("together") : null;
+                    if (together != null && together.Value.Kind == YamlKind.Sequence)
+                    {
+                        foreach (YamlNode member in together.Value.Items.Where(m => !m.IsNull))
+                        {
+                            register(member);
+                        }
+                    }
+                }
+            }
+
+            // Edits in place first (they never move a line), new lines collected and added last, bottom first.
+            var insertions = new List<KeyValuePair<KeyValuePair<int, int>, List<string>>>(); // ((after, indent), lines)
+
+            foreach (IGrouping<int, OptionEdit> group in edits.GroupBy(e => e.Line))
+            {
+                if (shared.Contains(group.Key))
+                {
+                    return Result.Failure(text, "line " + group.Key + " holds more than one sound, so it can't be edited automatically - change it by hand");
+                }
+
+                if (!nodes.TryGetValue(group.Key, out YamlNode node) || group.Key - 1 >= lines.Count)
+                {
+                    return Result.Failure(text, "the file changed since it was read");
+                }
+
+                int index = group.Key - 1;
+                string line = lines[index];
+                string cr = line.EndsWith("\r") ? "\r" : string.Empty;
+
+                if (node.Kind == YamlKind.Scalar)
+                {
+                    Match dash = DashLine.Match(line.TrimEnd('\r'));
+                    if (!dash.Success)
+                    {
+                        return Result.Failure(text, "the sound on line " + group.Key + " isn't a list item ('- file.wav'), so it can't be edited automatically - change it by hand");
+                    }
+
+                    string lead = dash.Groups["lead"].Value;
+                    lines[index] = lead + "file: " + dash.Groups["rest"].Value + cr;
+                    insertions.Add(new KeyValuePair<KeyValuePair<int, int>, List<string>>(
+                        new KeyValuePair<int, int>(index, lead.Length),
+                        group.Select(e => new string(' ', lead.Length) + e.Key + ": " + e.Value).ToList()));
+                }
+                else if (node.Kind == YamlKind.Mapping && !node.IsFlow)
+                {
+                    var missing = new List<string>();
+                    foreach (OptionEdit edit in group)
+                    {
+                        YamlEntry existing = node.Find(edit.Key);
+                        if (existing == null)
+                        {
+                            missing.Add(new string(' ', node.Indent) + edit.Key + ": " + edit.Value);
+                            continue;
+                        }
+
+                        string problem = ReplaceKeyValue(lines, existing.Line - 1, edit.Key, edit.Value);
+                        if (problem != null)
+                        {
+                            return Result.Failure(text, problem);
+                        }
+                    }
+
+                    if (missing.Count > 0)
+                    {
+                        insertions.Add(new KeyValuePair<KeyValuePair<int, int>, List<string>>(new KeyValuePair<int, int>(node.EndLine - 1, node.Indent), missing));
+                    }
+                }
+                else if (node.Kind == YamlKind.Mapping)
+                {
+                    if (node.Line != node.EndLine || !line.TrimStart().StartsWith("-"))
+                    {
+                        return Result.Failure(text, "the sound on line " + group.Key + " is written inside an inline { } or [ ] list that spans lines or several sounds, so it can't be edited automatically - change it by hand");
+                    }
+
+                    foreach (OptionEdit edit in group)
+                    {
+                        string problem = SetKeyInFlow(lines, index, edit.Key, edit.Value);
+                        if (problem != null)
+                        {
+                            return Result.Failure(text, problem);
+                        }
+                    }
+                }
+                else
+                {
+                    return Result.Failure(text, "the entry on line " + group.Key + " can't be edited automatically - change it by hand");
+                }
+            }
+
+            // Bottom first so earlier line numbers stay right; at the same spot the outer entry's lines
+            // go in first, which puts a group's own options after the lines of its last sound.
+            foreach (KeyValuePair<KeyValuePair<int, int>, List<string>> insertion in insertions
+                .OrderByDescending(i => i.Key.Key)
+                .ThenBy(i => i.Key.Value))
+            {
+                InsertAfter(lines, insertion.Key.Key, insertion.Value);
+            }
+
+            return Result.Success(Join(lines));
+        }
+
+        // "    volume: 0.5   # loud"  ->  same line with only the value replaced. Null on success, else why not.
+        private static string ReplaceKeyValue(List<string> lines, int index, string key, string value)
+        {
+            if (index < 0 || index >= lines.Count)
+            {
+                return "the file changed since it was read";
+            }
+
+            string line = lines[index];
+            string cr = line.EndsWith("\r") ? "\r" : string.Empty;
+            Match m = Regex.Match(line.TrimEnd('\r'), @"^(?<lead>\s*(?:-\s+)?)(?<key>[""']?" + Regex.Escape(key) + @"[""']?)(?<colon>\s*:\s*)(?<rest>.*)$");
+            if (!m.Success)
+            {
+                return "couldn't find '" + key + "' on line " + (index + 1);
+            }
+
+            string rest = m.Groups["rest"].Value;
+            string beforeComment = MiniYaml.StripComment(rest);
+            string comment = rest.Substring(beforeComment.Length);
+            string oldValue = beforeComment.TrimEnd();
+            string spacing = beforeComment.Substring(oldValue.Length);
+            string colon = m.Groups["colon"].Value;
+            if (oldValue.Length == 0 && !colon.EndsWith(" "))
+            {
+                colon += " "; // "volume:" with nothing after it
+            }
+
+            lines[index] = m.Groups["lead"].Value + m.Groups["key"].Value + colon + value + spacing + comment + cr;
+            return null;
+        }
+
+        // "- { file: a.wav, volume: 0.5 }"  ->  value swapped inside the braces, or "key: value" added before the "}".
+        private static string SetKeyInFlow(List<string> lines, int index, string key, string value)
+        {
+            string line = lines[index];
+            string cr = line.EndsWith("\r") ? "\r" : string.Empty;
+            string content = line.TrimEnd('\r');
+            string code = MiniYaml.StripComment(content);
+
+            Match m = Regex.Match(code, @"(?<pre>[{,]\s*)(?<key>[""']?" + Regex.Escape(key) + @"[""']?\s*:\s*)(?<value>[^,}\s#]+)");
+            if (m.Success)
+            {
+                Group old = m.Groups["value"];
+                lines[index] = content.Substring(0, old.Index) + value + content.Substring(old.Index + old.Length) + cr;
+                return null;
+            }
+
+            int close = code.LastIndexOf('}');
+            if (close < 0)
+            {
+                return "couldn't find the end of the { } on line " + (index + 1);
+            }
+
+            string before = code.Substring(0, close).TrimEnd();
+            string tail = content.Substring(close); // "}" plus any comment
+            lines[index] = before + ", " + key + ": " + value + " " + tail + cr;
+            return null;
+        }
+
         /// <summary>Inserts lines after lines[index] (or at the very top if index is -1), copying that line's line ending.</summary>
         private static void InsertAfter(List<string> lines, int index, List<string> block)
         {

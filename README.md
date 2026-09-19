@@ -13,8 +13,8 @@ Plays your own sound effects when things happen in Rain World: you die, you jump
 Green Lizard spots you, you fall too fast, you change rooms, a scavenger throws a spear... **One
 text file, `soundboard.yaml`, decides which sound plays for which event** - along with how loud it
 is and how long to wait before it plays. You can edit that file by hand, or use the **Add Sound**
-tab in the mod's options screen to pick an event and a sound from dropdowns. No coding, no
-rebuilding, and no game restart to try a change.
+and **Edit Sound** tabs in the mod's options screen to add sounds from dropdowns and tweak the numbers
+of ones you already have. No coding, no rebuilding, and no game restart to try a change.
 
 *(Versions before 1.0.0 needed a recompile plus two data files per sound. If you have a `0.1.0`
 setup, see [Upgrading from 0.1.0](#upgrading-from-010).)*
@@ -30,7 +30,8 @@ setup, see [Upgrading from 0.1.0](#upgrading-from-010).)*
 4. Back in the game, press **RELOAD CONFIG**. Done - jump around and listen.
 
 Prefer not to touch the file? Use the **Add Sound** tab instead - see
-[Adding a sound from the options screen](#adding-a-sound-from-the-options-screen).
+[Adding a sound from the options screen](#adding-a-sound-from-the-options-screen) - and the **Edit Sound**
+tab to change a sound's [volume, delay and cooldown](#changing-a-sound-from-the-options-screen) later.
 
 The options screen also has a checkbox for every sound so you can switch individual ones off
 without editing anything - **tick or untick them, then press SAVE and the change is written into
@@ -72,7 +73,28 @@ A few things to know:
   picks stay on the tab so you can fix the file, press RELOAD CONFIG, and save again.
 - The new entry appears in the Sounds tab's checkbox list the next time you open the Mods menu (it plays
   right away either way).
-- This page only *adds*. To remove or change an entry, untick it on the Sounds tab or edit the file.
+- This page only *adds*. To change an entry's numbers use the Edit Sound tab, to switch it off untick it on the Sounds
+  tab, and to remove it edit the file.
+
+## Changing a sound from the options screen
+
+The **Edit Sound** tab changes the numbers of sounds that are already in your file:
+
+1. **Entry** - pick one from the dropdown (they're listed as `Event: Name`, in the order they appear in the file;
+   type to search, hover to see the files).
+2. Its sounds appear in up to three rows, each with **Volume** (%) and **Delay** (seconds). An entry with a
+   [`together` group](#playing-sounds-together) shows one row per sound; unused rows are greyed out. (If a group has
+   more than three sounds, only the first three can be edited here.)
+3. **Cooldown** is the entry's [`cooldown:`](#cooldowns) (`0` = none); for a group it covers the whole group.
+4. Press **SAVE**. Only the numbers you changed are written, right where they belong: an existing `volume:` line has
+   its value replaced (a comment after it stays), a missing one is added under the entry's other options, and a bare
+   `- boom.wav` is turned into `- file: boom.wav` to make room. Nothing is ever removed, everything else in the file
+   is left exactly as it was, and the change takes effect immediately.
+
+Like Add Sound, nothing is written until you press **SAVE**, and if the file has a mistake, or the entry is written in
+a shape that can't be edited safely (for example inside an inline `[ ... ]` list, or several sounds on one line),
+nothing is changed and the status line says why so you can edit that one by hand. A `together` group's own
+`volume:`/`delay:` (which multiply/add to every sound in it) aren't shown or changed here - only each sound's own numbers.
 
 ## Writing `soundboard.yaml`
 
@@ -423,13 +445,14 @@ SoundboardMod/
 │  ├─ SoundboardConfig.cs      Turns the YAML into typed config + a list of issues
 │  ├─ EventCatalog.cs          Every event name + description; forgiving name matching
 │  ├─ ConfigFiles.cs           Where config/sounds live; finds audio files
-│  ├─ YamlEditor.cs            Edits soundboard.yaml's text in place: an entry's enabled line, or appending a sound
+│  ├─ YamlEditor.cs            Edits soundboard.yaml's text in place: an entry's enabled line, appending a sound, changing options
 │  ├─ SoundAdder.cs            Builds and double-checks a new entry before it's written (Add Sound tab -> file)
+│  ├─ SoundTweaker.cs          Changes an existing entry's volume/delay/cooldown and double-checks it (Edit Sound tab -> file)
 │  ├─ SoundLibrary.cs          Lists the audio files the Add Sound dropdown offers
 │  ├─ SoundboardRuntime.cs     Loads/reloads the config, picks what to play, applies volume/delay
 │  ├─ SoundRegistry.cs         Loads audio files and adds them to the game's SoundLoader at runtime
 │  ├─ EventHooks.cs            Harmony patches that turn game moments into event names
-│  ├─ Options.cs               The in-game options screen (Sounds tab + Add Sound tab)
+│  ├─ Options.cs               The in-game options screen (Sounds, Add Sound and Edit Sound tabs)
 │  ├─ EntryCooldowns.cs        Tracks which entries are cooling down (an entry's `cooldown:`)
 │  └─ Cooldown.cs, DelayQueue.cs, FallTracker.cs, SoundRotation.cs   Small game-independent helpers
 ├─ tests/SoundboardMod.Tests/  xUnit tests for everything that doesn't need the game
@@ -495,3 +518,4 @@ by the game). VS Code: *Ctrl+Shift+B* builds, and there are `test` and `deploy` 
 `v1.1.0` added the **Add Sound** tab: event and sound dropdowns plus volume/delay boxes, and SAVE appends the
 sound to the event's list in `soundboard.yaml`. `v1.1.1` lets that tab add a `together:` group (up to three sounds).
 `v1.2.0` added the per-entry `cooldown:` option (and a Cooldown box on the Add Sound tab).
+`v1.3.0` added the **Edit Sound** tab: change an existing entry's volume, delay and cooldown in place.

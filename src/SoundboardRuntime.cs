@@ -372,6 +372,59 @@ namespace SoundboardMod
         }
 
         /// <summary>
+        /// Changes the volume, delay and cooldown of an entry that's already in the file - what SAVE
+        /// does on the options screen's Edit Sound page - and re-reads the config so it takes effect
+        /// at once. Returns null on success, otherwise a reason for the player.
+        /// <paramref name="written"/> says whether the file was changed: false with no reason means
+        /// there was nothing to change; true with a reason means only the re-read afterwards went wrong.
+        /// </summary>
+        public static string EditEntry(EntryTweak tweak, out bool written)
+        {
+            written = false;
+            if (Locations == null || ConfigPath != Locations.UserConfigPath)
+            {
+                return "the game isn't using your own soundboard.yaml right now (see the problems listed), so there's nothing to save it to";
+            }
+
+            try
+            {
+                string text = File.ReadAllText(Locations.UserConfigPath);
+                YamlEditor.Result result = SoundTweaker.Apply(text, tweak, Catalog);
+                if (!result.Ok)
+                {
+                    return result.Error;
+                }
+
+                if (result.Text == text)
+                {
+                    return null; // already as asked
+                }
+
+                File.WriteAllText(Locations.UserConfigPath, result.Text);
+                written = true;
+            }
+            catch (Exception e)
+            {
+                Log.LogError($"Couldn't change an entry in {Locations.UserConfigPath}: {e}");
+                return "couldn't write soundboard.yaml (" + e.Message + ")";
+            }
+
+            Log.LogInfo($"Changed entry {tweak.ChoiceId} in {Locations.UserConfigPath}");
+
+            try
+            {
+                Reload();
+            }
+            catch (Exception e)
+            {
+                Log.LogError($"Changed the entry, but re-reading soundboard.yaml failed: {e}");
+                return "it was changed in soundboard.yaml, but re-reading the file failed (" + e.Message + ") - press RELOAD CONFIG or restart the game";
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// An event just happened. Plays the next enabled entry from its list
         /// (if the config has one). pos is where it happened in the room, or
         /// null for a sound with no position (played centred).

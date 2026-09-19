@@ -18,6 +18,7 @@
     <Compile Include="..\..\src\ConfigFiles.cs" Link="Src\ConfigFiles.cs" />
     <Compile Include="..\..\src\YamlEditor.cs" Link="Src\YamlEditor.cs" />
     <Compile Include="..\..\src\SoundAdder.cs" Link="Src\SoundAdder.cs" />
+    <Compile Include="..\..\src\SoundTweaker.cs" Link="Src\SoundTweaker.cs" />
     <Compile Include="..\..\src\SoundLibrary.cs" Link="Src\SoundLibrary.cs" />
     <Compile Include="..\..\src\DelayQueue.cs" Link="Src\DelayQueue.cs" />
     <Compile Include="..\..\src\FallTracker.cs" Link="Src\FallTracker.cs" />

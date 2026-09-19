@@ -51,6 +51,23 @@ namespace SoundboardMod
         /// <summary>Seconds to wait after the event before playing.</summary>
         public float Delay;
 
+        /// <summary>
+        /// The volume and delay exactly as written on this sound in the file. For a sound in a
+        /// "together" group, Volume and Delay above also include the group's own volume/delay
+        /// (multiplied / added); these don't, so they're what an edit of the sound changes.
+        /// </summary>
+        public float OwnVolume = 1f;
+
+        public float OwnDelay;
+
+        /// <summary>
+        /// Position of this sound among the sounds written in its entry's "together" list (0 for a
+        /// plain entry), counting sounds that couldn't be read - so it names the same sound in the
+        /// file even if an earlier one is missing here. Unlike Line it doesn't change when lines are
+        /// added above it.
+        /// </summary>
+        public int Member;
+
         public int Line;
 
         /// <summary>Full path once found on disk (filled in by SoundFileResolver).</summary>
@@ -434,8 +451,10 @@ namespace SoundboardMod
                 return null;
             }
 
+            int memberIndex = -1;
             foreach (YamlNode memberNode in together.Value.Items)
             {
+                memberIndex++;
                 if (memberNode.IsNull || (memberNode.Kind != YamlKind.Scalar && memberNode.Kind != YamlKind.Mapping))
                 {
                     config.AddIssue(IssueSeverity.Error, memberNode.Line, "Each sound in 'together' should be a file name or a 'file: ...' block.");
@@ -448,6 +467,7 @@ namespace SoundboardMod
                     continue;
                 }
 
+                member.Member = memberIndex;
                 member.Volume = Clamp(member.Volume * groupVolume, 0f, MaxVolume);
                 member.Delay = Clamp(member.Delay + groupDelay, 0f, MaxDelay);
                 choice.Sounds.Add(member);
@@ -496,6 +516,8 @@ namespace SoundboardMod
                 file = fileEntry.Value.Text;
                 sound.Volume = ReadVolume(node, config);
                 sound.Delay = ReadDelay(node, config);
+                sound.OwnVolume = sound.Volume;
+                sound.OwnDelay = sound.Delay;
             }
 
             file = file?.Trim();
