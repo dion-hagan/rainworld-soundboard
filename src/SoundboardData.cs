@@ -16,9 +16,9 @@ namespace SoundboardMod
         public bool defaultEnabled = true;
 
         // Optional. Sounds sharing the same event AND the same non-empty
-        // group are picked/played as a single unit (see ChooseGroup in
-        // EventHooks.cs): the random pick is between groups, not individual
-        // sounds, and every sound in the winning group plays together.
+        // group take their turn as a single unit (see ChooseGroup in
+        // EventHooks.cs): the rotation steps through groups, not individual
+        // sounds, and every sound in the current group plays together.
         // Sounds with no group are their own group of one.
         public string group;
 

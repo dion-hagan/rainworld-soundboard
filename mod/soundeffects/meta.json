@@ -107,7 +107,7 @@
     {
       "id": "Soundboard_ScavengerSpotted",
       "displayName": "Can I Put My Balls In Your Jaws",
-      "description": "Plays when a Scavenger first notices you - a 50/50 pick against Enrique+Indian Song playing together.",
+      "description": "Plays when a Scavenger first notices you - alternating with Enrique+Indian Song (which play together).",
       "file": "can-i-put-my-balls-in-your-jaws.wav",
       "event": "PlayerSpottedByScavenger",
       "defaultEnabled": true
@@ -123,7 +123,7 @@
     {
       "id": "Soundboard_BoneCrack",
       "displayName": "Bone Crack",
-      "description": "Plays on a hard landing, sharing the slot with Vine Boom (roughly 50/50).",
+      "description": "Plays on a hard landing, taking turns with Vine Boom.",
       "file": "bone-crack.wav",
       "event": "PlayerHardLanding",
       "defaultEnabled": true
@@ -131,7 +131,7 @@
     {
       "id": "Soundboard_FartMeme",
       "displayName": "Fart Meme",
-      "description": "Plays when a Scavenger dies, sharing the slot with We Do Not Care and Discord Leave Noise.",
+      "description": "Plays when a Scavenger dies, taking turns with We Do Not Care and Discord Leave Noise.",
       "file": "fartmeme.wav",
       "event": "ScavengerDeath",
       "defaultEnabled": true
@@ -139,7 +139,7 @@
     {
       "id": "Soundboard_WeDoNotCare",
       "displayName": "We Do Not Care",
-      "description": "Plays when a Scavenger dies, sharing the slot with Fart Meme and Discord Leave Noise.",
+      "description": "Plays when a Scavenger dies, taking turns with Fart Meme and Discord Leave Noise.",
       "file": "we-do-not-care.wav",
       "event": "ScavengerDeath",
       "defaultEnabled": true
@@ -163,7 +163,7 @@
     {
       "id": "Soundboard_Enrique",
       "displayName": "Enrique",
-      "description": "Plays together with Indian Song (as one 50/50 pick against Can I Put My Balls In Your Jaws) when a Scavenger first notices you.",
+      "description": "Plays together with Indian Song (taking turns with Can I Put My Balls In Your Jaws) when a Scavenger first notices you.",
       "file": "enrique.wav",
       "event": "PlayerSpottedByScavenger",
       "group": "EnriqueIndianSong",
@@ -172,7 +172,7 @@
     {
       "id": "Soundboard_IndianSong",
       "displayName": "Indian Song",
-      "description": "Plays together with Enrique (as one 50/50 pick against Can I Put My Balls In Your Jaws) when a Scavenger first notices you.",
+      "description": "Plays together with Enrique (taking turns with Can I Put My Balls In Your Jaws) when a Scavenger first notices you.",
       "file": "indian-song.wav",
       "event": "PlayerSpottedByScavenger",
       "group": "EnriqueIndianSong",
@@ -213,7 +213,7 @@
     {
       "id": "Soundboard_FahhSlowed",
       "displayName": "Fahh (Slowed)",
-      "description": "Plays when you die (one of several random death sounds).",
+      "description": "Plays when you die (takes its turn in the death-sound rotation).",
       "file": "fahh-slowed.wav",
       "event": "PlayerDeath",
       "defaultEnabled": true
@@ -221,7 +221,7 @@
     {
       "id": "Soundboard_ICantDoNathan",
       "displayName": "I Can't Do Nathan",
-      "description": "Plays when you die (one of several random death sounds).",
+      "description": "Plays when you die (takes its turn in the death-sound rotation).",
       "file": "i-cant-do-nathan.wav",
       "event": "PlayerDeath",
       "defaultEnabled": true
@@ -229,7 +229,7 @@
     {
       "id": "Soundboard_IGotThis",
       "displayName": "I Got This Fahhhhhh",
-      "description": "Plays when you die (one of several random death sounds).",
+      "description": "Plays when you die (takes its turn in the death-sound rotation).",
       "file": "i-got-this-fahhhhhh.wav",
       "event": "PlayerDeath",
       "defaultEnabled": true
@@ -237,7 +237,7 @@
     {
       "id": "Soundboard_MiauTriste",
       "displayName": "Miau Triste",
-      "description": "Plays when you die (one of several random death sounds).",
+      "description": "Plays when you die (takes its turn in the death-sound rotation).",
       "file": "miau-triste.wav",
       "event": "PlayerDeath",
       "defaultEnabled": true
@@ -245,7 +245,7 @@
     {
       "id": "Soundboard_OmgBruh",
       "displayName": "OMG Bruh Oh Hell Nah",
-      "description": "Plays when you die (one of several random death sounds).",
+      "description": "Plays when you die (takes its turn in the death-sound rotation).",
       "file": "omg-bruh-oh-hell-nah.wav",
       "event": "PlayerDeath",
       "defaultEnabled": true
@@ -253,7 +253,7 @@
     {
       "id": "Soundboard_EmotionalDamage",
       "displayName": "Emotional Damage",
-      "description": "Plays when you die (one of several random death sounds).",
+      "description": "Plays when you die (takes its turn in the death-sound rotation).",
       "file": "emotional-damage-meme.wav",
       "event": "PlayerDeath",
       "defaultEnabled": true
@@ -277,7 +277,7 @@
     {
       "id": "Soundboard_ChupaloGuayaco",
       "displayName": "Chupalo Guayaco",
-      "description": "Plays when a Scavenger throws a spear (one of several random sounds).",
+      "description": "Plays when a Scavenger throws a spear (takes its turn in this event's sound rotation).",
       "file": "chupalo-guayaco.wav",
       "event": "ScavengerThrowSpear",
       "defaultEnabled": true
@@ -285,7 +285,7 @@
     {
       "id": "Soundboard_EnriqueYell",
       "displayName": "Enrique Yell",
-      "description": "Plays when a Scavenger throws a spear (one of several random sounds).",
+      "description": "Plays when a Scavenger throws a spear (takes its turn in this event's sound rotation).",
       "file": "ennnnriiiiqqqqueeeeeeee.wav",
       "event": "ScavengerThrowSpear",
       "defaultEnabled": true
@@ -293,7 +293,7 @@
     {
       "id": "Soundboard_GoofyYell",
       "displayName": "Goofy Yell",
-      "description": "Plays when a Scavenger throws a spear (one of several random sounds).",
+      "description": "Plays when a Scavenger throws a spear (takes its turn in this event's sound rotation).",
       "file": "goofy-yell.wav",
       "event": "ScavengerThrowSpear",
       "defaultEnabled": true
@@ -301,7 +301,7 @@
     {
       "id": "Soundboard_MarioYell",
       "displayName": "Mario Yell",
-      "description": "Plays when a Scavenger throws a spear (one of several random sounds).",
+      "description": "Plays when a Scavenger throws a spear (takes its turn in this event's sound rotation).",
       "file": "mario-yell.wav",
       "event": "ScavengerThrowSpear",
       "defaultEnabled": true
@@ -309,7 +309,7 @@
     {
       "id": "Soundboard_OhioRingtone",
       "displayName": "Ohio Ringtone",
-      "description": "Plays when a Scavenger throws a spear (one of several random sounds).",
+      "description": "Plays when a Scavenger throws a spear (takes its turn in this event's sound rotation).",
       "file": "ohio-ringtone.wav",
       "event": "ScavengerThrowSpear",
       "defaultEnabled": true
@@ -317,7 +317,7 @@
     {
       "id": "Soundboard_QuandaleDingle",
       "displayName": "Quandale Dingle",
-      "description": "Plays when a Scavenger throws a spear (one of several random sounds).",
+      "description": "Plays when a Scavenger throws a spear (takes its turn in this event's sound rotation).",
       "file": "quandale-dingle.wav",
       "event": "ScavengerThrowSpear",
       "defaultEnabled": true
@@ -325,7 +325,7 @@
     {
       "id": "Soundboard_Syfm",
       "displayName": "SYFM",
-      "description": "Plays when a Scavenger dies (one of several random sounds).",
+      "description": "Plays when a Scavenger dies (takes its turn in this event's sound rotation).",
       "file": "syfm-loud.wav",
       "event": "ScavengerDeath",
       "defaultEnabled": true
@@ -357,7 +357,7 @@
     {
       "id": "Soundboard_HomerBarts",
       "displayName": "Homer Lets The Barts Out",
-      "description": "Plays when a shelter door closes (one of several random sounds).",
+      "description": "Plays when a shelter door closes (takes its turn in this event's sound rotation).",
       "file": "homer-lets-the-barts-out.wav",
       "event": "PlayerEnterShelter",
       "defaultEnabled": true
@@ -365,7 +365,7 @@
     {
       "id": "Soundboard_GalaxyMeme",
       "displayName": "Galaxy Meme",
-      "description": "Plays when a shelter door closes (one of several random sounds).",
+      "description": "Plays when a shelter door closes (takes its turn in this event's sound rotation).",
       "file": "galaxy-meme.wav",
       "event": "PlayerEnterShelter",
       "defaultEnabled": true
@@ -373,7 +373,7 @@
     {
       "id": "Soundboard_HelloMfer",
       "displayName": "Hello M-F-er",
-      "description": "Plays when any creature enters a shelter that already has a player in it (one of several random sounds).",
+      "description": "Plays when any creature enters a shelter that already has a player in it (takes its turn in this event's sound rotation).",
       "file": "hello-m-f-er.wav",
       "event": "CreatureEnteredOccupiedShelter",
       "defaultEnabled": true
@@ -381,7 +381,7 @@
     {
       "id": "Soundboard_ImGonnaCome",
       "displayName": "I'm Gonna Come",
-      "description": "Plays when you pick up an explosive spear or a scavenger grenade (one of several random sounds).",
+      "description": "Plays when you pick up an explosive spear or a scavenger grenade (takes its turn in this event's sound rotation).",
       "file": "im-gonna-come.wav",
       "event": "PlayerGrabExplosive",
       "defaultEnabled": true
@@ -389,7 +389,7 @@
     {
       "id": "Soundboard_Jackpot",
       "displayName": "I Just Hit The Jackpot",
-      "description": "Plays when you pick up an explosive spear or a scavenger grenade (one of several random sounds).",
+      "description": "Plays when you pick up an explosive spear or a scavenger grenade (takes its turn in this event's sound rotation).",
       "file": "i-just-hit-the-jackpot.wav",
       "event": "PlayerGrabExplosive",
       "defaultEnabled": true
@@ -397,7 +397,7 @@
     {
       "id": "Soundboard_DamnHeThicc",
       "displayName": "Damn He Thicc",
-      "description": "Plays when a Red Lizard, Red Centipede, King Vulture, or Long Legs first notices you (one of several random sounds).",
+      "description": "Plays when a Red Lizard, Red Centipede, King Vulture, or Long Legs first notices you (takes its turn in this event's sound rotation).",
       "file": "damn-he-thicc.wav",
       "event": "PlayerSpottedByMajorThreat",
       "defaultEnabled": true
@@ -405,7 +405,7 @@
     {
       "id": "Soundboard_EmotionalDamage_Threat",
       "displayName": "Emotional Damage (Threat)",
-      "description": "Plays when a Red Lizard, Red Centipede, King Vulture, or Long Legs first notices you (one of several random sounds).",
+      "description": "Plays when a Red Lizard, Red Centipede, King Vulture, or Long Legs first notices you (takes its turn in this event's sound rotation).",
       "file": "emotional-damage-meme.wav",
       "event": "PlayerSpottedByMajorThreat",
       "defaultEnabled": true
@@ -413,7 +413,7 @@
     {
       "id": "Soundboard_Gigachad",
       "displayName": "Gigachad Theme",
-      "description": "Plays when a Red Lizard, Red Centipede, King Vulture, or Long Legs first notices you (one of several random sounds).",
+      "description": "Plays when a Red Lizard, Red Centipede, King Vulture, or Long Legs first notices you (takes its turn in this event's sound rotation).",
       "file": "gigachad-theme-music.wav",
       "event": "PlayerSpottedByMajorThreat",
       "defaultEnabled": true

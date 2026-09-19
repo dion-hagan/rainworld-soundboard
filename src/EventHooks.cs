@@ -13,8 +13,8 @@ namespace SoundboardMod
     /// *_Patch class below patches one real game method and calls
     /// Trigger(...)/TriggerAt(...) with an event key. Sounds in
     /// soundeffects/meta.json reference these keys via their "event" field -
-    /// multiple sounds can share a key, and one is chosen at random among
-    /// whichever are currently enabled.
+    /// multiple sounds can share a key, and they take turns in meta.json
+    /// order (skipping any that are switched off in the menu).
     ///
     /// To add a new hook: add another nested class patching whatever method
     /// fires at the moment you care about, then call Trigger/TriggerAt with
@@ -539,11 +539,11 @@ namespace SoundboardMod
         }
 
         /// <summary>
-        /// Plays every sound in one randomly-chosen group registered for the
-        /// given event key (if any), positioned in the world so it
-        /// pans/attenuates naturally. Sounds with no "group" in meta.json are
-        /// their own group of one; sounds sharing a group are picked as a
-        /// single unit and all play together.
+        /// Plays every sound in the next group in line for the given event
+        /// key (if any), positioned in the world so it pans/attenuates
+        /// naturally. Sounds with no "group" in meta.json are their own group
+        /// of one; sounds sharing a group take their turn as a single unit
+        /// and all play together.
         /// </summary>
         private static void TriggerAt(string eventKey, Room room, Vector2 pos)
         {
@@ -572,12 +572,28 @@ namespace SoundboardMod
             }
         }
 
+        // Which group played last for each event, so the next trigger moves on
+        // to the following one. In-memory only: every launch starts each
+        // event's rotation from its first sound again.
+        private static readonly Dictionary<string, string> LastPlayedGroup = new Dictionary<string, string>();
+
+        private static bool IsEnabled(SoundEntry entry)
+        {
+            return Options.Instance == null || Options.Instance.IsEnabled(entry.id);
+        }
+
         /// <summary>
-        /// Picks one group at random (uniformly) among the currently-enabled
-        /// sounds registered for eventKey, and returns every sound in it.
+        /// Picks the next group for eventKey and returns the enabled sounds in
+        /// it. Groups are visited in meta.json order and wrap around after the
+        /// last one (see SoundRotation), so a sound isn't repeated until every
+        /// other enabled group for that event has had a turn. A sound with no
+        /// "group" is its own group of one.
         /// </summary>
         private static List<SoundEntry> ChooseGroup(string eventKey)
         {
+            // Every sound for this event, in meta.json order, bucketed by group.
+            // Disabled sounds stay in the list so they keep their place.
+            var order = new List<string>();
             var groups = new Dictionary<string, List<SoundEntry>>();
 
             foreach (SoundEntry entry in SoundboardData.Sounds)
@@ -587,35 +603,26 @@ namespace SoundboardMod
                     continue;
                 }
 
-                bool enabled = Options.Instance == null || Options.Instance.IsEnabled(entry.id);
-                if (!enabled)
-                {
-                    continue;
-                }
-
-                // No group -> its own group of one, keyed by its id.
                 string groupKey = string.IsNullOrEmpty(entry.group) ? entry.id : entry.group;
                 if (!groups.TryGetValue(groupKey, out List<SoundEntry> members))
                 {
                     members = new List<SoundEntry>();
                     groups[groupKey] = members;
+                    order.Add(groupKey);
                 }
 
                 members.Add(entry);
             }
 
-            List<SoundEntry> chosen = null;
-            int matchCount = 0;
-            foreach (List<SoundEntry> members in groups.Values)
+            LastPlayedGroup.TryGetValue(eventKey, out string lastKey);
+            string next = SoundRotation.NextKey(order, key => groups[key].Any(IsEnabled), lastKey);
+            if (next == null)
             {
-                matchCount++;
-                if (UnityEngine.Random.Range(0, matchCount) == 0)
-                {
-                    chosen = members;
-                }
+                return new List<SoundEntry>();
             }
 
-            return chosen ?? new List<SoundEntry>();
+            LastPlayedGroup[eventKey] = next;
+            return groups[next].Where(IsEnabled).ToList();
         }
     }
 }

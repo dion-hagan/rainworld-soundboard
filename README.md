@@ -1,3 +1,8 @@
+This is possibly the dumbest thing I've ever written. It's just a simple soundboard mod for me and my friends to play around with
+in Rainworld. I couldn't find anything general purpose like this. Feel free to use it/extend it - if people wind up liking the concept, I can make it easier to configure/setup/generalize it further.
+
+Note: This is AI-assisted code -- I reviewed it, but didn't play close attention to architecture.
+
 # Custom Soundboard (Rain World mod)
 
 A BepInEx mod for Rain World that plays your own `.wav` sound effects when
@@ -35,45 +40,45 @@ out for your own whenever you like.
 | `Soundboard_GoodBoy` | `what-a-good-boy.wav` | `PlayerEatCreature` | Enabled | Plays when you eat a creature (meat), as opposed to fruit/plants. |
 | `Soundboard_BennyHill` | `benny-hill.wav` | `PlayerSpottedByPredator` | Enabled | Plays when a Lizard, Spider/BigSpider, or Vulture first notices you (Cyan Lizards, Red Lizards, King Vultures, and Miros Vultures have their own sounds instead). |
 | `Soundboard_YameteKudasai` | `yamete-kudasai.wav` | `SnailExplosion` | Enabled | Plays when a Snail explodes. |
-| `Soundboard_ScavengerSpotted` | `can-i-put-my-balls-in-your-jaws.wav` | `PlayerSpottedByScavenger` | Enabled | Plays when a Scavenger first notices you - a 50/50 pick against Enrique+Indian Song playing together. |
+| `Soundboard_ScavengerSpotted` | `can-i-put-my-balls-in-your-jaws.wav` | `PlayerSpottedByScavenger` | Enabled | Plays when a Scavenger first notices you - alternating with Enrique+Indian Song (which play together). |
 | `Soundboard_AnimeAhh` | `anime-ahh.wav` | `CicadaOrLanternMouseDeath` | Enabled | Plays when a Cicada ("squidcada") or Lantern Mouse dies. |
-| `Soundboard_BoneCrack` | `bone-crack.wav` | `PlayerHardLanding` | Enabled | Plays on a hard landing, sharing the slot with Vine Boom (roughly 50/50). |
-| `Soundboard_FartMeme` | `fartmeme.wav` | `ScavengerDeath` | Enabled | Plays when a Scavenger dies, sharing the slot with We Do Not Care and Discord Leave Noise. |
-| `Soundboard_WeDoNotCare` | `we-do-not-care.wav` | `ScavengerDeath` | Enabled | Plays when a Scavenger dies, sharing the slot with Fart Meme and Discord Leave Noise. |
+| `Soundboard_BoneCrack` | `bone-crack.wav` | `PlayerHardLanding` | Enabled | Plays on a hard landing, taking turns with Vine Boom. |
+| `Soundboard_FartMeme` | `fartmeme.wav` | `ScavengerDeath` | Enabled | Plays when a Scavenger dies, taking turns with We Do Not Care and Discord Leave Noise. |
+| `Soundboard_WeDoNotCare` | `we-do-not-care.wav` | `ScavengerDeath` | Enabled | Plays when a Scavenger dies, taking turns with Fart Meme and Discord Leave Noise. |
 | `Soundboard_MusicaElevador` | `musica-elevador-short.wav` | `RegionGateTransition` | Enabled | Plays when a region gate transition starts. |
 | `Soundboard_HatsuneMikuWeee` | `hatsune-miku-weeeeeeee.wav` | `PlayerJumpWithCicada` | Enabled | Plays when you jump while holding a Cicada ("squidcada"). |
-| `Soundboard_Enrique` | `enrique.wav` | `PlayerSpottedByScavenger` | Enabled | Plays together with Indian Song (as one 50/50 pick against Can I Put My Balls In Your Jaws) when a Scavenger first notices you. |
-| `Soundboard_IndianSong` | `indian-song.wav` | `PlayerSpottedByScavenger` | Enabled | Plays together with Enrique (as one 50/50 pick against Can I Put My Balls In Your Jaws) when a Scavenger first notices you. |
+| `Soundboard_Enrique` | `enrique.wav` | `PlayerSpottedByScavenger` | Enabled | Plays together with Indian Song (taking turns with Can I Put My Balls In Your Jaws) when a Scavenger first notices you. |
+| `Soundboard_IndianSong` | `indian-song.wav` | `PlayerSpottedByScavenger` | Enabled | Plays together with Enrique (taking turns with Can I Put My Balls In Your Jaws) when a Scavenger first notices you. |
 | `Soundboard_Meow` | `m-e-o-w.wav` | `PlayerArtificerPyroJump` | Enabled | Plays when Artificer does a pyro jump (explosion-boosted "double jump"). |
 | `Soundboard_Scatman` | `scatman.wav` | `PlayerSpottedByCyanLizard` | Enabled | Plays when a Cyan Lizard first notices you (instead of Benny Hill). |
 | `Soundboard_NuclearAlarm` | `nuclear-alarm-siren.wav` | `VultureGrubSignal` | Enabled | Plays when a thrown Vulture Grub starts emitting its signal, calling nearby vultures. |
 | `Soundboard_FbiOpenUp` | `fbi-open-up-sfx.wav` | `CreatureEnteredOccupiedShelter` | Enabled | Plays when any creature enters a shelter that already has a player in it. |
-| `Soundboard_FahhSlowed` | `fahh-slowed.wav` | `PlayerDeath` | Enabled | Plays when you die (one of several random death sounds). |
-| `Soundboard_ICantDoNathan` | `i-cant-do-nathan.wav` | `PlayerDeath` | Enabled | Plays when you die (one of several random death sounds). |
-| `Soundboard_IGotThis` | `i-got-this-fahhhhhh.wav` | `PlayerDeath` | Enabled | Plays when you die (one of several random death sounds). |
-| `Soundboard_MiauTriste` | `miau-triste.wav` | `PlayerDeath` | Enabled | Plays when you die (one of several random death sounds). |
-| `Soundboard_OmgBruh` | `omg-bruh-oh-hell-nah.wav` | `PlayerDeath` | Enabled | Plays when you die (one of several random death sounds). |
-| `Soundboard_EmotionalDamage` | `emotional-damage-meme.wav` | `PlayerDeath` | Enabled | Plays when you die (one of several random death sounds). |
+| `Soundboard_FahhSlowed` | `fahh-slowed.wav` | `PlayerDeath` | Enabled | Plays when you die (takes its turn in the death-sound rotation). |
+| `Soundboard_ICantDoNathan` | `i-cant-do-nathan.wav` | `PlayerDeath` | Enabled | Plays when you die (takes its turn in the death-sound rotation). |
+| `Soundboard_IGotThis` | `i-got-this-fahhhhhh.wav` | `PlayerDeath` | Enabled | Plays when you die (takes its turn in the death-sound rotation). |
+| `Soundboard_MiauTriste` | `miau-triste.wav` | `PlayerDeath` | Enabled | Plays when you die (takes its turn in the death-sound rotation). |
+| `Soundboard_OmgBruh` | `omg-bruh-oh-hell-nah.wav` | `PlayerDeath` | Enabled | Plays when you die (takes its turn in the death-sound rotation). |
+| `Soundboard_EmotionalDamage` | `emotional-damage-meme.wav` | `PlayerDeath` | Enabled | Plays when you die (takes its turn in the death-sound rotation). |
 | `Soundboard_SixtySeven` | `67-SQlv2Xv.wav` | `CyanLizardJump` | Enabled | Plays when a Cyan Lizard jumps. |
 | `Soundboard_AwwSoCute` | `aww-so-cute-ishowspeed.wav` | `PlayerGrabYeek` | Enabled | Plays when you grab a Yeek. |
-| `Soundboard_ChupaloGuayaco` | `chupalo-guayaco.wav` | `ScavengerThrowSpear` | Enabled | Plays when a Scavenger throws a spear (one of several random sounds). |
-| `Soundboard_EnriqueYell` | `ennnnriiiiqqqqueeeeeeee.wav` | `ScavengerThrowSpear` | Enabled | Plays when a Scavenger throws a spear (one of several random sounds). |
-| `Soundboard_GoofyYell` | `goofy-yell.wav` | `ScavengerThrowSpear` | Enabled | Plays when a Scavenger throws a spear (one of several random sounds). |
-| `Soundboard_MarioYell` | `mario-yell.wav` | `ScavengerThrowSpear` | Enabled | Plays when a Scavenger throws a spear (one of several random sounds). |
-| `Soundboard_OhioRingtone` | `ohio-ringtone.wav` | `ScavengerThrowSpear` | Enabled | Plays when a Scavenger throws a spear (one of several random sounds). |
-| `Soundboard_QuandaleDingle` | `quandale-dingle.wav` | `ScavengerThrowSpear` | Enabled | Plays when a Scavenger throws a spear (one of several random sounds). |
-| `Soundboard_Syfm` | `syfm-loud.wav` | `ScavengerDeath` | Enabled | Plays when a Scavenger dies (one of several random sounds). |
+| `Soundboard_ChupaloGuayaco` | `chupalo-guayaco.wav` | `ScavengerThrowSpear` | Enabled | Plays when a Scavenger throws a spear (takes its turn in this event's sound rotation). |
+| `Soundboard_EnriqueYell` | `ennnnriiiiqqqqueeeeeeee.wav` | `ScavengerThrowSpear` | Enabled | Plays when a Scavenger throws a spear (takes its turn in this event's sound rotation). |
+| `Soundboard_GoofyYell` | `goofy-yell.wav` | `ScavengerThrowSpear` | Enabled | Plays when a Scavenger throws a spear (takes its turn in this event's sound rotation). |
+| `Soundboard_MarioYell` | `mario-yell.wav` | `ScavengerThrowSpear` | Enabled | Plays when a Scavenger throws a spear (takes its turn in this event's sound rotation). |
+| `Soundboard_OhioRingtone` | `ohio-ringtone.wav` | `ScavengerThrowSpear` | Enabled | Plays when a Scavenger throws a spear (takes its turn in this event's sound rotation). |
+| `Soundboard_QuandaleDingle` | `quandale-dingle.wav` | `ScavengerThrowSpear` | Enabled | Plays when a Scavenger throws a spear (takes its turn in this event's sound rotation). |
+| `Soundboard_Syfm` | `syfm-loud.wav` | `ScavengerDeath` | Enabled | Plays when a Scavenger dies (takes its turn in this event's sound rotation). |
 | `Soundboard_TheyreEatingMyFlesh` | `theyre-eating-my-flesh.wav` | `PlayerBitByLizard` | Enabled | Plays when a Lizard bites you. |
 | `Soundboard_GahDayum` | `gah-dayum.wav` | `PlayerBitByLizard` | Enabled | Plays when a Lizard bites you. |
 | `Soundboard_KeyboardMeme` | `keyboard-meme.wav` | `PlayerHitByDartMaggot` | Enabled | Plays when a Spitter Spider's dart maggot sticks into you. |
-| `Soundboard_HomerBarts` | `homer-lets-the-barts-out.wav` | `PlayerEnterShelter` | Enabled | Plays when a shelter door closes (one of several random sounds). |
-| `Soundboard_GalaxyMeme` | `galaxy-meme.wav` | `PlayerEnterShelter` | Enabled | Plays when a shelter door closes (one of several random sounds). |
-| `Soundboard_HelloMfer` | `hello-m-f-er.wav` | `CreatureEnteredOccupiedShelter` | Enabled | Plays when any creature enters a shelter that already has a player in it (one of several random sounds). |
-| `Soundboard_ImGonnaCome` | `im-gonna-come.wav` | `PlayerGrabExplosive` | Enabled | Plays when you pick up an explosive spear or a scavenger grenade (one of several random sounds). |
-| `Soundboard_Jackpot` | `i-just-hit-the-jackpot.wav` | `PlayerGrabExplosive` | Enabled | Plays when you pick up an explosive spear or a scavenger grenade (one of several random sounds). |
-| `Soundboard_DamnHeThicc` | `damn-he-thicc.wav` | `PlayerSpottedByMajorThreat` | Enabled | Plays when a Red Lizard, Red Centipede, King Vulture, or Long Legs first notices you (one of several random sounds). |
-| `Soundboard_EmotionalDamage_Threat` | `emotional-damage-meme.wav` | `PlayerSpottedByMajorThreat` | Enabled | Plays when a Red Lizard, Red Centipede, King Vulture, or Long Legs first notices you (one of several random sounds). |
-| `Soundboard_Gigachad` | `gigachad-theme-music.wav` | `PlayerSpottedByMajorThreat` | Enabled | Plays when a Red Lizard, Red Centipede, King Vulture, or Long Legs first notices you (one of several random sounds). |
+| `Soundboard_HomerBarts` | `homer-lets-the-barts-out.wav` | `PlayerEnterShelter` | Enabled | Plays when a shelter door closes (takes its turn in this event's sound rotation). |
+| `Soundboard_GalaxyMeme` | `galaxy-meme.wav` | `PlayerEnterShelter` | Enabled | Plays when a shelter door closes (takes its turn in this event's sound rotation). |
+| `Soundboard_HelloMfer` | `hello-m-f-er.wav` | `CreatureEnteredOccupiedShelter` | Enabled | Plays when any creature enters a shelter that already has a player in it (takes its turn in this event's sound rotation). |
+| `Soundboard_ImGonnaCome` | `im-gonna-come.wav` | `PlayerGrabExplosive` | Enabled | Plays when you pick up an explosive spear or a scavenger grenade (takes its turn in this event's sound rotation). |
+| `Soundboard_Jackpot` | `i-just-hit-the-jackpot.wav` | `PlayerGrabExplosive` | Enabled | Plays when you pick up an explosive spear or a scavenger grenade (takes its turn in this event's sound rotation). |
+| `Soundboard_DamnHeThicc` | `damn-he-thicc.wav` | `PlayerSpottedByMajorThreat` | Enabled | Plays when a Red Lizard, Red Centipede, King Vulture, or Long Legs first notices you (takes its turn in this event's sound rotation). |
+| `Soundboard_EmotionalDamage_Threat` | `emotional-damage-meme.wav` | `PlayerSpottedByMajorThreat` | Enabled | Plays when a Red Lizard, Red Centipede, King Vulture, or Long Legs first notices you (takes its turn in this event's sound rotation). |
+| `Soundboard_Gigachad` | `gigachad-theme-music.wav` | `PlayerSpottedByMajorThreat` | Enabled | Plays when a Red Lizard, Red Centipede, King Vulture, or Long Legs first notices you (takes its turn in this event's sound rotation). |
 | `Soundboard_FlashbangGahDayum` | `flashbang-gah-dayum.wav` | `FlareBombThrown` | Enabled | Plays when a flashbang (Flare Bomb) is thrown. |
 | `Soundboard_Mine` | `mine.wav` | `PlayerSpottedByMiros` | Enabled | Plays when a Miros Bird or Miros Vulture first notices you. |
 
@@ -207,11 +212,11 @@ install for you - equivalent to running:
 
    Optionally add a `"group"` string. When multiple *enabled* sounds share
    both the same `event` and the same `group`, they're treated as one unit:
-   the random pick is between groups (not individual sounds), and every
-   sound in the winning group plays together. Sounds with no `group` are
+   the rotation steps through groups (not individual sounds), and every
+   sound in the current group plays together. Sounds with no `group` are
    their own group of one, so e.g. two grouped sounds sharing an event with
-   one ungrouped sound gives a 50/50 split between "the ungrouped one alone"
-   and "both grouped ones together" - see `Soundboard_Enrique` /
+   one ungrouped sound alternate between "the ungrouped one alone" and
+   "both grouped ones together" - see `Soundboard_Enrique` /
    `Soundboard_IndianSong` (grouped) vs `Soundboard_ScavengerSpotted`
    (ungrouped) in `meta.json` for a working example.
 4. Rebuild/redeploy, restart the game, and toggle it on in the mods menu.
@@ -253,10 +258,14 @@ Wired up in `src/EventHooks.cs`:
 | `PlayerSpottedByMajorThreat` | A Red Lizard, Red Centipede, King Vulture, or Long Legs first notices you (`Tracker.CreatureNoticed`) - takes priority over `PlayerSpottedByPredator` for those creatures |
 | `FlareBombThrown` | A flashbang (`FlareBomb`) is thrown by anyone (`FlareBomb.Thrown`) |
 
-If multiple enabled sounds share the same event key, one group is chosen at
-random each time that event fires, and everything in that group plays
-together (see `ChooseGroup` in `EventHooks.cs`, and the `group` field
-described above).
+If multiple enabled sounds share the same event key, they take turns: each
+time that event fires, the next group in `meta.json` order plays (everything
+in a group plays together), and after the last one it loops back to the
+first, so a sound isn't repeated until the others have had a turn. Sounds you
+switch off in the menu are skipped but keep their place in the order. The
+rotation restarts from the first sound each time the game launches. See
+`ChooseGroup` in `EventHooks.cs` and `SoundRotation.cs`, and the `group`
+field described above.
 
 To hook a different event, add another Harmony patch in `EventHooks.cs`
 following the same pattern (patch a method, call `Trigger("YourEventKey", creature)`
