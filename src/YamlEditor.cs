@@ -206,7 +206,7 @@ namespace SoundboardMod
         /// <param name="eventName">The event's canonical name, written as the key if the event is new.</param>
         /// <param name="parts">The sound(s) to add: exactly one for a plain entry.</param>
         /// <param name="together">Write the parts as a "together:" group that plays all at once (one entry in the rotation).</param>
-        public static Result AddSound(string text, string eventName, IReadOnlyList<Part> parts, bool together)
+        public static Result AddSound(string text, string eventName, IReadOnlyList<Part> parts, bool together, IReadOnlyList<KeyValuePair<string, string>> entryOptions)
         {
             YamlNode root;
             try
@@ -243,7 +243,7 @@ namespace SoundboardMod
             if (events == null)
             {
                 var section = new List<string> { "events:", "  " + eventName + ":" };
-                section.AddRange(BlockItem(parts, together, 4));
+                section.AddRange(BlockItem(parts, together, entryOptions, 4));
                 int last = LastContentLine(lines);
                 if (last >= 0)
                 {
@@ -269,7 +269,7 @@ namespace SoundboardMod
                 }
 
                 var section = new List<string> { "  " + eventName + ":" };
-                section.AddRange(BlockItem(parts, together, 4));
+                section.AddRange(BlockItem(parts, together, entryOptions, 4));
                 InsertAfter(lines, eventsIndex, section);
                 return Result.Success(Join(lines));
             }
@@ -307,7 +307,7 @@ namespace SoundboardMod
             if (match == null)
             {
                 var block = new List<string> { string.Empty, new string(' ', keyIndent) + eventName + ":" };
-                block.AddRange(BlockItem(parts, together, dashIndent));
+                block.AddRange(BlockItem(parts, together, entryOptions, dashIndent));
                 InsertAfter(lines, eventList.EndLine - 1, block);
                 return Result.Success(Join(lines));
             }
@@ -322,19 +322,19 @@ namespace SoundboardMod
                     return Result.Failure(text, "'" + match.Key + "' on line " + match.Line + " has something after the colon - add the sound by hand");
                 }
 
-                InsertAfter(lines, match.Line - 1, BlockItem(parts, together, dashIndent));
+                InsertAfter(lines, match.Line - 1, BlockItem(parts, together, entryOptions, dashIndent));
                 return Result.Success(Join(lines));
             }
 
             if (value.Kind == YamlKind.Sequence && !value.IsFlow)
             {
-                InsertAfter(lines, value.EndLine - 1, BlockItem(parts, together, value.Indent));
+                InsertAfter(lines, value.EndLine - 1, BlockItem(parts, together, entryOptions, value.Indent));
                 return Result.Success(Join(lines));
             }
 
             if (value.Kind == YamlKind.Sequence)
             {
-                return AddToFlowList(text, lines, value, FlowItem(parts, together));
+                return AddToFlowList(text, lines, value, FlowItem(parts, together, entryOptions));
             }
 
             return Result.Failure(text, "'" + match.Key + "' on line " + match.Line + " has a single sound that isn't written as a list ('- file.wav'), so another can't be added automatically - turn it into a list first");
@@ -373,32 +373,39 @@ namespace SoundboardMod
         }
 
         // A plain entry is one item; a group is "- together:" with each sound as an item nested under it.
-        private static List<string> BlockItem(IReadOnlyList<Part> parts, bool together, int indent)
+        // entryOptions belong to the whole entry (e.g. "cooldown"): on the single item, or beside "together:" for a group.
+        private static List<string> BlockItem(IReadOnlyList<Part> parts, bool together, IReadOnlyList<KeyValuePair<string, string>> entryOptions, int indent)
         {
             if (!together)
             {
-                return SingleItem(parts[0], indent);
+                return SingleItem(parts[0], entryOptions, indent);
             }
 
             var group = new List<string> { new string(' ', indent) + "- together:" };
             foreach (Part part in parts)
             {
-                group.AddRange(SingleItem(part, indent + 4));
+                group.AddRange(SingleItem(part, null, indent + 4));
+            }
+
+            foreach (KeyValuePair<string, string> option in entryOptions)
+            {
+                group.Add(new string(' ', indent + 2) + option.Key + ": " + option.Value);
             }
 
             return group;
         }
 
-        private static List<string> SingleItem(Part part, int indent)
+        private static List<string> SingleItem(Part part, IReadOnlyList<KeyValuePair<string, string>> extraOptions, int indent)
         {
             string pad = new string(' ', indent);
-            if (part.Options.Count == 0)
+            List<KeyValuePair<string, string>> options = part.Options.Concat(extraOptions ?? new List<KeyValuePair<string, string>>()).ToList();
+            if (options.Count == 0)
             {
                 return new List<string> { pad + "- " + Scalar(part.File) };
             }
 
             var item = new List<string> { pad + "- file: " + Scalar(part.File) };
-            foreach (KeyValuePair<string, string> option in part.Options)
+            foreach (KeyValuePair<string, string> option in options)
             {
                 item.Add(pad + "  " + option.Key + ": " + option.Value);
             }
@@ -406,22 +413,28 @@ namespace SoundboardMod
             return item;
         }
 
-        private static string FlowItem(IReadOnlyList<Part> parts, bool together)
+        private static string FlowItem(IReadOnlyList<Part> parts, bool together, IReadOnlyList<KeyValuePair<string, string>> entryOptions)
         {
-            return together
-                ? "{ together: [" + string.Join(", ", parts.Select(FlowSound)) + "] }"
-                : FlowSound(parts[0]);
+            if (!together)
+            {
+                return FlowSound(parts[0], entryOptions);
+            }
+
+            var fields = new List<string> { "together: [" + string.Join(", ", parts.Select(p => FlowSound(p, null))) + "]" };
+            fields.AddRange(entryOptions.Select(o => o.Key + ": " + o.Value));
+            return "{ " + string.Join(", ", fields) + " }";
         }
 
-        private static string FlowSound(Part part)
+        private static string FlowSound(Part part, IReadOnlyList<KeyValuePair<string, string>> extraOptions)
         {
-            if (part.Options.Count == 0)
+            List<KeyValuePair<string, string>> options = part.Options.Concat(extraOptions ?? new List<KeyValuePair<string, string>>()).ToList();
+            if (options.Count == 0)
             {
                 return Scalar(part.File);
             }
 
             var fields = new List<string> { "file: " + Scalar(part.File) };
-            foreach (KeyValuePair<string, string> option in part.Options)
+            foreach (KeyValuePair<string, string> option in options)
             {
                 fields.Add(option.Key + ": " + option.Value);
             }

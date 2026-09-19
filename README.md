@@ -60,6 +60,7 @@ Open **Options → Mods → Custom Soundboard** and switch to the **Add Sound** 
    **Play several sounds together** - it ticks itself when you pick a second sound. They're saved as one
    [`together:` group](#playing-sounds-together): a single entry in the event's list whose sounds all play at
    the same time. (Untick it and only the first sound is added.)
+   **Cooldown** (seconds, `0` = none) is the entry's [`cooldown:`](#cooldowns); for a group it covers the whole group.
 4. Press **SAVE**. The sound is added to the end of that event's list in your `soundboard.yaml` and starts
    working straight away. If the event wasn't in the file yet, it's added too. Everything else in the file -
    your comments, layout and other entries - is left exactly as it was.
@@ -96,6 +97,7 @@ Under an event name, list what should play. Each list item is a file name, or a 
 | `file` | The audio file, from your `sounds` folder (`.wav`, `.ogg`, `.mp3`; the extension is optional; sub-folders work: `funny/boom.wav`). | *required* |
 | `volume` | `1` = as recorded, `0.5` = half as loud, `2` = twice (0 to 10). | `1` |
 | `delay` | Seconds to wait after the event before the sound plays (0 to 120). | `0` |
+| `cooldown` | After this entry plays, it can't play again for this many seconds (0 to 3600). See [Cooldowns](#cooldowns). | `0` (no limit) |
 | `name` | The label shown in the options screen. | made from the file name |
 | `description` | A tooltip for the options screen. | what the event is |
 | `enabled` | `false` = switched off. This is the checkbox in the options screen: ticking it and pressing SAVE edits this line for you, and opening the screen or pressing RELOAD CONFIG updates the checkbox from it. `disabled: true` means the same thing. | `true` |
@@ -107,6 +109,24 @@ There's also a compact one-line form: `- { file: boom.wav, volume: 0.5, delay: 1
 If an event has **several items, they take turns**: the first time it happens the first item plays,
 the next time the second, and so on around again. So `PlayerDeath` with seven items plays a different
 death sound each time. Items switched off in the options screen are skipped.
+
+### Cooldowns
+
+`delay` waits *before* a sound plays; **`cooldown` stops it playing *again* too soon**. After an entry plays, it's
+unavailable for that many seconds - handy for a long sound on something that fires constantly:
+
+```yaml
+  PlayerHardLanding:
+    - file: long-scream.wav
+      cooldown: 30        # at most once every 30 seconds
+    - file: vine-boom.wav # no cooldown: plays whenever it's its turn
+```
+
+A cooling-down entry is skipped like a switched-off one, so the other entries under the event keep taking turns;
+if it's the event's only entry (or all of them are cooling down), the event is simply quiet until one is ready.
+On a [`together` group](#playing-sounds-together) put `cooldown` next to `together:` - it covers the whole group.
+Cooldowns count game time (pausing doesn't run them down) and start over with each new game session.
+(The `settings:` cooldowns below are different: they limit how often an *event* is allowed to fire.)
 
 ### Playing sounds together
 
@@ -410,6 +430,7 @@ SoundboardMod/
 │  ├─ SoundRegistry.cs         Loads audio files and adds them to the game's SoundLoader at runtime
 │  ├─ EventHooks.cs            Harmony patches that turn game moments into event names
 │  ├─ Options.cs               The in-game options screen (Sounds tab + Add Sound tab)
+│  ├─ EntryCooldowns.cs        Tracks which entries are cooling down (an entry's `cooldown:`)
 │  └─ Cooldown.cs, DelayQueue.cs, FallTracker.cs, SoundRotation.cs   Small game-independent helpers
 ├─ tests/SoundboardMod.Tests/  xUnit tests for everything that doesn't need the game
 ├─ mod/                        The deployable Rain World mod folder
@@ -473,3 +494,4 @@ by the game). VS Code: *Ctrl+Shift+B* builds, and there are `test` and `deploy` 
 (tick, then SAVE writes them into `soundboard.yaml`) and re-seeds them from the file every time the page opens.
 `v1.1.0` added the **Add Sound** tab: event and sound dropdowns plus volume/delay boxes, and SAVE appends the
 sound to the event's list in `soundboard.yaml`. `v1.1.1` lets that tab add a `together:` group (up to three sounds).
+`v1.2.0` added the per-entry `cooldown:` option (and a Cooldown box on the Add Sound tab).

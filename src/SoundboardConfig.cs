@@ -76,6 +76,12 @@ namespace SoundboardMod
         /// </summary>
         public bool Enabled = true;
 
+        /// <summary>
+        /// Seconds after this entry plays before it can play again ("cooldown:"); 0 = no limit.
+        /// While it waits, the event's rotation skips it. For a "together" group it covers the whole group.
+        /// </summary>
+        public float Cooldown;
+
         public List<SoundRef> Sounds = new List<SoundRef>();
         public int Line;
 
@@ -136,11 +142,12 @@ namespace SoundboardMod
     public static class SoundboardConfigParser
     {
         private static readonly string[] TopLevelKeys = { "settings", "events" };
-        private static readonly string[] EntryKeys = { "file", "volume", "delay", "name", "description", "enabled", "disabled", "together" };
+        private static readonly string[] EntryKeys = { "file", "volume", "delay", "name", "description", "enabled", "disabled", "together", "cooldown" };
         private static readonly string[] MemberKeys = { "file", "volume", "delay" };
 
         private const float MaxVolume = 10f;
         private const float MaxDelay = 120f;
+        private const float MaxCooldown = 3600f;
 
         private sealed class FloatSetting
         {
@@ -360,6 +367,7 @@ namespace SoundboardMod
 
             string name = ReadString(item, "name", config);
             choice.Description = ReadString(item, "description", config);
+            choice.Cooldown = ReadNumber(item, "cooldown", 0f, 0f, MaxCooldown, config);
 
             // "enabled: false" and "disabled: true" mean the same thing; people
             // reach for either. If both are there, enabled wins.

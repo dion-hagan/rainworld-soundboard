@@ -26,12 +26,16 @@ namespace SoundboardMod
     {
         public const float MaxVolume = 10f;
         public const float MaxDelay = 120f;
+        public const float MaxCooldown = 3600f;
 
         /// <summary>Any spelling the config accepts ("player death" works); written out in its canonical form.</summary>
         public string EventName;
 
         /// <summary>True for a "together:" group (needs at least two parts); false for a single sound (exactly one part).</summary>
         public bool Together;
+
+        /// <summary>Seconds after the entry plays before it can play again (0 = no limit); covers the whole group for Together.</summary>
+        public float Cooldown;
 
         public List<NewSoundPart> Parts = new List<NewSoundPart>();
 
@@ -81,6 +85,17 @@ namespace SoundboardMod
                 return YamlEditor.Result.Failure(text, "several sounds can only be added as a 'together' group");
             }
 
+            if (float.IsNaN(sound.Cooldown) || sound.Cooldown < 0f || sound.Cooldown > NewSound.MaxCooldown)
+            {
+                return YamlEditor.Result.Failure(text, "the cooldown must be between 0 and " + Format(NewSound.MaxCooldown) + " seconds");
+            }
+
+            var entryOptions = new List<KeyValuePair<string, string>>();
+            if (sound.Cooldown > Tolerance)
+            {
+                entryOptions.Add(new KeyValuePair<string, string>("cooldown", Format(sound.Cooldown)));
+            }
+
             var parts = new List<YamlEditor.Part>();
             var files = new List<string>();
             foreach (NewSoundPart part in sound.Parts)
@@ -122,7 +137,7 @@ namespace SoundboardMod
                 return YamlEditor.Result.Failure(text, "soundboard.yaml has an error (" + before.Issues[0] + ") - fix that first");
             }
 
-            YamlEditor.Result edited = YamlEditor.AddSound(text, canonical, parts, sound.Together);
+            YamlEditor.Result edited = YamlEditor.AddSound(text, canonical, parts, sound.Together, entryOptions);
             if (!edited.Ok)
             {
                 return edited;
@@ -178,6 +193,11 @@ namespace SoundboardMod
             if (added.Sounds.Count != files.Count)
             {
                 return "the added entry has " + added.Sounds.Count + " sound(s) instead of " + files.Count;
+            }
+
+            if (Math.Abs(added.Cooldown - sound.Cooldown) > 0.006f)
+            {
+                return "the added entry's cooldown is " + Format(added.Cooldown) + " instead of " + Format(sound.Cooldown);
             }
 
             for (int i = 0; i < files.Count; i++)

@@ -42,6 +42,10 @@ namespace SoundboardMod
         // turn. In memory only: every launch starts each rotation at the top.
         private static readonly Dictionary<string, string> LastChoice = new Dictionary<string, string>();
 
+        // Entries that have played and are waiting out their "cooldown:". In memory only, and started
+        // fresh for every game session.
+        private static readonly EntryCooldowns Cooldowns = new EntryCooldowns();
+
         private static readonly List<ConfigIssue> IssueList = new List<ConfigIssue>();
 
         private static readonly DelayQueue Delays = new DelayQueue(e => Log.LogError($"A delayed sound failed: {e}"));
@@ -190,6 +194,7 @@ namespace SoundboardMod
 
             LastChoice.Clear();
             Delays.Clear();
+            Cooldowns.Clear();
 
             SoundRegistry.Sync(config.Events.SelectMany(e => e.Choices).SelectMany(c => c.Sounds).Select(s => s.ResolvedPath).Distinct());
             Options.Instance?.RefreshToggles();
@@ -390,12 +395,18 @@ namespace SoundboardMod
             }
 
             LastChoice.TryGetValue(normalized, out string lastId);
-            string nextId = SoundRotation.NextKey(binding.Choices.Select(c => c.Id).ToList(), id => IsEnabled(binding.Choices.First(c => c.Id == id)), lastId);
+
+            // An entry that's switched off, or still cooling down from its last play, is skipped
+            // (keeping its place in the rotation).
+            string nextId = SoundRotation.NextKey(
+                binding.Choices.Select(c => c.Id).ToList(),
+                id => IsEnabled(binding.Choices.First(c => c.Id == id)) && !Cooldowns.IsCoolingDown(id),
+                lastId);
             if (nextId == null)
             {
                 if (Settings.Debug)
                 {
-                    Log.LogInfo($"[event] {eventKey} - every sound for it is switched off");
+                    Log.LogInfo($"[event] {eventKey} - every sound for it is switched off or cooling down");
                 }
 
                 return;
@@ -403,6 +414,7 @@ namespace SoundboardMod
 
             LastChoice[normalized] = nextId;
             SoundChoice choice = binding.Choices.First(c => c.Id == nextId);
+            Cooldowns.Start(choice.Id, choice.Cooldown);
 
             if (Settings.Debug)
             {
@@ -462,17 +474,19 @@ namespace SoundboardMod
             }
         }
 
-        /// <summary>Called once per game tick to release sounds whose delay has run out.</summary>
+        /// <summary>Called once per game tick to release sounds whose delay has run out and to run down cooldowns.</summary>
         public static void Tick(RainWorldGame game)
         {
             if (!ReferenceEquals(game, delaysBelongTo))
             {
                 // A different game session (or back at the menu): anything still waiting belongs to the old one.
                 Delays.Clear();
+                Cooldowns.Clear();
                 delaysBelongTo = game;
             }
 
             Delays.Tick();
+            Cooldowns.Tick();
         }
 
         // Runs after each game tick; the game isn't ticking while paused, so delays don't run out behind the pause menu.

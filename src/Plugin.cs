@@ -4,7 +4,7 @@ using Menu.Remix.MixedUI;
 
 namespace SoundboardMod
 {
-    [BepInPlugin(MOD_ID, "Custom Soundboard", "1.1.1")]
+    [BepInPlugin(MOD_ID, "Custom Soundboard", "1.2.0")]
     public class Plugin : BaseUnityPlugin
     {
         public const string MOD_ID = "dion_soundboard";

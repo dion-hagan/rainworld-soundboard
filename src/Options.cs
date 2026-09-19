@@ -363,7 +363,8 @@ namespace SoundboardMod
                 when = info.Description + "  ";
             }
 
-            return (choice.Description != null ? choice.Description + "  " : when) + "Plays: " + files;
+            string cooldown = choice.Cooldown > 0f ? "  (cooldown " + choice.Cooldown.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + "s)" : string.Empty;
+            return (choice.Description != null ? choice.Description + "  " : when) + "Plays: " + files + cooldown;
         }
 
         private string StatusText()
@@ -464,6 +465,7 @@ namespace SoundboardMod
 
         private const string PickEventKey = "AddSound_Event";
         private const string PickTogetherKey = "AddSound_Together";
+        private const string PickCooldownKey = "AddSound_Cooldown";
 
         // Sound row n (1-based) uses the keys AddSound_Sound<n>, AddSound_Volume<n> and AddSound_Delay<n>.
         // The rows are built up front and always shown - the widgets are never created or removed while
@@ -478,12 +480,14 @@ namespace SoundboardMod
         // The form's Remix settings. Created once, like the checkbox ones (Remix doesn't allow a key twice).
         private Configurable<string> pickEvent;
         private Configurable<bool> pickTogether;
+        private Configurable<float> pickCooldown;
 
         private readonly SoundRow[] rows = new SoundRow[SoundRowCount];
 
         // What's on the page right now. All null while the menu is closed, or if the page couldn't be built.
         private OpComboBox eventBox;
         private OpCheckBox togetherBox;
+        private PickerUpdown cooldownBox;
         private OpLabelLong eventInfoLabel;
         private OpLabelLong soundInfoLabel;
         private OpLabelLong pickStatusLabel;
@@ -527,6 +531,7 @@ namespace SoundboardMod
         {
             public string Event = string.Empty;
             public bool Together;
+            public float Cooldown;
             public readonly RowForm[] Rows = Enumerable.Range(0, SoundRowCount).Select(_ => new RowForm()).ToArray();
         }
 
@@ -560,6 +565,7 @@ namespace SoundboardMod
             {
                 pickEvent = config.Bind(PickEventKey, string.Empty, new ConfigurableInfo("The event the new sound plays for."));
                 pickTogether = config.Bind(PickTogetherKey, false, new ConfigurableInfo("Play the chosen sounds all at once, as a single entry in the event's list."));
+                pickCooldown = config.Bind(PickCooldownKey, 0f, new ConfigAcceptableRange<float>(0f, NewSound.MaxCooldown));
 
                 for (int i = 0; i < SoundRowCount; i++)
                 {
@@ -618,7 +624,7 @@ namespace SoundboardMod
 
             List<string> files = SoundLibrary.List(SoundboardRuntime.Locations.SoundFolders);
 
-            soundInfoLabel = new OpLabelLong(new Vector2(20f, 150f), new Vector2(560f, 40f), SoundCountText(files.Count))
+            soundInfoLabel = new OpLabelLong(new Vector2(20f, 118f), new Vector2(560f, 40f), SoundCountText(files.Count))
             {
                 allowOverflow = false,
             };
@@ -638,11 +644,16 @@ namespace SoundboardMod
                 allowOverflow = false,
             };
 
-            pickStatusLabel = new OpLabelLong(new Vector2(20f, 60f), new Vector2(560f, 80f), string.Empty)
+            pickStatusLabel = new OpLabelLong(new Vector2(20f, 30f), new Vector2(560f, 80f), string.Empty)
             {
                 allowOverflow = false,
             };
             pickStatusColor = pickStatusLabel.color;
+
+            cooldownBox = new PickerUpdown(pickCooldown, new Vector2(170f, 176f), 100f, 1)
+            {
+                description = "After this sound (or group) plays, it can't play again for this many seconds - an event's other sounds still take their turn meanwhile. 0 = no limit.",
+            };
 
             togetherBox = new OpCheckBox(pickTogether, new Vector2(20f, 350f))
             {
@@ -708,6 +719,8 @@ namespace SoundboardMod
                 },
                 new OpLabel(20f, 456f, "When this happens:", false),
                 new OpLabel(56f, 353f, "Play several sounds together", false),
+                new OpLabel(20f, 181f, "Cooldown:", false),
+                new OpLabel(280f, 181f, "seconds before it can play again (0 = no limit)", false),
                 new OpLabel(20f, 326f, "Sound", false),
                 new OpLabel(350f, 326f, "Volume (%)", false),
                 new OpLabel(460f, 326f, "Delay (seconds)", false),
@@ -718,6 +731,7 @@ namespace SoundboardMod
             };
 
             items.AddRange(rowWidgets);
+            items.Add(cooldownBox);
 
             // The dropdowns go in last, lowest row first: a list that opens over other widgets has
             // to be drawn on top of them, and each row's list opens over the rows beneath it.
@@ -763,6 +777,7 @@ namespace SoundboardMod
         {
             eventBox = null;
             togetherBox = null;
+            cooldownBox = null;
             eventInfoLabel = null;
             soundInfoLabel = null;
             pickStatusLabel = null;
@@ -785,6 +800,12 @@ namespace SoundboardMod
                 // ForceValue rather than value =: this must not count as a change the player made.
                 eventBox?.ForceValue(Known(eventBox, form.Event));
                 togetherBox?.ForceValue(form.Together ? "true" : "false");
+
+                if (cooldownBox != null)
+                {
+                    cooldownBox.ForceValue(form.Cooldown.ToString("F1", System.Globalization.CultureInfo.InvariantCulture));
+                    cooldownBox.Redraw();
+                }
 
                 for (int i = 0; i < SoundRowCount; i++)
                 {
@@ -826,6 +847,7 @@ namespace SoundboardMod
             {
                 Event = eventBox.value ?? string.Empty,
                 Together = togetherBox != null && togetherBox.value == "true",
+                Cooldown = cooldownBox != null ? cooldownBox.valueFloat : 0f,
             };
 
             for (int i = 0; i < SoundRowCount; i++)
@@ -872,7 +894,7 @@ namespace SoundboardMod
 
             // Extra rows only count when "together" is ticked; a group of one is just that sound.
             bool together = form.Together && picked.Count >= 2;
-            var sound = new NewSound { EventName = form.Event, Together = together };
+            var sound = new NewSound { EventName = form.Event, Together = together, Cooldown = (float)Math.Round(form.Cooldown, 1) };
             foreach (RowForm row in together ? picked : picked.Take(1).ToList())
             {
                 sound.Parts.Add(new NewSoundPart
