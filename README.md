@@ -3,6 +3,10 @@ in Rainworld. I couldn't find anything general purpose like this. Feel free to u
 
 Note: This is AI-assisted code -- I reviewed it, but didn't play close attention to architecture.
 
+### Example
+
+https://github.com/user-attachments/assets/29a73c3b-f976-43dd-b9c5-7516e414860d
+
 # Custom Soundboard (Rain World mod)
 
 A BepInEx mod for Rain World that plays your own `.wav` sound effects when
