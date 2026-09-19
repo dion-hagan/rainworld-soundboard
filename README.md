@@ -431,4 +431,6 @@ by the game). VS Code: *Ctrl+Shift+B* builds, and there are `test` and `deploy` 
 > `winget install --id Microsoft.DotNet.SDK.8 -e`.
 
 **Releases** are git tags: `v0.1.0` is the last version with `meta.json`/`sounds.txt`; `v1.0.0` introduced
-`soundboard.yaml`. `mod/modinfo.json`, the `[BepInPlugin]` version in `Plugin.cs` and the tag should agree.
+`soundboard.yaml`; `v1.0.1` made the YAML the single source of truth for on/off state (checkboxes write back to it,
+`disabled:` accepted) and added `scripts/sync-config.ps1`. `mod/modinfo.json`, the `[BepInPlugin]` version in
+`Plugin.cs` and the tag should agree.
