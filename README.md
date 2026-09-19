@@ -28,12 +28,16 @@ setup, see [Upgrading from 0.1.0](#upgrading-from-010).)*
 4. Back in the game, press **RELOAD CONFIG**. Done - jump around and listen.
 
 The options screen also has a checkbox for every sound so you can switch individual ones off
-without editing anything, and it lists any problems it found in your file (with line numbers).
+without editing anything - **ticking one writes the change into `soundboard.yaml`**, so the file and the
+screen always agree - and it lists any problems it found in your file (with line numbers).
 
-> **Where is my config?** In the game's data folder (`%USERPROFILE%\AppData\LocalLow\Videocult\Rain World\Soundboard`
-> on Windows), *not* in the mod's own folder - Steam overwrites that whenever the mod updates, which would
-> wipe your changes. The first time the game starts it puts a copy of the default `soundboard.yaml`
-> there. Delete that copy if you ever want the defaults back.
+> **Which `soundboard.yaml` counts?** The one in the game's data folder
+> (`%USERPROFILE%\AppData\LocalLow\Videocult\Rain World\Soundboard` on Windows) - press **OPEN FOLDER**
+> to get there. The `soundboard.yaml` inside the mod's own folder is only a **template**: Steam overwrites
+> that folder whenever the mod updates, which would wipe your changes, so the game never reads it. The first
+> time the game starts it copies the template into the data folder for you. Edit the copy in the data
+> folder; editing the template changes nothing (the options screen will point this out if it notices).
+> Delete your copy if you ever want the defaults back.
 
 ## Writing `soundboard.yaml`
 
@@ -60,7 +64,7 @@ Under an event name, list what should play. Each list item is a file name, or a 
 | `delay` | Seconds to wait after the event before the sound plays (0 to 120). | `0` |
 | `name` | The label shown in the options screen. | made from the file name |
 | `description` | A tooltip for the options screen. | what the event is |
-| `enabled` | `false` = starts switched off (can be turned on in the options screen). | `true` |
+| `enabled` | `false` = switched off. This is the checkbox in the options screen: ticking it there edits this line for you, and RELOAD CONFIG updates the checkbox from it. `disabled: true` means the same thing. | `true` |
 
 There's also a compact one-line form: `- { file: boom.wav, volume: 0.5, delay: 1 }`.
 
@@ -346,12 +350,13 @@ Everything the old `meta.json` + `sounds.txt` pair did is now one entry in `soun
 | `"event": "PlayerDeath"` | put it under `PlayerDeath:` |
 | `vol=0.4` in `sounds.txt` | `volume: 0.4` |
 | `"displayName"` / `"description"` | `name:` / `description:` |
-| `"defaultEnabled": false` | `enabled: false` |
+| `"defaultEnabled": false` | `enabled: false` (or `disabled: true`) |
 | `"group": "X"` on several sounds | one `together:` list |
 | order in `meta.json` | order of the list |
 
 The shipped `soundboard.yaml` is the old set of sounds converted this way. Sound files moved from
-`soundeffects/` to `sounds/`. The on/off checkboxes start from scratch (their saved keys changed).
+`soundeffects/` to `sounds/`. On/off state now lives in `soundboard.yaml` itself (`enabled:`), not in the
+game's saved mod settings, so any checkboxes you'd ticked in 0.1.0 start from what the file says.
 `PlayerDeath` and the other death events now fire once per death rather than on every `Die()` call.
 
 ## For developers
@@ -364,6 +369,7 @@ SoundboardMod/
 │  ├─ SoundboardConfig.cs      Turns the YAML into typed config + a list of issues
 │  ├─ EventCatalog.cs          Every event name + description; forgiving name matching
 │  ├─ ConfigFiles.cs           Where config/sounds live; finds audio files
+│  ├─ YamlEditor.cs            Edits an entry's enabled/disabled line in place (checkbox -> file)
 │  ├─ SoundboardRuntime.cs     Loads/reloads the config, picks what to play, applies volume/delay
 │  ├─ SoundRegistry.cs         Loads audio files and adds them to the game's SoundLoader at runtime
 │  ├─ EventHooks.cs            Harmony patches that turn game moments into event names
@@ -375,7 +381,9 @@ SoundboardMod/
 │  ├─ soundboard.yaml          The default config (copied to the player's data folder on first run)
 │  ├─ sounds/                  The bundled example sounds
 │  └─ plugins/                 Build output (SoundboardMod.dll) lands here
-└─ scripts/deploy.ps1          Build + copy mod/ into your Rain World install
+└─ scripts/
+   ├─ deploy.ps1               Build + copy mod/ into your Rain World install
+   └─ sync-config.ps1          Push mod/soundboard.yaml (+ new sounds) into the running game's personal copy
 ```
 
 **How sounds get into the game.** The game normally learns about sounds from `modify/soundeffects/sounds.txt`,
@@ -396,10 +404,24 @@ it isn't in the default Steam location):
 
 ```powershell
 dotnet build src/SoundboardMod.csproj                   # builds and copies the DLL into mod/plugins
-dotnet test tests/SoundboardMod.Tests                   # 90+ tests; no game needed
+dotnet test tests/SoundboardMod.Tests                   # 100+ tests; no game needed
 ./scripts/deploy.ps1                                    # build + install into your Rain World mods folder
 ./scripts/deploy.ps1 -SkipBuild                         # install the DLL that's already in mod/plugins
 ```
+
+**Editing the default config while the game is running.** The game reads the *personal copy* in its data
+folder (`%USERPROFILE%\AppData\LocalLow\Videocult\Rain World\Soundboard`), never `mod/soundboard.yaml`, which is
+just the template that gets copied there on first run. So edits to `mod/soundboard.yaml` don't reach the game
+by themselves. To push them in without restarting:
+
+```powershell
+./scripts/sync-config.ps1            # backs up the personal copy, replaces it, copies new sound files
+./scripts/sync-config.ps1 -WhatIf    # show what it would do without doing it
+```
+
+then press **RELOAD CONFIG** in the mod's options screen. The backup (`soundboard.yaml.<time>.bak`, last 10 kept)
+matters because checkbox clicks in the options screen are written into the personal copy. Code changes still
+need `deploy.ps1` and a restart (the game locks the DLL while it runs).
 
 `deploy.ps1` also removes files left over from 0.1.0 (the old `sounds.txt` would otherwise still be merged
 by the game). VS Code: *Ctrl+Shift+B* builds, and there are `test` and `deploy` tasks.

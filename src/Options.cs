@@ -10,8 +10,13 @@ namespace SoundboardMod
     /// <summary>
     /// Builds the mod's in-game options screen (Options -> Mods -> Custom Soundboard):
     /// buttons to reload the config and open its folder, a list of any
-    /// problems found in soundboard.yaml, and one checkbox per sound entry so
-    /// individual sounds can be switched off without editing the file.
+    /// problems found in soundboard.yaml, and one checkbox per sound entry.
+    ///
+    /// soundboard.yaml is the only place on/off state lives. The checkboxes
+    /// are plain screen widgets (not saved by Remix's own config system):
+    /// they start from the file's "enabled:" values, and ticking one writes
+    /// the change back into the file. So the file and the screen can't
+    /// disagree, and RELOAD CONFIG refreshes the boxes from the file.
     /// </summary>
     public class Options : OptionInterface
     {
@@ -22,8 +27,11 @@ namespace SoundboardMod
 
         public static Options Instance { get; private set; }
 
-        private readonly Dictionary<string, Configurable<bool>> enabledConfigs = new Dictionary<string, Configurable<bool>>();
-        private readonly List<OpCheckBox> checkBoxes = new List<OpCheckBox>();
+        private readonly Dictionary<string, OpCheckBox> checkBoxesById = new Dictionary<string, OpCheckBox>();
+
+        // True while the code (not the player) is changing checkboxes, so that
+        // doesn't get written back to the file as if it were a click.
+        private bool updatingFromCode;
 
         private OpLabel statusLabel;
         private OpLabelLong problemsLabel;
@@ -31,38 +39,6 @@ namespace SoundboardMod
         public Options()
         {
             Instance = this;
-            BindChoices(SoundboardRuntime.Config);
-        }
-
-        /// <summary>
-        /// Makes sure every sound entry in the config has its saved on/off
-        /// setting. Called when the config is (re)loaded; entries that are no
-        /// longer in the file keep their saved value in case they come back.
-        /// </summary>
-        public void BindChoices(SoundboardConfig soundboardConfig)
-        {
-            foreach (SoundChoice choice in soundboardConfig.Events.SelectMany(e => e.Choices))
-            {
-                if (enabledConfigs.ContainsKey(choice.Id))
-                {
-                    continue;
-                }
-
-                try
-                {
-                    enabledConfigs[choice.Id] = config.Bind(choice.Id, choice.DefaultEnabled, new ConfigurableInfo(Describe(soundboardConfig, choice)));
-                }
-                catch (Exception e)
-                {
-                    // Not worth losing the rest of the list over: the sound just can't be toggled.
-                    Log.LogWarning($"Couldn't create an on/off setting for '{choice.Label}' ({choice.Id}): {e.Message}");
-                }
-            }
-        }
-
-        public bool IsEnabled(string choiceId, bool fallback)
-        {
-            return enabledConfigs.TryGetValue(choiceId, out Configurable<bool> setting) ? setting.Value : fallback;
         }
 
         public override void Initialize()
@@ -75,13 +51,13 @@ namespace SoundboardMod
 
             var enableAllButton = new OpSimpleButton(new Vector2(20f, 505f), new Vector2(105f, 30f), "ENABLE ALL")
             {
-                description = "Switch every sound below on.",
+                description = "Switch every sound below on (saved into soundboard.yaml).",
             };
             enableAllButton.OnClick += _ => SetAll(true);
 
             var disableAllButton = new OpSimpleButton(new Vector2(133f, 505f), new Vector2(105f, 30f), "DISABLE ALL")
             {
-                description = "Switch every sound below off.",
+                description = "Switch every sound below off (saved into soundboard.yaml).",
             };
             disableAllButton.OnClick += _ => SetAll(false);
 
@@ -109,7 +85,7 @@ namespace SoundboardMod
 
             tab.AddItems(
                 new OpLabel(20f, 560f, "Custom Soundboard", true),
-                new OpLabel(20f, 538f, "Edit soundboard.yaml (OPEN FOLDER) to change what plays, then RELOAD CONFIG.", false),
+                new OpLabel(20f, 538f, "Ticking a box saves it into soundboard.yaml. You can also edit that file (OPEN FOLDER), then RELOAD CONFIG.", false),
                 enableAllButton,
                 disableAllButton,
                 reloadButton,
@@ -123,7 +99,7 @@ namespace SoundboardMod
             // Items go into the scroll box only after it's been added to the tab.
             // Inside it, y=0 is the bottom of the content, so start at the top.
             var items = new List<UIelement>();
-            checkBoxes.Clear();
+            checkBoxesById.Clear();
             float y = ContentHeight(soundboard) - 30f;
             foreach (EventBinding binding in soundboard.Events)
             {
@@ -132,16 +108,19 @@ namespace SoundboardMod
 
                 foreach (SoundChoice choice in binding.Choices)
                 {
-                    if (enabledConfigs.TryGetValue(choice.Id, out Configurable<bool> setting))
+                    // Not bound to Remix's saved settings: the file is the only place the state lives.
+                    var setting = new Configurable<bool>(choice.Enabled, new ConfigurableInfo(Describe(soundboard, choice)));
+                    var checkBox = new OpCheckBox(setting, new Vector2(30f, y))
                     {
-                        var checkBox = new OpCheckBox(setting, new Vector2(30f, y))
-                        {
-                            description = Describe(soundboard, choice),
-                        };
-                        checkBoxes.Add(checkBox);
-                        items.Add(checkBox);
-                    }
+                        description = Describe(soundboard, choice),
+                    };
 
+                    SetBox(checkBox, choice.Enabled);
+                    string id = choice.Id;
+                    checkBox.OnValueChanged += (box, value, oldValue) => OnToggled(id, value == "true");
+
+                    checkBoxesById[choice.Id] = checkBox;
+                    items.Add(checkBox);
                     items.Add(new OpLabel(70f, y + 4f, choice.Label, false));
                     y -= 30f;
                 }
@@ -155,6 +134,78 @@ namespace SoundboardMod
             }
 
             scrollBox.AddItems(items.ToArray());
+        }
+
+        /// <summary>
+        /// Makes the checkboxes match the config again - after RELOAD CONFIG,
+        /// where the file may have been edited by hand. Entries that are new
+        /// since this screen was opened appear the next time it's opened.
+        /// </summary>
+        public void RefreshToggles()
+        {
+            updatingFromCode = true;
+            try
+            {
+                foreach (SoundChoice choice in SoundboardRuntime.Config.Events.SelectMany(e => e.Choices))
+                {
+                    if (checkBoxesById.TryGetValue(choice.Id, out OpCheckBox box))
+                    {
+                        SetBox(box, choice.Enabled);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                // The screen was closed and its widgets are gone; it'll be rebuilt from the config when reopened.
+                Log.LogDebug($"Couldn't refresh the checkboxes: {e.Message}");
+            }
+            finally
+            {
+                updatingFromCode = false;
+            }
+        }
+
+        private static void SetBox(OpCheckBox box, bool on)
+        {
+            box.value = on ? "true" : "false";
+        }
+
+        private void OnToggled(string choiceId, bool on)
+        {
+            if (updatingFromCode)
+            {
+                return;
+            }
+
+            string problem = SoundboardRuntime.SetEnabled(choiceId, on);
+            ShowStatus(problem ?? "Saved to soundboard.yaml.");
+        }
+
+        private void SetAll(bool on)
+        {
+            updatingFromCode = true;
+            try
+            {
+                foreach (OpCheckBox box in checkBoxesById.Values)
+                {
+                    SetBox(box, on);
+                }
+            }
+            finally
+            {
+                updatingFromCode = false;
+            }
+
+            string problem = SoundboardRuntime.SetEnabled(checkBoxesById.Keys.Select(id => new KeyValuePair<string, bool>(id, on)));
+            ShowStatus(problem ?? (on ? "Every sound switched on and saved to soundboard.yaml." : "Every sound switched off and saved to soundboard.yaml."));
+        }
+
+        private void ShowStatus(string text)
+        {
+            if (statusLabel != null)
+            {
+                statusLabel.text = text;
+            }
         }
 
         private static float ContentHeight(SoundboardConfig soundboard)
@@ -216,13 +267,13 @@ namespace SoundboardMod
             try
             {
                 string message = SoundboardRuntime.Reload();
-                statusLabel.text = message + " Reopen this screen to refresh the list.";
+                ShowStatus(message + " Reopen this screen to see new entries.");
                 RefreshProblems();
             }
             catch (Exception e)
             {
                 Log.LogError($"Reloading the config failed: {e}");
-                statusLabel.text = "Reload failed unexpectedly: " + e.Message;
+                ShowStatus("Reload failed unexpectedly: " + e.Message);
             }
         }
 
@@ -243,14 +294,6 @@ namespace SoundboardMod
             }
 
             Log.LogInfo($"Config folder: {folder}");
-        }
-
-        private void SetAll(bool value)
-        {
-            foreach (OpCheckBox checkBox in checkBoxes)
-            {
-                checkBox.value = value ? "true" : "false";
-            }
         }
     }
 }

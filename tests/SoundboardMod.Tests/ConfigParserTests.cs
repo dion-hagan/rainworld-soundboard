@@ -24,7 +24,7 @@ namespace SoundboardMod.Tests
             Assert.Equal(1f, sound.Volume);
             Assert.Equal(0f, sound.Delay);
             Assert.Equal("Boom", choice.Label);
-            Assert.True(choice.DefaultEnabled);
+            Assert.True(choice.Enabled);
         }
 
         [Fact]
@@ -46,7 +46,7 @@ namespace SoundboardMod.Tests
             Assert.Equal(1.5f, choice.Sounds[0].Delay);
             Assert.Equal("Bunny hop", choice.Label);
             Assert.Equal("Plays on every jump", choice.Description);
-            Assert.False(choice.DefaultEnabled);
+            Assert.False(choice.Enabled);
         }
 
         [Fact]

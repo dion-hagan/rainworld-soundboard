@@ -69,9 +69,36 @@ namespace SoundboardMod
 
         public string Label;
         public string Description;
-        public bool DefaultEnabled = true;
+
+        /// <summary>
+        /// Whether this entry is switched on. Comes from "enabled:" / "disabled:" in the
+        /// file and is what the options-screen checkbox shows and changes.
+        /// </summary>
+        public bool Enabled = true;
+
         public List<SoundRef> Sounds = new List<SoundRef>();
         public int Line;
+
+        /// <summary>Where the entry sits in the file, so its on/off switch can be edited in place.</summary>
+        public YamlItemSpan Source;
+    }
+
+    /// <summary>The lines an entry occupies in soundboard.yaml (see YamlEditor).</summary>
+    public sealed class YamlItemSpan
+    {
+        public YamlKind Kind;
+        public bool IsFlow;
+        public int StartLine;
+        public int EndLine;
+
+        /// <summary>Column the entry's own keys start at (block form).</summary>
+        public int KeyIndent;
+
+        /// <summary>"enabled" or "disabled" if the entry already has one of them, else null.</summary>
+        public string SwitchKey;
+
+        /// <summary>1-based line that switch is on (block form).</summary>
+        public int SwitchLine;
     }
 
     /// <summary>Everything mapped to one event, in the order they take turns.</summary>
@@ -109,7 +136,7 @@ namespace SoundboardMod
     public static class SoundboardConfigParser
     {
         private static readonly string[] TopLevelKeys = { "settings", "events" };
-        private static readonly string[] EntryKeys = { "file", "volume", "delay", "name", "description", "enabled", "together" };
+        private static readonly string[] EntryKeys = { "file", "volume", "delay", "name", "description", "enabled", "disabled", "together" };
         private static readonly string[] MemberKeys = { "file", "volume", "delay" };
 
         private const float MaxVolume = 10f;
@@ -319,6 +346,7 @@ namespace SoundboardMod
                 choice.Sounds.Add(single);
                 choice.Label = PrettyName(single.File);
                 choice.Id = UniqueId(usedIds, eventName, StemOf(single.File));
+                choice.Source = new YamlItemSpan { Kind = YamlKind.Scalar, StartLine = item.Line, EndLine = item.EndLine };
                 return choice;
             }
 
@@ -333,18 +361,38 @@ namespace SoundboardMod
             string name = ReadString(item, "name", config);
             choice.Description = ReadString(item, "description", config);
 
+            // "enabled: false" and "disabled: true" mean the same thing; people
+            // reach for either. If both are there, enabled wins.
             YamlEntry enabled = item.Find("enabled");
-            if (enabled != null)
+            YamlEntry disabled = item.Find("disabled");
+            if (enabled != null && disabled != null)
             {
-                if (TryParseBool(enabled.Value, out bool on))
+                config.AddIssue(IssueSeverity.Warning, disabled.Line, "This entry has both 'enabled' and 'disabled'. Only 'enabled' is used - remove one of them.");
+            }
+
+            YamlEntry switchEntry = enabled ?? disabled;
+            if (switchEntry != null)
+            {
+                if (TryParseBool(switchEntry.Value, out bool on))
                 {
-                    choice.DefaultEnabled = on;
+                    choice.Enabled = switchEntry == enabled ? on : !on;
                 }
                 else
                 {
-                    config.AddIssue(IssueSeverity.Warning, enabled.Line, "'enabled' should be true or false.");
+                    config.AddIssue(IssueSeverity.Warning, switchEntry.Line, "'" + switchEntry.Key + "' should be true or false.");
                 }
             }
+
+            choice.Source = new YamlItemSpan
+            {
+                Kind = YamlKind.Mapping,
+                IsFlow = item.IsFlow,
+                StartLine = item.Line,
+                EndLine = item.EndLine,
+                KeyIndent = item.Indent,
+                SwitchKey = switchEntry?.Key,
+                SwitchLine = switchEntry?.Line ?? 0,
+            };
 
             YamlEntry together = item.Find("together");
             if (together == null)

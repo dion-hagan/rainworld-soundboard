@@ -16,6 +16,7 @@
     <Compile Include="..\..\src\EventCatalog.cs" Link="Src\EventCatalog.cs" />
     <Compile Include="..\..\src\SoundboardConfig.cs" Link="Src\SoundboardConfig.cs" />
     <Compile Include="..\..\src\ConfigFiles.cs" Link="Src\ConfigFiles.cs" />
+    <Compile Include="..\..\src\YamlEditor.cs" Link="Src\YamlEditor.cs" />
     <Compile Include="..\..\src\DelayQueue.cs" Link="Src\DelayQueue.cs" />
     <Compile Include="..\..\src\FallTracker.cs" Link="Src\FallTracker.cs" />
     <Compile Include="..\..\src\Cooldown.cs" Link="Src\Cooldown.cs" />

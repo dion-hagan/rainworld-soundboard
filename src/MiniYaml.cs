@@ -31,6 +31,15 @@ namespace SoundboardMod
         /// <summary>1-based line the value starts on, for error messages.</summary>
         public int Line;
 
+        /// <summary>1-based last line the value occupies (same as Line for one-line values).</summary>
+        public int EndLine;
+
+        /// <summary>For block mappings: the column their keys start at. Lets a new key be added in line with the others.</summary>
+        public int Indent;
+
+        /// <summary>True for "[a, b]" and "{k: v}" values.</summary>
+        public bool IsFlow;
+
         /// <summary>Scalar text; null for an empty value ("key:" or "~" / "null").</summary>
         public string Text;
 
@@ -57,7 +66,7 @@ namespace SoundboardMod
 
         public static YamlNode Scalar(string text, int line)
         {
-            return new YamlNode { Kind = YamlKind.Scalar, Text = text, Line = line };
+            return new YamlNode { Kind = YamlKind.Scalar, Text = text, Line = line, EndLine = line };
         }
     }
 
@@ -104,7 +113,7 @@ namespace SoundboardMod
 
         private static List<Line> Tokenize(string text)
         {
-            if (text.Length > 0 && text[0] == '﻿')
+            if (text.Length > 0 && text[0] == '\uFEFF')
             {
                 text = text.Substring(1);
             }
@@ -228,7 +237,7 @@ namespace SoundboardMod
             {
                 if (lines.Count == 0)
                 {
-                    return new YamlNode { Kind = YamlKind.Mapping, Entries = new List<YamlEntry>(), Line = 1 };
+                    return new YamlNode { Kind = YamlKind.Mapping, Entries = new List<YamlEntry>(), Line = 1, EndLine = 1 };
                 }
 
                 if (lines[0].Indent != 0)
@@ -306,12 +315,13 @@ namespace SoundboardMod
                     }
                 }
 
+                node.EndLine = lines[pos - 1].Number;
                 return node;
             }
 
             private YamlNode ParseMapping(int indent)
             {
-                var node = new YamlNode { Kind = YamlKind.Mapping, Entries = new List<YamlEntry>(), Line = lines[pos].Number };
+                var node = new YamlNode { Kind = YamlKind.Mapping, Entries = new List<YamlEntry>(), Line = lines[pos].Number, Indent = indent };
 
                 while (pos < lines.Count && lines[pos].Indent == indent)
                 {
@@ -363,6 +373,7 @@ namespace SoundboardMod
                     throw new YamlParseException(lines[pos].Number, "This line is indented more than the line before it, but there's nothing for it to belong to. Check the spacing (and that the line above ends with a colon if this is meant to be nested).");
                 }
 
+                node.EndLine = lines[pos - 1].Number;
                 return node;
             }
 
@@ -390,7 +401,9 @@ namespace SoundboardMod
                     }
 
                     var flow = new FlowParser(sb.ToString(), line.Number);
-                    return flow.ParseAll();
+                    YamlNode flowNode = flow.ParseAll();
+                    flowNode.EndLine = lines[pos - 1].Number;
+                    return flowNode;
                 }
 
                 YamlNode scalar = ParseScalar(text, line.Number);
@@ -711,7 +724,7 @@ namespace SoundboardMod
 
             private YamlNode ParseList()
             {
-                var node = new YamlNode { Kind = YamlKind.Sequence, Items = new List<YamlNode>(), Line = line };
+                var node = new YamlNode { Kind = YamlKind.Sequence, Items = new List<YamlNode>(), Line = line, EndLine = line, IsFlow = true };
                 i++; // [
                 while (true)
                 {
@@ -742,7 +755,7 @@ namespace SoundboardMod
 
             private YamlNode ParseMap()
             {
-                var node = new YamlNode { Kind = YamlKind.Mapping, Entries = new List<YamlEntry>(), Line = line };
+                var node = new YamlNode { Kind = YamlKind.Mapping, Entries = new List<YamlEntry>(), Line = line, EndLine = line, IsFlow = true };
                 i++; // {
                 while (true)
                 {

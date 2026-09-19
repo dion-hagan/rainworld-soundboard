@@ -5,12 +5,17 @@
 #  (Notepad is fine), save it, then either restart Rain World or open
 #  Options > Mods > Custom Soundboard and press RELOAD CONFIG.
 #
-#  WHERE THIS FILE LIVES
-#    Your personal copy sits in the game's data folder, so mod updates never
-#    overwrite your changes. Press OPEN FOLDER on the mod's options screen to
-#    jump straight to it. Put your own sound files (.wav, .ogg or .mp3) in the
-#    "sounds" folder next to this file. To start over with the defaults,
-#    delete this file - a fresh copy appears the next time the game starts.
+#  WHICH COPY OF THIS FILE COUNTS
+#    The game reads YOUR personal copy, which lives in the game's data folder so
+#    mod updates never overwrite your changes. Press OPEN FOLDER on the mod's
+#    options screen to jump straight to it. If you're reading a soundboard.yaml
+#    inside the mod's own folder, that one is only a template: editing it changes
+#    nothing. Put your own sound files (.wav, .ogg or .mp3) in the "sounds" folder
+#    next to your personal copy. To start over with the defaults, delete your
+#    copy - a fresh one appears the next time the game starts.
+#
+#    The checkboxes in the options screen edit this file for you (they add or
+#    change an "enabled:" line), and RELOAD CONFIG updates them from the file.
 #
 #  THE BASICS
 #    Under "events:", write the name of something that can happen in the game,
@@ -27,7 +32,7 @@
 #            volume: 0.5               <- 1 = as recorded, 0.5 = half, 2 = double
 #            delay: 1.5                <- seconds to wait before it plays
 #            name: "Big Boom"          <- label in the options menu (optional)
-#            enabled: false            <- start switched off (optional)
+#            enabled: false            <- switched off (optional; "disabled: true" works too)
 #
 #    Several entries under one event take turns: the first death plays the
 #    first sound, the next death plays the second, and so on, around again.
@@ -65,13 +70,13 @@ events:
     - file: fahhhhhhhhhhhhhh.wav
       volume: 0.2
     - file: fahh-slowed.wav
-      volume: 0.3
+      volume: 0.4
       name: "Fahh (Slowed)"
     - file: i-cant-do-nathan.wav
       volume: 0.3
       name: "I Can't Do Nathan"
     - file: i-got-this-fahhhhhh.wav
-      volume: 0.4
+      volume: 0.3
     - file: miau-triste.wav
       volume: 0.4
     - file: omg-bruh-oh-hell-nah.wav
@@ -85,10 +90,15 @@ events:
     - file: examplebeep.wav
       volume: 0.5
       name: "Example Beep (test sound)"
+      disabled: true
+    - file: scatman.wav
+      volume: 0.3
+      name: "Scatman"
+      delay: 60
 
   PlayerJumpWithCicada:
     - file: hatsune-miku-weeeeeeee.wav
-      volume: 0.4
+      volume: 0.5
       name: "Hatsune Miku Weee"
 
   PlayerArtificerPyroJump:
@@ -98,13 +108,15 @@ events:
 
   PlayerHardLanding:
     - file: vine-boom.wav
-      volume: 0.4
+      volume: 0.3
     - file: bone-crack.wav
-      volume: 0.4
+      volume: 0.5
 
   PlayerEatCreature:
     - file: what-a-good-boy.wav
-      volume: 0.7
+      volume: 0.8
+    - file: no-sauce.wav
+      volume: 0.5
 
   PlayerGrabExplosive:
     - file: anime-wow-sound-effect.wav

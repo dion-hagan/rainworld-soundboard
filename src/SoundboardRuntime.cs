@@ -136,6 +136,15 @@ namespace SoundboardMod
 
             SoundboardConfig config = text == null ? FailedConfig() : SoundboardConfigParser.Parse(text, Catalog);
 
+            if (path == Locations.UserConfigPath && Locations.TemplateIsNewerThanUserCopy())
+            {
+                notes.Add(new ConfigIssue
+                {
+                    Severity = IssueSeverity.Warning,
+                    Message = "The soundboard.yaml in the mod's own folder is just a template and has changed, but the game reads YOUR copy: " + Locations.UserConfigPath + ". Edit that one (OPEN FOLDER). To start over from the template, rename your copy and restart the game.",
+                });
+            }
+
             if (config.Failed && useDefaultsIfBroken)
             {
                 // A typo shouldn't leave a player with a silent game, so fall
@@ -183,7 +192,7 @@ namespace SoundboardMod
             Delays.Clear();
 
             SoundRegistry.Sync(config.Events.SelectMany(e => e.Choices).SelectMany(c => c.Sounds).Select(s => s.ResolvedPath).Distinct());
-            Options.Instance?.BindChoices(config);
+            Options.Instance?.RefreshToggles();
 
             IssueList.Clear();
             IssueList.AddRange(notes);
@@ -235,7 +244,75 @@ namespace SoundboardMod
 
         public static bool IsEnabled(SoundChoice choice)
         {
-            return Options.Instance == null || Options.Instance.IsEnabled(choice.Id, choice.DefaultEnabled);
+            return choice.Enabled;
+        }
+
+        /// <summary>
+        /// Switches an entry on or off - what a checkbox in the options screen
+        /// does. The change takes effect immediately and is written into
+        /// soundboard.yaml so the file always says what the game is doing.
+        /// Returns null on success, otherwise a message for the player.
+        /// </summary>
+        public static string SetEnabled(string choiceId, bool enabled)
+        {
+            return SetEnabled(new[] { new KeyValuePair<string, bool>(choiceId, enabled) });
+        }
+
+        /// <summary>Same as SetEnabled for several entries at once (ENABLE ALL / DISABLE ALL): the file is written once.</summary>
+        public static string SetEnabled(IEnumerable<KeyValuePair<string, bool>> changes)
+        {
+            var wanted = changes.ToList();
+            IEnumerable<SoundChoice> all = Config.Events.SelectMany(e => e.Choices);
+            foreach (KeyValuePair<string, bool> change in wanted)
+            {
+                SoundChoice choice = all.FirstOrDefault(c => c.Id == change.Key);
+                if (choice != null)
+                {
+                    choice.Enabled = change.Value;
+                }
+            }
+
+            if (ConfigPath != Locations.UserConfigPath)
+            {
+                return "Switched for now, but not saved: the game isn't using your own soundboard.yaml right now (see the problems listed).";
+            }
+
+            try
+            {
+                string text = File.ReadAllText(Locations.UserConfigPath);
+                foreach (KeyValuePair<string, bool> change in wanted)
+                {
+                    // Re-read the entry's position from the current text every time:
+                    // each edit can add a line, and the player may have edited the file by hand.
+                    SoundboardConfig fresh = SoundboardConfigParser.Parse(text, Catalog);
+                    if (fresh.Failed)
+                    {
+                        return "Switched for now, but soundboard.yaml has an error (" + fresh.Issues[0] + ") so it wasn't saved. Fix it and press RELOAD CONFIG.";
+                    }
+
+                    SoundChoice entry = fresh.Events.SelectMany(e => e.Choices).FirstOrDefault(c => c.Id == change.Key);
+                    if (entry == null)
+                    {
+                        return "Switched for now, but that entry is no longer in soundboard.yaml, so it wasn't saved. Press RELOAD CONFIG.";
+                    }
+
+                    YamlEditor.Result result = YamlEditor.SetEnabled(text, entry.Source, change.Value);
+                    if (!result.Ok)
+                    {
+                        return "Switched for now, but not saved to soundboard.yaml: " + result.Error + ".";
+                    }
+
+                    text = result.Text;
+                }
+
+                File.WriteAllText(Locations.UserConfigPath, text);
+                return null;
+            }
+            catch (Exception e)
+            {
+                Log.LogError($"Couldn't save the on/off change to {Locations.UserConfigPath}: {e}");
+                return "Switched for now, but couldn't save to soundboard.yaml: " + e.Message;
+            }
         }
 
         /// <summary>

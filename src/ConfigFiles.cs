@@ -75,6 +75,40 @@ namespace SoundboardMod
             return File.ReadAllText(BundledConfigPath);
         }
 
+        /// <summary>
+        /// True if the soundboard.yaml inside the mod's folder was changed more
+        /// recently than the player's own copy and says something different.
+        /// That file is only a template (the game reads the personal copy, which
+        /// is never overwritten), so this is the situation where someone has
+        /// probably edited the wrong file - or a mod update brought new defaults.
+        /// </summary>
+        public bool TemplateIsNewerThanUserCopy()
+        {
+            try
+            {
+                if (!File.Exists(UserConfigPath) || !File.Exists(BundledConfigPath))
+                {
+                    return false;
+                }
+
+                if (File.GetLastWriteTimeUtc(BundledConfigPath) <= File.GetLastWriteTimeUtc(UserConfigPath))
+                {
+                    return false;
+                }
+
+                return Normalize(File.ReadAllText(BundledConfigPath)) != Normalize(File.ReadAllText(UserConfigPath));
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        private static string Normalize(string text)
+        {
+            return text.Replace("\r\n", "\n").TrimEnd();
+        }
+
         /// <summary>Writes a file only if its content would change (avoids touching the disk every launch).</summary>
         public static void WriteIfChanged(string path, string content)
         {

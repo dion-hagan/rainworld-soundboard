@@ -42,9 +42,10 @@ namespace SoundboardMod.Tests
         public void ContainsTheOriginalSoundSet()
         {
             SoundboardConfig config = LoadShipped(ModFolder());
-            Assert.Equal(29, config.Events.Count);
-            Assert.Equal(53, config.Events.Sum(e => e.Choices.Count));
-            Assert.Equal(54, config.SoundCount);
+            // The 0.1.0 set was 29 events / 53 entries / 54 sounds; it may only grow from there.
+            Assert.True(config.Events.Count >= 29, "events: " + config.Events.Count);
+            Assert.True(config.Events.Sum(e => e.Choices.Count) >= 53);
+            Assert.True(config.SoundCount >= 54);
         }
 
         [Fact]
