@@ -14,8 +14,9 @@
 #    next to your personal copy. To start over with the defaults, delete your
 #    copy - a fresh one appears the next time the game starts.
 #
-#    The checkboxes in the options screen edit this file for you (they add or
-#    change an "enabled:" line), and RELOAD CONFIG updates them from the file.
+#    The checkboxes in the options screen edit this file for you: tick or untick
+#    them and press SAVE (they add or change an "enabled:" line). Opening the
+#    screen or pressing RELOAD CONFIG updates them from the file.
 #
 #  THE BASICS
 #    Under "events:", write the name of something that can happen in the game,
@@ -94,7 +95,6 @@ events:
     - file: scatman.wav
       volume: 0.3
       name: "Scatman"
-      delay: 60
 
   PlayerJumpWithCicada:
     - file: hatsune-miku-weeeeeeee.wav

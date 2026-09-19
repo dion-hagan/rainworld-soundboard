@@ -28,8 +28,10 @@ setup, see [Upgrading from 0.1.0](#upgrading-from-010).)*
 4. Back in the game, press **RELOAD CONFIG**. Done - jump around and listen.
 
 The options screen also has a checkbox for every sound so you can switch individual ones off
-without editing anything - **ticking one writes the change into `soundboard.yaml`**, so the file and the
-screen always agree - and it lists any problems it found in your file (with line numbers).
+without editing anything - **tick or untick them, then press SAVE and the change is written into
+`soundboard.yaml`**, so the file and the screen always agree (REVERT, or leaving without saving, discards
+the change) - and it lists any problems it found in your file (with line numbers). Note that Remix's
+**APPLY** button is greyed out on every mod's page; that one is for turning mods on and off, not for settings.
 
 > **Which `soundboard.yaml` counts?** The one in the game's data folder
 > (`%USERPROFILE%\AppData\LocalLow\Videocult\Rain World\Soundboard` on Windows) - press **OPEN FOLDER**
@@ -64,7 +66,7 @@ Under an event name, list what should play. Each list item is a file name, or a 
 | `delay` | Seconds to wait after the event before the sound plays (0 to 120). | `0` |
 | `name` | The label shown in the options screen. | made from the file name |
 | `description` | A tooltip for the options screen. | what the event is |
-| `enabled` | `false` = switched off. This is the checkbox in the options screen: ticking it there edits this line for you, and RELOAD CONFIG updates the checkbox from it. `disabled: true` means the same thing. | `true` |
+| `enabled` | `false` = switched off. This is the checkbox in the options screen: ticking it and pressing SAVE edits this line for you, and opening the screen or pressing RELOAD CONFIG updates the checkbox from it. `disabled: true` means the same thing. | `true` |
 
 There's also a compact one-line form: `- { file: boom.wav, volume: 0.5, delay: 1 }`.
 
@@ -420,7 +422,7 @@ by themselves. To push them in without restarting:
 ```
 
 then press **RELOAD CONFIG** in the mod's options screen. The backup (`soundboard.yaml.<time>.bak`, last 10 kept)
-matters because checkbox clicks in the options screen are written into the personal copy. Code changes still
+matters because checkbox changes saved from the options screen are written into the personal copy. Code changes still
 need `deploy.ps1` and a restart (the game locks the DLL while it runs).
 
 `deploy.ps1` also removes files left over from 0.1.0 (the old `sounds.txt` would otherwise still be merged
@@ -433,4 +435,5 @@ by the game). VS Code: *Ctrl+Shift+B* builds, and there are `test` and `deploy` 
 **Releases** are git tags: `v0.1.0` is the last version with `meta.json`/`sounds.txt`; `v1.0.0` introduced
 `soundboard.yaml`; `v1.0.1` made the YAML the single source of truth for on/off state (checkboxes write back to it,
 `disabled:` accepted) and added `scripts/sync-config.ps1`. `mod/modinfo.json`, the `[BepInPlugin]` version in
-`Plugin.cs` and the tag should agree.
+`Plugin.cs` and the tag should agree. `v1.0.2` made the options-screen checkboxes work like any Remix setting
+(tick, then SAVE writes them into `soundboard.yaml`) and re-seeds them from the file every time the page opens.

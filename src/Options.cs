@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using BepInEx.Logging;
+using HarmonyLib;
 using Menu.Remix.MixedUI;
 using UnityEngine;
 
@@ -12,11 +13,13 @@ namespace SoundboardMod
     /// buttons to reload the config and open its folder, a list of any
     /// problems found in soundboard.yaml, and one checkbox per sound entry.
     ///
-    /// soundboard.yaml is the only place on/off state lives. The checkboxes
-    /// are plain screen widgets (not saved by Remix's own config system):
-    /// they start from the file's "enabled:" values, and ticking one writes
-    /// the change back into the file. So the file and the screen can't
-    /// disagree, and RELOAD CONFIG refreshes the boxes from the file.
+    /// soundboard.yaml is the only place on/off state really lives. The
+    /// checkboxes are a normal Remix editing screen over it: they start from the
+    /// file's "enabled:" values every time the screen opens, ticking one marks a
+    /// pending change (so SAVE, REVERT and the "unsaved changes" prompt all work
+    /// like on any other mod), and SAVE writes the changes into the file. The
+    /// values Remix itself remembers between launches are never trusted - the
+    /// file always wins - so the two can't drift apart.
     /// </summary>
     public class Options : OptionInterface
     {
@@ -27,11 +30,15 @@ namespace SoundboardMod
 
         public static Options Instance { get; private set; }
 
+        // Remix-tracked settings, one per entry. Created once (Remix doesn't allow the same key twice).
+        private readonly Dictionary<string, Configurable<bool>> settings = new Dictionary<string, Configurable<bool>>();
+
+        // What's on the screen right now.
         private readonly Dictionary<string, OpCheckBox> checkBoxesById = new Dictionary<string, OpCheckBox>();
 
-        // True while the code (not the player) is changing checkboxes, so that
-        // doesn't get written back to the file as if it were a click.
-        private bool updatingFromCode;
+        // Entries whose checkbox waits for SAVE. Any entry that couldn't get a Remix setting
+        // is missing from here and saves the moment it's ticked instead.
+        private readonly HashSet<string> stagedIds = new HashSet<string>();
 
         private OpLabel statusLabel;
         private OpLabelLong problemsLabel;
@@ -39,6 +46,38 @@ namespace SoundboardMod
         public Options()
         {
             Instance = this;
+
+            foreach (SoundChoice choice in SoundboardRuntime.Config.Events.SelectMany(e => e.Choices))
+            {
+                EnsureSetting(choice);
+            }
+
+            // Remix builds this screen once per launch, but each time the page is opened it reloads
+            // its own saved copy of the settings into the checkboxes. That copy can be stale (or
+            // from an older version of this mod), so on every open the boxes are re-seeded from
+            // soundboard.yaml, which is the only thing that counts.
+            OnActivate += RefreshToggles;
+        }
+
+        private Configurable<bool> EnsureSetting(SoundChoice choice)
+        {
+            if (settings.TryGetValue(choice.Id, out Configurable<bool> existing))
+            {
+                return existing;
+            }
+
+            try
+            {
+                // Default true: what RESET to defaults should mean. The real value is set from the file on every open.
+                Configurable<bool> created = config.Bind(choice.Id, true, new ConfigurableInfo(string.Empty));
+                settings[choice.Id] = created;
+                return created;
+            }
+            catch (Exception e)
+            {
+                Log.LogWarning($"Couldn't create a Remix setting for '{choice.Label}' ({choice.Id}); its checkbox will save instantly instead: {e.Message}");
+                return null;
+            }
         }
 
         public override void Initialize()
@@ -51,13 +90,13 @@ namespace SoundboardMod
 
             var enableAllButton = new OpSimpleButton(new Vector2(20f, 505f), new Vector2(105f, 30f), "ENABLE ALL")
             {
-                description = "Switch every sound below on (saved into soundboard.yaml).",
+                description = "Tick every sound below. Press SAVE to write it into soundboard.yaml.",
             };
             enableAllButton.OnClick += _ => SetAll(true);
 
             var disableAllButton = new OpSimpleButton(new Vector2(133f, 505f), new Vector2(105f, 30f), "DISABLE ALL")
             {
-                description = "Switch every sound below off (saved into soundboard.yaml).",
+                description = "Untick every sound below. Press SAVE to write it into soundboard.yaml.",
             };
             disableAllButton.OnClick += _ => SetAll(false);
 
@@ -85,7 +124,7 @@ namespace SoundboardMod
 
             tab.AddItems(
                 new OpLabel(20f, 560f, "Custom Soundboard", true),
-                new OpLabel(20f, 538f, "Ticking a box saves it into soundboard.yaml. You can also edit that file (OPEN FOLDER), then RELOAD CONFIG.", false),
+                new OpLabel(20f, 538f, "Tick or untick sounds, then press SAVE to write them into soundboard.yaml. Or edit that file (OPEN FOLDER) and RELOAD CONFIG.", false),
                 enableAllButton,
                 disableAllButton,
                 reloadButton,
@@ -100,6 +139,7 @@ namespace SoundboardMod
             // Inside it, y=0 is the bottom of the content, so start at the top.
             var items = new List<UIelement>();
             checkBoxesById.Clear();
+            stagedIds.Clear();
             float y = ContentHeight(soundboard) - 30f;
             foreach (EventBinding binding in soundboard.Events)
             {
@@ -108,11 +148,23 @@ namespace SoundboardMod
 
                 foreach (SoundChoice choice in binding.Choices)
                 {
-                    // Not bound to Remix's saved settings: the file is the only place the state lives.
-                    var setting = new Configurable<bool>(choice.Enabled, new ConfigurableInfo(Describe(soundboard, choice)));
+                    string description = Describe(soundboard, choice);
+                    Configurable<bool> setting = EnsureSetting(choice);
+                    if (setting != null)
+                    {
+                        // Start from the file, whatever Remix remembered from last time.
+                        setting.Value = choice.Enabled;
+                        stagedIds.Add(choice.Id);
+                    }
+                    else
+                    {
+                        // Not tracked by Remix (its own setting couldn't be created): saves instantly.
+                        setting = new Configurable<bool>(choice.Enabled, new ConfigurableInfo(description));
+                    }
+
                     var checkBox = new OpCheckBox(setting, new Vector2(30f, y))
                     {
-                        description = Describe(soundboard, choice),
+                        description = description,
                     };
 
                     SetBox(checkBox, choice.Enabled);
@@ -137,20 +189,26 @@ namespace SoundboardMod
         }
 
         /// <summary>
-        /// Makes the checkboxes match the config again - after RELOAD CONFIG,
-        /// where the file may have been edited by hand. Entries that are new
-        /// since this screen was opened appear the next time it's opened.
+        /// Makes the checkboxes (and Remix's copy of their values) match the config:
+        /// every time the page is opened, and after RELOAD CONFIG, where the file may
+        /// have been edited by hand. Nothing here counts as a pending change. Entries
+        /// that are new since the screen was built appear after the game is restarted.
         /// </summary>
         public void RefreshToggles()
         {
-            updatingFromCode = true;
             try
             {
                 foreach (SoundChoice choice in SoundboardRuntime.Config.Events.SelectMany(e => e.Choices))
                 {
+                    if (settings.TryGetValue(choice.Id, out Configurable<bool> setting))
+                    {
+                        setting.Value = choice.Enabled;
+                    }
+
                     if (checkBoxesById.TryGetValue(choice.Id, out OpCheckBox box))
                     {
-                        SetBox(box, choice.Enabled);
+                        // ForceValue changes what's shown without recording an unsaved change.
+                        box.ForceValue(choice.Enabled ? "true" : "false");
                     }
                 }
             }
@@ -158,10 +216,6 @@ namespace SoundboardMod
             {
                 // The screen was closed and its widgets are gone; it'll be rebuilt from the config when reopened.
                 Log.LogDebug($"Couldn't refresh the checkboxes: {e.Message}");
-            }
-            finally
-            {
-                updatingFromCode = false;
             }
         }
 
@@ -172,8 +226,9 @@ namespace SoundboardMod
 
         private void OnToggled(string choiceId, bool on)
         {
-            if (updatingFromCode)
+            if (stagedIds.Contains(choiceId))
             {
+                ShowStatus("Changed - press SAVE to write it into soundboard.yaml.");
                 return;
             }
 
@@ -181,23 +236,52 @@ namespace SoundboardMod
             ShowStatus(problem ?? "Saved to soundboard.yaml.");
         }
 
-        private void SetAll(bool on)
+        /// <summary>
+        /// The player pressed SAVE: whatever the checkboxes show that differs from
+        /// the file gets written into it. Works from what's on screen versus the
+        /// file (not from a list of clicks), so a reverted or repeated click can
+        /// never write the wrong thing.
+        /// </summary>
+        private void CommitPending()
         {
-            updatingFromCode = true;
-            try
+            if (checkBoxesById.Count == 0)
             {
-                foreach (OpCheckBox box in checkBoxesById.Values)
-                {
-                    SetBox(box, on);
-                }
-            }
-            finally
-            {
-                updatingFromCode = false;
+                return; // no screen: the game is just loading its saved settings
             }
 
-            string problem = SoundboardRuntime.SetEnabled(checkBoxesById.Keys.Select(id => new KeyValuePair<string, bool>(id, on)));
-            ShowStatus(problem ?? (on ? "Every sound switched on and saved to soundboard.yaml." : "Every sound switched off and saved to soundboard.yaml."));
+            var changes = new List<KeyValuePair<string, bool>>();
+            foreach (SoundChoice choice in SoundboardRuntime.Config.Events.SelectMany(e => e.Choices))
+            {
+                if (stagedIds.Contains(choice.Id) && checkBoxesById.TryGetValue(choice.Id, out OpCheckBox box))
+                {
+                    bool shown = box.value == "true";
+                    if (shown != choice.Enabled)
+                    {
+                        changes.Add(new KeyValuePair<string, bool>(choice.Id, shown));
+                    }
+                }
+            }
+
+            if (changes.Count == 0)
+            {
+                return;
+            }
+
+            string problem = SoundboardRuntime.SetEnabled(changes);
+            ShowStatus(problem ?? "Saved " + changes.Count + " change(s) to soundboard.yaml.");
+        }
+
+        private void SetAll(bool on)
+        {
+            foreach (OpCheckBox box in checkBoxesById.Values)
+            {
+                SetBox(box, on);
+            }
+
+            if (checkBoxesById.Count > 0 && stagedIds.Count > 0)
+            {
+                ShowStatus((on ? "Everything ticked" : "Everything unticked") + " - press SAVE to write it into soundboard.yaml.");
+            }
         }
 
         private void ShowStatus(string text)
@@ -262,12 +346,39 @@ namespace SoundboardMod
             return text.Length <= MaxProblemLength ? text : text.Substring(0, MaxProblemLength - 3) + "...";
         }
 
+        /// <summary>
+        /// Runs right after Remix saves this mod's settings (the SAVE button, or another
+        /// mod asking for a save). Deliberately not OnConfigChanged: Remix also fires that
+        /// every time it reloads its saved settings when the page is opened, which is not a
+        /// save and must never write to the file.
+        /// </summary>
+        [HarmonyPatch(typeof(OptionInterface), "_SaveConfigFile")]
+        private static class OptionInterface_SaveConfigFile_Patch
+        {
+            [HarmonyPostfix]
+            private static void Postfix(OptionInterface __instance)
+            {
+                if (__instance is Options options)
+                {
+                    try
+                    {
+                        options.CommitPending();
+                    }
+                    catch (Exception e)
+                    {
+                        Log.LogError($"Saving the checkbox changes to soundboard.yaml failed: {e}");
+                        options.ShowStatus("Couldn't save to soundboard.yaml: " + e.Message);
+                    }
+                }
+            }
+        }
+
         private void Reload()
         {
             try
             {
                 string message = SoundboardRuntime.Reload();
-                ShowStatus(message + " Reopen this screen to see new entries.");
+                ShowStatus(message + " New entries show up after a game restart.");
                 RefreshProblems();
             }
             catch (Exception e)
