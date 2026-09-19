@@ -45,7 +45,7 @@ out for your own whenever you like.
 | `Soundboard_BoneCrack` | `bone-crack.wav` | `PlayerHardLanding` | Enabled | Plays on a hard landing, taking turns with Vine Boom. |
 | `Soundboard_FartMeme` | `fartmeme.wav` | `ScavengerDeath` | Enabled | Plays when a Scavenger dies, taking turns with We Do Not Care and Discord Leave Noise. |
 | `Soundboard_WeDoNotCare` | `we-do-not-care.wav` | `ScavengerDeath` | Enabled | Plays when a Scavenger dies, taking turns with Fart Meme and Discord Leave Noise. |
-| `Soundboard_MusicaElevador` | `musica-elevador-short.wav` | `RegionGateTransition` | Enabled | Plays when a region gate transition starts. |
+| `Soundboard_MusicaElevador` | `musica-elevador-short.wav` | `RegionGateTransition` | Enabled | Plays when a region gate starts its transition (the gate begins closing around you and the next region starts loading). |
 | `Soundboard_HatsuneMikuWeee` | `hatsune-miku-weeeeeeee.wav` | `PlayerJumpWithCicada` | Enabled | Plays when you jump while holding a Cicada ("squidcada"). |
 | `Soundboard_Enrique` | `enrique.wav` | `PlayerSpottedByScavenger` | Enabled | Plays together with Indian Song (taking turns with Can I Put My Balls In Your Jaws) when a Scavenger first notices you. |
 | `Soundboard_IndianSong` | `indian-song.wav` | `PlayerSpottedByScavenger` | Enabled | Plays together with Enrique (taking turns with Can I Put My Balls In Your Jaws) when a Scavenger first notices you. |
@@ -235,7 +235,7 @@ Wired up in `src/EventHooks.cs`:
 | `PlayerGrabSlugcat` | The slugcat picks up another slugcat onto its back (`Creature.Grab`) |
 | `PlayerThrowExplosiveSpear` | The slugcat throws an `ExplosiveSpear` (`Player.ThrownSpear`) |
 | `PlayerHardLanding` | The slugcat hits the ground above a fall-speed threshold (`Player.TerrainImpact`) |
-| `PlayerEnterShelter` | A shelter door closes (`ShelterDoor.DoorClosed`) |
+| `PlayerEnterShelter` | A shelter door closes (`ShelterDoor.DoorClosed`, fired once per door - the game calls it every frame while the door stays shut) |
 | `ScavengerDeath` | A Scavenger dies (`Creature.Die`) |
 | `LizardDeath` | A Lizard dies (`Creature.Die`) |
 | `SpiderDeath` | A Spider or BigSpider dies (`Spider.Die` / `BigSpider.Die`) |
@@ -245,12 +245,12 @@ Wired up in `src/EventHooks.cs`:
 | `PlayerSpottedByCyanLizard` | Specifically a Cyan Lizard first notices you (`Tracker.CreatureNoticed`) - takes priority over `PlayerSpottedByPredator` for that one lizard color |
 | `PlayerSpottedByMiros` | A Miros Bird, or a Miros Vulture (`Vulture.IsMiros`), first notices you (`Tracker.CreatureNoticed`) - takes priority over `PlayerSpottedByPredator` for Miros Vultures |
 | `CicadaOrLanternMouseDeath` | A Cicada ("squidcada") or Lantern Mouse dies (`Cicada.Die` / `LanternMouse.Die`) |
-| `RegionGateTransition` | A region gate's door-opening sequence starts (`RegionGate.OPENCLOSE`) - heuristic, not confirmed strictly one-shot |
+| `RegionGateTransition` | A region gate starts its transition - the moment it begins closing around you and loading the next region (`OverWorld.GateRequestsSwitchInitiation`, called once per gate use) |
 | `PlayerJumpWithCicada` | The slugcat jumps while grasping a Cicada ("squidcada") (`Player.Jump` + grasp check) - fires alongside `PlayerJump`, not instead of it |
 | `PlayerArtificerPyroJump` | Artificer does an explosion-boosted jump (`Player.ClassMechanicsArtificer`, edge-detected on `pyroJumpped`) |
 | `VultureGrubSignal` | A thrown Vulture Grub starts emitting its call (`VultureGrub.InitiateSignal`), which summons nearby vultures |
 | `CreatureEnteredOccupiedShelter` | Any creature moves into a shelter room that already has a player in it (`Creature.NewRoom`) - some creature types override `NewRoom` themselves and may not trigger this, same caveat as the death-event hooks above |
-| `CyanLizardJump` | A Cyan Lizard jumps (`LizardJumpModule.Jump`, with a 1s per-lizard cooldown in case it fires more than once per leap) |
+| `CyanLizardJump` | A Cyan Lizard jumps (`LizardJumpModule.Jump`, called once per leap) |
 | `PlayerGrabYeek` | The slugcat grabs a Yeek (`Creature.Grab`) |
 | `ScavengerThrowSpear` | A Scavenger throws a spear (`Spear.Thrown`; covers normal and explosive spears, but not MSC's `ElectricSpear`, which overrides `Thrown` itself) |
 | `PlayerBitByLizard` | A Lizard's bite lands on the player (`Lizard.Bite`) |

@@ -147,7 +147,7 @@
     {
       "id": "Soundboard_MusicaElevador",
       "displayName": "Musica Elevador",
-      "description": "Plays when a region gate transition starts.",
+      "description": "Plays when a region gate starts its transition (the gate begins closing around you and the next region starts loading).",
       "file": "musica-elevador-short.wav",
       "event": "RegionGateTransition",
       "defaultEnabled": true

@@ -284,33 +284,19 @@ namespace SoundboardMod
 
         // --- Lizards -------------------------------------------------------
 
-        // LizardJumpModule.Jump() is the launch itself (InitiateJump is the
-        // wind-up decision). Not confirmed strictly one-shot per jump (no
-        // decompiler available), so there's a short per-lizard cooldown to
-        // keep a single leap from stacking sounds.
+        // LizardJumpModule.Jump() is the launch itself, called once by Lizard
+        // when its animation switches to Jumping (it also plays the lizard's
+        // own jump sound there). ___lizard reads the module's private field.
         [HarmonyPatch(typeof(LizardJumpModule), nameof(LizardJumpModule.Jump))]
         private static class LizardJumpModule_Jump_Patch
         {
-            private const float CooldownSeconds = 1f;
-            private static readonly ConditionalWeakTable<Lizard, StrongBox<float>> LastJumpTime = new ConditionalWeakTable<Lizard, StrongBox<float>>();
-
             [HarmonyPostfix]
             private static void Postfix(Lizard ___lizard)
             {
-                Lizard lizard = ___lizard;
-                if (lizard == null || !IsCreatureType(lizard, CreatureTemplate.Type.CyanLizard))
+                if (___lizard != null && IsCreatureType(___lizard, CreatureTemplate.Type.CyanLizard))
                 {
-                    return;
+                    Trigger("CyanLizardJump", ___lizard);
                 }
-
-                StrongBox<float> last = LastJumpTime.GetValue(lizard, _ => new StrongBox<float>(float.NegativeInfinity));
-                if (Time.time - last.Value < CooldownSeconds)
-                {
-                    return;
-                }
-
-                last.Value = Time.time;
-                Trigger("CyanLizardJump", lizard);
             }
         }
 
@@ -390,12 +376,25 @@ namespace SoundboardMod
 
         // --- Shelter -----------------------------------------------------
 
+        // ShelterDoor.Update calls DoorClosed() on every frame the door is
+        // shut, right up until the game switches to the sleep screen (the only
+        // thing stopping RainWorldGame.Win from repeating is its own
+        // manager.upcomingProcess check). Without a guard this would start a
+        // new sound every frame, so fire once per door.
         [HarmonyPatch(typeof(ShelterDoor), "DoorClosed")]
         private static class ShelterDoor_DoorClosed_Patch
         {
+            private static readonly ConditionalWeakTable<ShelterDoor, object> AlreadyPlayed = new ConditionalWeakTable<ShelterDoor, object>();
+
             [HarmonyPostfix]
             private static void Postfix(ShelterDoor __instance)
             {
+                if (AlreadyPlayed.TryGetValue(__instance, out _))
+                {
+                    return;
+                }
+
+                AlreadyPlayed.Add(__instance, null);
                 TriggerNonPositional("PlayerEnterShelter", __instance.room);
             }
         }
@@ -454,19 +453,19 @@ namespace SoundboardMod
         }
 
         // --- Region gate ---------------------------------------------------
-        // OPENCLOSE is the method that kicks off a gate's door-opening
-        // sequence, i.e. the transition. It's not confirmed 100% one-shot
-        // (no decompiler was available to check the method body), so if this
-        // ends up firing more than once per transition, that's the place to
-        // look.
+        // RegionGate.Update calls OverWorld.GateRequestsSwitchInitiation exactly
+        // once per gate use, at the moment the gate begins its transition (it
+        // has just switched to Mode.ClosingAirLock and starts loading the next
+        // region). RegionGate.OPENCLOSE, which an earlier version hooked, is
+        // only a door-toggle helper the gate's own logic never calls.
 
-        [HarmonyPatch(typeof(RegionGate), "OPENCLOSE")]
-        private static class RegionGate_OPENCLOSE_Patch
+        [HarmonyPatch(typeof(OverWorld), nameof(OverWorld.GateRequestsSwitchInitiation))]
+        private static class OverWorld_GateRequestsSwitchInitiation_Patch
         {
             [HarmonyPostfix]
-            private static void Postfix(RegionGate __instance)
+            private static void Postfix(RegionGate reportBackToGate)
             {
-                TriggerNonPositional("RegionGateTransition", __instance.room);
+                TriggerNonPositional("RegionGateTransition", reportBackToGate?.room);
             }
         }
 
