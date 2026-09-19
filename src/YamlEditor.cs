@@ -729,6 +729,191 @@ namespace SoundboardMod
             return null;
         }
 
+        // --- removing entries ------------------------------------------------------------------
+
+        private sealed class Located
+        {
+            public YamlNode Node;
+
+            /// <summary>The event this sits under.</summary>
+            public YamlEntry Event;
+
+            /// <summary>The list the node is an item of; null when it's the event's only value written straight under the name.</summary>
+            public YamlNode List;
+
+            /// <summary>True for a sound inside a "together" list, false for an entry of the event.</summary>
+            public bool IsMember;
+        }
+
+        /// <summary>
+        /// Removes entries from an event's list (entryLines), or single sounds from a "together"
+        /// group (memberLines) - what the options screen's Delete boxes do. They're named by the line
+        /// they start on in the CURRENT text (the parser's SoundChoice.Line / SoundRef.Line); the two
+        /// lists are separate because an inline group and its first sound start on the same line.
+        /// An entry's own lines go with it,
+        /// including comments inside it and one after it on the same line, but comment lines around
+        /// it stay. If that empties an event, its "Name:" line goes too, so no empty event is left
+        /// behind. Refused, leaving the text alone, if it would empty a group (delete the entry
+        /// instead) or the target is written in a shape that can't be cut out cleanly (inside an
+        /// inline [ ] list, or on a line shared with other sounds).
+        /// </summary>
+        public static Result RemoveItems(string text, IReadOnlyList<int> entryLines, IReadOnlyList<int> memberLines)
+        {
+            if (entryLines.Count == 0 && memberLines.Count == 0)
+            {
+                return Result.Success(text);
+            }
+
+            YamlNode root;
+            try
+            {
+                root = MiniYaml.Parse(text);
+            }
+            catch (YamlParseException e)
+            {
+                return Result.Failure(text, "soundboard.yaml has an error on line " + e.Line + " (" + e.Message + ") - fix that first");
+            }
+
+            var lines = new List<string>(text.Split('\n'));
+            if (root.Kind != YamlKind.Mapping || root.EndLine > lines.Count)
+            {
+                return Result.Failure(text, "soundboard.yaml can't be edited automatically - change it by hand");
+            }
+
+            YamlEntry events = root.Entries.FirstOrDefault(e => NameMatch.Normalize(e.Key) == "events");
+            if (events == null || events.Value.Kind != YamlKind.Mapping || events.Value.IsFlow)
+            {
+                return Result.Failure(text, "'events:' isn't written as a plain list of event names, so it can't be edited automatically - change it by hand");
+            }
+
+            // Entries and group sounds each by the line they start on, kept apart (see above); a line
+            // shared within one kind (two entries in an inline list) is ambiguous and can't be targeted.
+            var locatedEntries = new Dictionary<int, Located>();
+            var locatedMembers = new Dictionary<int, Located>();
+            var sharedEntries = new HashSet<int>();
+            var sharedMembers = new HashSet<int>();
+            Action<Located> register = item =>
+            {
+                Dictionary<int, Located> map = item.IsMember ? locatedMembers : locatedEntries;
+                if (map.ContainsKey(item.Node.Line))
+                {
+                    (item.IsMember ? sharedMembers : sharedEntries).Add(item.Node.Line);
+                }
+                else
+                {
+                    map[item.Node.Line] = item;
+                }
+            };
+
+            foreach (YamlEntry ev in events.Value.Entries)
+            {
+                if (ev.Value.IsNull)
+                {
+                    continue;
+                }
+
+                bool isList = ev.Value.Kind == YamlKind.Sequence;
+                foreach (YamlNode item in isList ? ev.Value.Items : new List<YamlNode> { ev.Value })
+                {
+                    if (item.IsNull)
+                    {
+                        continue;
+                    }
+
+                    register(new Located { Node = item, Event = ev, List = isList ? ev.Value : null });
+                    YamlEntry together = item.Kind == YamlKind.Mapping ? item.Find("together") : null;
+                    if (together != null && together.Value.Kind == YamlKind.Sequence)
+                    {
+                        foreach (YamlNode member in together.Value.Items.Where(m => !m.IsNull))
+                        {
+                            register(new Located { Node = member, Event = ev, List = together.Value, IsMember = true });
+                        }
+                    }
+                }
+            }
+
+            var doomed = new HashSet<int>(); // 0-based indexes of the lines to drop
+            var removedFrom = new Dictionary<YamlNode, int>();
+            var emptied = new List<Located>();
+
+            var requests = entryLines.Distinct().Select(l => new KeyValuePair<int, bool>(l, false))
+                .Concat(memberLines.Distinct().Select(l => new KeyValuePair<int, bool>(l, true)))
+                .ToList();
+
+            foreach (KeyValuePair<int, bool> request in requests)
+            {
+                int nodeLine = request.Key;
+                if ((request.Value ? sharedMembers : sharedEntries).Contains(nodeLine))
+                {
+                    return Result.Failure(text, "line " + nodeLine + " holds more than one sound, so it can't be removed automatically - change it by hand");
+                }
+
+                if (!(request.Value ? locatedMembers : locatedEntries).TryGetValue(nodeLine, out Located target) || nodeLine - 1 >= lines.Count)
+                {
+                    return Result.Failure(text, "the file changed since it was read");
+                }
+
+                int first;
+                if (target.List == null)
+                {
+                    // "PlayerDeath: a.wav" or a single block written under the name: the name's line goes with it.
+                    first = target.Event.Line - 1;
+                }
+                else
+                {
+                    if (target.List.IsFlow)
+                    {
+                        return Result.Failure(text, "the sound on line " + nodeLine + " is written inside an inline [ ] list, so it can't be removed automatically - change it by hand");
+                    }
+
+                    first = target.Node.Line - 1;
+                    if (!lines[first].TrimStart().StartsWith("-"))
+                    {
+                        return Result.Failure(text, "the sound on line " + nodeLine + " isn't a list item ('- file.wav'), so it can't be removed automatically - change it by hand");
+                    }
+
+                    removedFrom[target.List] = (removedFrom.TryGetValue(target.List, out int count) ? count : 0) + 1;
+                    emptied.Add(target);
+                }
+
+                for (int i = first; i <= target.Node.EndLine - 1 && i < lines.Count; i++)
+                {
+                    doomed.Add(i);
+                }
+            }
+
+            foreach (Located target in emptied)
+            {
+                if (removedFrom[target.List] < target.List.Items.Count)
+                {
+                    continue;
+                }
+
+                if (target.IsMember)
+                {
+                    return Result.Failure(text, "that would remove every sound of the group - remove the whole entry instead");
+                }
+
+                // The event has nothing left: take its bare "Name:" line too.
+                int keyLine = target.Event.Line - 1;
+                if (EndsWithBareColon(lines[keyLine]))
+                {
+                    doomed.Add(keyLine);
+                }
+            }
+
+            var kept = new List<string>();
+            for (int i = 0; i < lines.Count; i++)
+            {
+                if (!doomed.Contains(i))
+                {
+                    kept.Add(lines[i]);
+                }
+            }
+
+            return Result.Success(Join(kept));
+        }
+
         /// <summary>Inserts lines after lines[index] (or at the very top if index is -1), copying that line's line ending.</summary>
         private static void InsertAfter(List<string> lines, int index, List<string> block)
         {

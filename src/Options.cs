@@ -20,7 +20,8 @@ namespace SoundboardMod
     /// or group of sounds, to the event's list in soundboard.yaml.
     ///
     /// "Edit Sound": pick an entry that's already in the file and change the volume and delay
-    /// of its sounds and its cooldown; SAVE writes just those numbers back in place.
+    /// of its sounds and its cooldown, or delete the entry (or single sounds of a group); SAVE
+    /// writes just those changes back in place, after backing the file up if anything is deleted.
     ///
     /// soundboard.yaml is the only place any of this really lives. Both tabs are a
     /// normal Remix editing screen over it: they start from the file every time
@@ -142,7 +143,7 @@ namespace SoundboardMod
 
             tab.AddItems(
                 new OpLabel(20f, 560f, "Custom Soundboard", true),
-                new OpLabel(20f, 538f, "Tick or untick sounds, then press SAVE. Add sounds on the Add Sound tab and change their numbers on Edit Sound - or edit soundboard.yaml (OPEN FOLDER) and RELOAD CONFIG.", false),
+                new OpLabel(20f, 538f, "Tick or untick sounds, then press SAVE. Add sounds on the Add Sound tab and change or delete them on Edit Sound - or edit soundboard.yaml (OPEN FOLDER) and RELOAD CONFIG.", false),
                 enableAllButton,
                 disableAllButton,
                 reloadButton,
@@ -1035,21 +1036,25 @@ namespace SoundboardMod
 
         private const string EditEntryKey = "EditSound_Entry";
         private const string EditCooldownKey = "EditSound_Cooldown";
+        private const string EditDeleteKey = "EditSound_Delete";
 
         // Like the Add Sound page, the rows are built up front and never added or removed while the
         // screen is open: an entry with more sounds than this only has its first few editable.
         private const int EditRowCount = 3;
-        private const int MaxShownFileName = 46;
+        private const int MaxShownFileName = 44;
 
         private Configurable<string> editEntry;
         private Configurable<float> editCooldown;
+        private Configurable<bool> editDelete;
         private readonly EditRow[] editRows = new EditRow[EditRowCount];
 
         // What's on the page right now. All null while the menu is closed, or if the page couldn't be built.
         private OpComboBox editBox;
         private PickerUpdown editCooldownBox;
+        private OpCheckBox editDeleteBox;
         private OpLabelLong editInfoLabel;
         private OpLabelLong editStatusLabel;
+        private Color editInfoColor;
         private Color editStatusColor;
 
         private bool editorBroken;
@@ -1062,20 +1067,25 @@ namespace SoundboardMod
         {
             public Configurable<int> Volume;
             public Configurable<float> Delay;
+            public Configurable<bool> Delete;
 
             public OpLabel FileLabel;
             public PickerUpdown VolumeBox;
             public PickerUpdown DelayBox;
+            public OpCheckBox DeleteBox;
 
             /// <summary>The sound shown (SoundRef.Member and its file), or Member -1 when the row is empty.</summary>
             public int Member = -1;
             public string File = string.Empty;
+
+            public bool WantsDelete => DeleteBox != null && Member >= 0 && DeleteBox.value == "true";
 
             public void ForgetWidgets()
             {
                 FileLabel = null;
                 VolumeBox = null;
                 DelayBox = null;
+                DeleteBox = null;
             }
         }
 
@@ -1085,6 +1095,7 @@ namespace SoundboardMod
             {
                 editEntry = config.Bind(EditEntryKey, string.Empty, new ConfigurableInfo("The entry to change."));
                 editCooldown = config.Bind(EditCooldownKey, 0f, new ConfigAcceptableRange<float>(0f, NewSound.MaxCooldown));
+                editDelete = config.Bind(EditDeleteKey, false, new ConfigurableInfo("Delete the whole entry."));
 
                 for (int i = 0; i < EditRowCount; i++)
                 {
@@ -1093,6 +1104,7 @@ namespace SoundboardMod
                     {
                         Volume = config.Bind("EditSound_Volume" + n, DefaultVolumePercent, new ConfigAcceptableRange<int>(0, MaxVolumePercent)),
                         Delay = config.Bind("EditSound_Delay" + n, 0f, new ConfigAcceptableRange<float>(0f, NewSound.MaxDelay)),
+                        Delete = config.Bind("EditSound_DeleteSound" + n, false, new ConfigurableInfo("Remove this sound from its group.")),
                     };
                 }
             }
@@ -1125,7 +1137,7 @@ namespace SoundboardMod
 
             page.AddItems(
                 new OpLabel(20f, 560f, "Edit a Sound", true),
-                new OpLabelLong(new Vector2(20f, 480f), new Vector2(560f, 60f), "This page couldn't be set up (the reason is in BepInEx/LogOutput.log). You can still change volume, delay and cooldown by editing soundboard.yaml - press OPEN FOLDER on the Sounds tab.")
+                new OpLabelLong(new Vector2(20f, 480f), new Vector2(560f, 60f), "This page couldn't be set up (the reason is in BepInEx/LogOutput.log). You can still change or delete sounds by editing soundboard.yaml - press OPEN FOLDER on the Sounds tab.")
                 {
                     allowOverflow = false,
                 });
@@ -1163,8 +1175,9 @@ namespace SoundboardMod
             {
                 allowOverflow = false,
             };
+            editInfoColor = editInfoLabel.color;
 
-            editStatusLabel = new OpLabelLong(new Vector2(20f, 30f), new Vector2(560f, 110f), string.Empty)
+            editStatusLabel = new OpLabelLong(new Vector2(20f, 14f), new Vector2(560f, 100f), string.Empty)
             {
                 allowOverflow = false,
             };
@@ -1175,6 +1188,12 @@ namespace SoundboardMod
                 description = "After this entry plays, it can't play again for this many seconds - the event's other entries still take their turns meanwhile. 0 = no limit. For a group of sounds it covers the whole group.",
             };
 
+            editDeleteBox = new OpCheckBox(editDelete, new Vector2(20f, 134f))
+            {
+                description = "Delete this whole entry (a single sound, or the entire group) from soundboard.yaml when you press SAVE. A backup of the file is kept first. Untick it, or leave without saving, to keep the entry.",
+            };
+            editDeleteBox.OnValueUpdate += (box, value, oldValue) => ShowDeleteNotice();
+
             float[] rowY = { 292f, 258f, 224f };
             var widgets = new List<UIelement>();
             for (int i = 0; i < EditRowCount; i++)
@@ -1183,19 +1202,26 @@ namespace SoundboardMod
 
                 row.FileLabel = new OpLabel(20f, rowY[i] + 5f, " ", false);
 
-                row.VolumeBox = new PickerUpdown(row.Volume, new Vector2(350f, rowY[i]), 100f)
+                row.VolumeBox = new PickerUpdown(row.Volume, new Vector2(340f, rowY[i]), 90f)
                 {
                     description = "How loud this sound is, as a percentage of the file's own volume. 100 = as recorded, 50 = half as loud, 200 = twice as loud.",
                 };
 
-                row.DelayBox = new PickerUpdown(row.Delay, new Vector2(460f, rowY[i]), 100f, 1)
+                row.DelayBox = new PickerUpdown(row.Delay, new Vector2(440f, rowY[i]), 90f, 1)
                 {
                     description = "Seconds to wait after the event before this sound plays. 0 = right away.",
                 };
 
+                row.DeleteBox = new OpCheckBox(row.Delete, new Vector2(548f, rowY[i] + 3f))
+                {
+                    description = "Remove this sound from its group when you press SAVE (a backup of the file is kept first). At least one sound has to stay - to remove them all, delete the whole entry instead.",
+                };
+                row.DeleteBox.OnValueUpdate += (box, value, oldValue) => ShowDeleteNotice();
+
                 widgets.Add(row.FileLabel);
                 widgets.Add(row.VolumeBox);
                 widgets.Add(row.DelayBox);
+                widgets.Add(row.DeleteBox);
             }
 
             editBox = new OpComboBox(editEntry, new Vector2(170f, 452f), 400f, entries)
@@ -1209,19 +1235,22 @@ namespace SoundboardMod
             var items = new List<UIelement>
             {
                 new OpLabel(20f, 560f, "Edit a Sound", true),
-                new OpLabelLong(new Vector2(20f, 486f), new Vector2(560f, 64f), "Pick an entry, change how loud its sounds are, how long they wait or its cooldown, then press SAVE. Only those numbers in soundboard.yaml change - to switch an entry off use the Sounds tab, to add one use Add Sound.")
+                new OpLabelLong(new Vector2(20f, 486f), new Vector2(560f, 64f), "Pick an entry, change how loud its sounds are, how long they wait or its cooldown - or tick Delete - then press SAVE. Only what you change is written; to switch an entry off use the Sounds tab, to add one use Add Sound.")
                 {
                     allowOverflow = false,
                 },
                 new OpLabel(20f, 456f, "Entry:", false),
                 new OpLabel(20f, 326f, "Sound", false),
-                new OpLabel(350f, 326f, "Volume (%)", false),
-                new OpLabel(460f, 326f, "Delay (seconds)", false),
+                new OpLabel(340f, 326f, "Volume (%)", false),
+                new OpLabel(440f, 326f, "Delay (s)", false),
+                new OpLabel(534f, 326f, "Delete", false),
                 new OpLabel(20f, 181f, "Cooldown:", false),
                 new OpLabel(280f, 181f, "seconds before it can play again (0 = no limit)", false),
+                new OpLabel(56f, 137f, "Delete this whole entry", false),
                 editInfoLabel,
                 editStatusLabel,
                 editCooldownBox,
+                editDeleteBox,
             };
 
             items.AddRange(widgets);
@@ -1235,6 +1264,7 @@ namespace SoundboardMod
         {
             editBox = null;
             editCooldownBox = null;
+            editDeleteBox = null;
             editInfoLabel = null;
             editStatusLabel = null;
             foreach (EditRow row in editRows)
@@ -1279,8 +1309,9 @@ namespace SoundboardMod
         }
 
         /// <summary>
-        /// Loads an entry's numbers into the boxes. ForceValue rather than value =: showing an entry
-        /// mustn't count as a change the player made. Rows the entry has no sound for are greyed out.
+        /// Loads an entry's numbers into the boxes and clears the Delete ticks. ForceValue rather than
+        /// value =: showing an entry mustn't count as a change the player made. Rows the entry has no
+        /// sound for are greyed out, and so are the Delete boxes of rows that can't be removed alone.
         /// </summary>
         private void ShowEntry(string id)
         {
@@ -1308,16 +1339,20 @@ namespace SoundboardMod
                     row.DelayBox.Redraw();
                     row.VolumeBox.greyedOut = sound == null;
                     row.DelayBox.greyedOut = sound == null;
+
+                    // Only a sound of a group with others can be removed on its own; a single sound is deleted with its entry.
+                    row.DeleteBox.ForceValue("false");
+                    row.DeleteBox.greyedOut = sound == null || !choice.IsGroup || choice.Sounds.Count < 2;
                 }
 
                 editCooldownBox.ForceValue((choice != null ? choice.Cooldown : 0f).ToString("F1", System.Globalization.CultureInfo.InvariantCulture));
                 editCooldownBox.Redraw();
                 editCooldownBox.greyedOut = choice == null;
 
-                if (editInfoLabel != null)
-                {
-                    editInfoLabel.text = EntryInfo(choice);
-                }
+                editDeleteBox.ForceValue("false");
+                editDeleteBox.greyedOut = choice == null;
+
+                ShowDeleteNotice();
             }
             catch (Exception e)
             {
@@ -1325,11 +1360,39 @@ namespace SoundboardMod
             }
         }
 
+        /// <summary>The line under the entry dropdown: what the entry is, or - in red - what's about to be deleted.</summary>
+        private void ShowDeleteNotice()
+        {
+            if (editInfoLabel == null || editBox == null)
+            {
+                return;
+            }
+
+            SoundChoice choice = FindEntry(editBox.value);
+            if (choice != null && editDeleteBox != null && editDeleteBox.value == "true")
+            {
+                editInfoLabel.text = "This whole entry will be DELETED when you press SAVE (a backup of soundboard.yaml is kept). Untick the box to keep it.";
+                editInfoLabel.color = PickerErrorColor;
+                return;
+            }
+
+            int doomed = editRows.Count(r => r.WantsDelete);
+            if (choice != null && doomed > 0)
+            {
+                editInfoLabel.text = doomed + " sound(s) will be REMOVED from this group when you press SAVE (a backup of soundboard.yaml is kept). Untick the box to keep them.";
+                editInfoLabel.color = PickerErrorColor;
+                return;
+            }
+
+            editInfoLabel.text = EntryInfo(choice);
+            editInfoLabel.color = editInfoColor;
+        }
+
         private static string EntryInfo(SoundChoice choice)
         {
             if (choice == null)
             {
-                return "Pick an entry to change its volume, delay and cooldown.";
+                return "Pick an entry to change its volume, delay and cooldown, or to delete it.";
             }
 
             string info = choice.Enabled ? string.Empty : "(switched off) ";
@@ -1352,9 +1415,10 @@ namespace SoundboardMod
         }
 
         /// <summary>
-        /// The player pressed SAVE: whatever numbers on the page differ from what the entry has now
-        /// are written into soundboard.yaml. Returns a message for the status line, or null if there
-        /// was nothing to change. A failure leaves the boxes as the player set them.
+        /// The player pressed SAVE: the numbers on the page that differ from what the entry has now
+        /// are written into soundboard.yaml, then whatever is ticked for deletion is removed (a whole
+        /// entry, or single sounds of a group). Returns a message for the status line, or null if
+        /// there was nothing to do. A failure leaves the page as the player set it.
         /// </summary>
         private string CommitEdit()
         {
@@ -1371,13 +1435,56 @@ namespace SoundboardMod
                 return null;
             }
 
+            // A whole-entry delete makes every other change on the page pointless; single sounds ticked for removal are skipped by the number edits.
+            bool deleteEntry = editDeleteBox != null && editDeleteBox.value == "true";
+            List<EditRow> doomed = deleteEntry ? new List<EditRow>() : editRows.Where(r => r.WantsDelete).ToList();
+
+            string eventName = SoundboardRuntime.Config.Events.FirstOrDefault(e => e.Choices.Contains(choice))?.EventName ?? string.Empty;
+            string numbers = null;
+            string removed = null;
+            bool problem = false;
+
+            if (!deleteEntry)
+            {
+                numbers = CommitNumbers(choice, id, doomed, out problem);
+            }
+
+            if (!problem && (deleteEntry || doomed.Count > 0))
+            {
+                removed = CommitDelete(choice, id, eventName, deleteEntry, doomed, out problem);
+            }
+
+            string message = string.Join(" ", new[] { numbers, removed }.Where(m => !string.IsNullOrEmpty(m)));
+            if (message.Length == 0)
+            {
+                return null;
+            }
+
+            ShowEditStatus(message, problem);
+
+            try
+            {
+                RefreshProblems();
+            }
+            catch (Exception e)
+            {
+                Log.LogDebug($"Couldn't refresh the problem list: {e.Message}");
+            }
+
+            return message;
+        }
+
+        /// <summary>Writes the changed volume / delay / cooldown. Null if nothing differs; problem is true if it couldn't be done.</summary>
+        private string CommitNumbers(SoundChoice choice, string id, List<EditRow> skip, out bool problem)
+        {
+            problem = false;
             var tweak = new EntryTweak { ChoiceId = id };
             var changed = new List<string>();
 
             for (int i = 0; i < EditRowCount; i++)
             {
                 EditRow row = editRows[i];
-                SoundRef sound = row.Member >= 0 ? choice.Sounds.FirstOrDefault(s => s.Member == row.Member && s.File == row.File) : null;
+                SoundRef sound = row.Member >= 0 && !skip.Contains(row) ? choice.Sounds.FirstOrDefault(s => s.Member == row.Member && s.File == row.File) : null;
                 if (sound == null)
                 {
                     continue;
@@ -1396,7 +1503,8 @@ namespace SoundboardMod
                 if (Math.Abs(delay - Math.Round(sound.OwnDelay, 1)) > 0.001)
                 {
                     change.Delay = delay;
-                    changed.Add(choice.Sounds.Count > 1 ? sound.File + " delay " + delay.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) + "s" : "delay " + delay.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) + "s");
+                    string shown = delay.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
+                    changed.Add(choice.Sounds.Count > 1 ? sound.File + " delay " + shown + "s" : "delay " + shown + "s");
                 }
 
                 if (change.Volume.HasValue || change.Delay.HasValue)
@@ -1417,39 +1525,72 @@ namespace SoundboardMod
                 return null; // nothing differs from the file: say nothing
             }
 
-            string problem = SoundboardRuntime.EditEntry(tweak, out bool written);
+            string reason = SoundboardRuntime.EditEntry(tweak, out bool written);
             if (!written)
             {
-                if (problem == null)
+                if (reason == null)
                 {
                     return null; // the file already says this
                 }
 
-                string failed = "Couldn't change the sound: " + problem + ". Your numbers are still on the Edit Sound tab.";
-                ShowEditStatus(failed, true);
-                return failed;
+                problem = true;
+                return "Couldn't change the sound: " + reason + ". Your numbers are still on the Edit Sound tab.";
             }
 
             ShowEntry(id); // now shows the numbers as saved (the config has just been re-read)
 
             string done = "Changed \"" + choice.Label + "\" (" + string.Join(", ", changed) + ").";
-            if (problem != null)
+            if (reason != null)
             {
-                done += " But " + problem + ".";
-                ShowEditStatus(done, true);
-            }
-            else
-            {
-                ShowEditStatus(done + " It takes effect now.", false);
+                problem = true;
+                return done + " But " + reason + ".";
             }
 
-            try
+            return done;
+        }
+
+        /// <summary>Deletes the whole entry, or the ticked sounds of its group, after backing the file up.</summary>
+        private string CommitDelete(SoundChoice choice, string id, string eventName, bool deleteEntry, List<EditRow> doomed, out bool problem)
+        {
+            problem = false;
+            var request = new EntryDelete { ChoiceId = id, WholeEntry = deleteEntry };
+            if (!deleteEntry)
             {
-                RefreshProblems();
+                foreach (EditRow row in doomed)
+                {
+                    request.Sounds.Add(new SoundTweak { Member = row.Member, File = row.File });
+                }
             }
-            catch (Exception e)
+
+            string reason = SoundboardRuntime.DeleteFromEntry(request, out bool written, out string backup);
+            if (!written)
             {
-                Log.LogDebug($"Couldn't refresh the problem list: {e.Message}");
+                if (reason == null)
+                {
+                    return null;
+                }
+
+                problem = true;
+                return "Couldn't delete: " + reason + ". Nothing was removed, and your choices are still on the Edit Sound tab.";
+            }
+
+            // The entry's id (and, for an unnamed group, the id of what's left) has changed or is gone: start the page afresh.
+            editSelected = string.Empty;
+            editBox?.ForceValue(string.Empty);
+            ShowEntry(string.Empty);
+
+            string done = deleteEntry
+                ? "Deleted \"" + choice.Label + "\" from " + eventName + "."
+                : "Removed " + doomed.Count + " sound(s) from \"" + choice.Label + "\" (" + eventName + ").";
+            if (backup != null)
+            {
+                done += " The file as it was before is saved as " + System.IO.Path.GetFileName(backup) + " in your soundboard folder.";
+            }
+
+            if (reason != null)
+            {
+                problem = true;
+                done += " But " + reason + ".";
             }
 
             return done;

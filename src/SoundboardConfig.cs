@@ -99,6 +99,9 @@ namespace SoundboardMod
         /// </summary>
         public float Cooldown;
 
+        /// <summary>True for a "together:" group of sounds, false for a plain single sound.</summary>
+        public bool IsGroup;
+
         public List<SoundRef> Sounds = new List<SoundRef>();
         public int Line;
 
@@ -433,6 +436,8 @@ namespace SoundboardMod
                 choice.Id = UniqueId(usedIds, eventName, name ?? StemOf(single.File));
                 return choice;
             }
+
+            choice.IsGroup = true;
 
             // A group: everything in 'together' plays at once. Its own
             // volume multiplies and its delay adds to each member's.

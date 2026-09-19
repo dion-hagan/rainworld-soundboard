@@ -424,6 +424,106 @@ namespace SoundboardMod
             return null;
         }
 
+        /// <summary>How many timestamped backups of soundboard.yaml to keep (this also matches what scripts/sync-config.ps1 keeps).</summary>
+        private const int BackupsToKeep = 10;
+
+        /// <summary>
+        /// Copies the player's soundboard.yaml to "soundboard.yaml.yyyyMMdd-HHmmss.bak" in the same
+        /// folder and forgets all but the newest few. Returns the copy's path.
+        /// </summary>
+        private static string BackUpConfig()
+        {
+            string source = Locations.UserConfigPath;
+            string stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture);
+            string target = source + "." + stamp + ".bak";
+            for (int n = 2; File.Exists(target); n++)
+            {
+                target = source + "." + stamp + "-" + n + ".bak";
+            }
+
+            File.Copy(source, target);
+
+            try
+            {
+                string pattern = Path.GetFileName(source) + ".*.bak";
+                foreach (FileInfo old in new DirectoryInfo(Path.GetDirectoryName(source)).GetFiles(pattern).OrderByDescending(f => f.LastWriteTimeUtc).Skip(BackupsToKeep))
+                {
+                    old.Delete();
+                }
+            }
+            catch (Exception e)
+            {
+                Log.LogWarning($"Couldn't tidy old backups of soundboard.yaml: {e.Message}");
+            }
+
+            return target;
+        }
+
+        /// <summary>
+        /// Deletes an entry from the file, or some sounds of a "together" group - what SAVE does when
+        /// a Delete box is ticked on the options screen's Edit Sound page. The file is backed up first
+        /// (and nothing is deleted if that fails), then the config is re-read so it takes effect at once.
+        /// Returns null on success, otherwise a reason for the player. <paramref name="written"/> says
+        /// whether the file was changed (it can be true together with a reason, if only the re-read
+        /// afterwards went wrong); <paramref name="backup"/> is the backup's path when one was made.
+        /// </summary>
+        public static string DeleteFromEntry(EntryDelete request, out bool written, out string backup)
+        {
+            written = false;
+            backup = null;
+            if (Locations == null || ConfigPath != Locations.UserConfigPath)
+            {
+                return "the game isn't using your own soundboard.yaml right now (see the problems listed), so there's nothing to delete from";
+            }
+
+            try
+            {
+                string text = File.ReadAllText(Locations.UserConfigPath);
+                YamlEditor.Result result = SoundTweaker.Delete(text, request, Catalog);
+                if (!result.Ok)
+                {
+                    return result.Error;
+                }
+
+                if (result.Text == text)
+                {
+                    return null; // nothing to delete
+                }
+
+                try
+                {
+                    backup = BackUpConfig();
+                }
+                catch (Exception e)
+                {
+                    Log.LogError($"Couldn't back up {Locations.UserConfigPath} before deleting: {e}");
+                    return "couldn't make a backup of soundboard.yaml first (" + e.Message + "), so nothing was deleted";
+                }
+
+                File.WriteAllText(Locations.UserConfigPath, result.Text);
+                written = true;
+            }
+            catch (Exception e)
+            {
+                Log.LogError($"Couldn't delete from {Locations.UserConfigPath}: {e}");
+                return "couldn't write soundboard.yaml (" + e.Message + ")";
+            }
+
+            Log.LogInfo($"Deleted {(request.WholeEntry ? "entry " + request.ChoiceId : request.Sounds.Count + " sound(s) of " + request.ChoiceId)} from {Locations.UserConfigPath} (backup: {backup})");
+
+            try
+            {
+                Reload();
+            }
+            catch (Exception e)
+            {
+                Log.LogError($"Deleted from the file, but re-reading soundboard.yaml failed: {e}");
+                return "it was deleted from soundboard.yaml, but re-reading the file failed (" + e.Message + ") - press RELOAD CONFIG or restart the game";
+            }
+
+            return null;
+        }
+
         /// <summary>
         /// An event just happened. Plays the next enabled entry from its list
         /// (if the config has one). pos is where it happened in the room, or

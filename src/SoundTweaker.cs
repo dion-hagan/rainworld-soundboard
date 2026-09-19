@@ -21,6 +21,19 @@ namespace SoundboardMod
         public float? Delay;
     }
 
+    /// <summary>What the options screen's "Edit Sound" page deletes: a whole entry, or some sounds of a "together" group.</summary>
+    public sealed class EntryDelete
+    {
+        /// <summary>SoundChoice.Id of the entry.</summary>
+        public string ChoiceId;
+
+        /// <summary>Delete the entire entry (a single sound, or a whole group).</summary>
+        public bool WholeEntry;
+
+        /// <summary>Otherwise: which sounds of the group to remove (Member and File; the numbers are unused).</summary>
+        public List<SoundTweak> Sounds = new List<SoundTweak>();
+    }
+
     /// <summary>What the options screen's "Edit Sound" page changes on one existing entry.</summary>
     public sealed class EntryTweak
     {
@@ -131,6 +144,141 @@ namespace SoundboardMod
             return problem == null
                 ? edited
                 : YamlEditor.Result.Failure(text, "the edit didn't come out as intended (" + problem + "), so nothing was changed");
+        }
+
+        /// <summary>
+        /// The text without the entry (or without those sounds of the group), which is the same as
+        /// the old text when nothing was asked. Re-reads the result and checks that exactly that
+        /// went away and every other entry, event and sound is identical.
+        /// </summary>
+        public static YamlEditor.Result Delete(string text, EntryDelete request, EventCatalog catalog)
+        {
+            SoundboardConfig before = SoundboardConfigParser.Parse(text, catalog);
+            if (before.Failed)
+            {
+                return YamlEditor.Result.Failure(text, "soundboard.yaml has an error (" + before.Issues[0] + ") - fix that first");
+            }
+
+            SoundChoice entry = before.Events.SelectMany(e => e.Choices).FirstOrDefault(c => c.Id == request.ChoiceId);
+            if (entry == null)
+            {
+                return YamlEditor.Result.Failure(text, "that entry is no longer in soundboard.yaml (press RELOAD CONFIG)");
+            }
+
+            var entryLines = new List<int>();
+            var memberLines = new List<int>();
+            var removedMembers = new HashSet<int>();
+
+            if (request.WholeEntry)
+            {
+                entryLines.Add(entry.Line);
+            }
+            else
+            {
+                if (request.Sounds.Count == 0)
+                {
+                    return YamlEditor.Result.Success(text);
+                }
+
+                if (!entry.IsGroup)
+                {
+                    return YamlEditor.Result.Failure(text, "only the sounds of a 'together' group can be removed one at a time - delete the whole entry instead");
+                }
+
+                foreach (SoundTweak which in request.Sounds)
+                {
+                    SoundRef sound = entry.Sounds.FirstOrDefault(s => s.Member == which.Member);
+                    if (sound == null || !string.Equals(sound.File, which.File, StringComparison.Ordinal))
+                    {
+                        return YamlEditor.Result.Failure(text, "soundboard.yaml has changed since the screen was opened (press RELOAD CONFIG)");
+                    }
+
+                    memberLines.Add(sound.Line);
+                    removedMembers.Add(sound.Member);
+                }
+
+                if (removedMembers.Count >= entry.Sounds.Count)
+                {
+                    return YamlEditor.Result.Failure(text, "that would remove every sound of the group - delete the whole entry instead");
+                }
+            }
+
+            YamlEditor.Result edited = YamlEditor.RemoveItems(text, entryLines, memberLines);
+            if (!edited.Ok)
+            {
+                return edited;
+            }
+
+            string problem = VerifyDelete(before, SoundboardConfigParser.Parse(edited.Text, catalog), entry.Id, request.WholeEntry, removedMembers);
+            return problem == null
+                ? edited
+                : YamlEditor.Result.Failure(text, "the edit didn't come out as intended (" + problem + "), so nothing was changed");
+        }
+
+        private static string VerifyDelete(SoundboardConfig before, SoundboardConfig after, string entryId, bool whole, HashSet<int> removedMembers)
+        {
+            if (after.Failed)
+            {
+                return "the new file no longer reads: " + after.Issues.FirstOrDefault();
+            }
+
+            if (after.Issues.Count(i => i.Severity == IssueSeverity.Error) > before.Issues.Count(i => i.Severity == IssueSeverity.Error))
+            {
+                return "it introduced a problem: " + after.Issues.First(i => i.Severity == IssueSeverity.Error);
+            }
+
+            // What every entry should look like afterwards, in order: everything as it was, minus what was asked for.
+            var expected = new List<string>();
+            foreach (EventBinding binding in before.Events)
+            {
+                foreach (SoundChoice choice in binding.Choices)
+                {
+                    if (choice.Id == entryId)
+                    {
+                        if (!whole)
+                        {
+                            expected.Add(Fingerprint(binding.EventName, choice, removedMembers));
+                        }
+                    }
+                    else
+                    {
+                        expected.Add(Fingerprint(binding.EventName, choice, null));
+                    }
+                }
+            }
+
+            var actual = new List<string>();
+            foreach (EventBinding binding in after.Events)
+            {
+                foreach (SoundChoice choice in binding.Choices)
+                {
+                    actual.Add(Fingerprint(binding.EventName, choice, null));
+                }
+            }
+
+            if (expected.Count != actual.Count)
+            {
+                return "the file now has " + actual.Count + " entries instead of " + expected.Count;
+            }
+
+            for (int i = 0; i < expected.Count; i++)
+            {
+                if (expected[i] != actual[i])
+                {
+                    return "an entry doesn't look as expected: " + actual[i];
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>Everything about an entry that matters, as text, minus the sounds at the skipped positions.</summary>
+        private static string Fingerprint(string eventName, SoundChoice choice, HashSet<int> skipMembers)
+        {
+            return eventName + "|" + choice.Enabled + "|" + Format(choice.Cooldown) + "|"
+                + string.Join(";", choice.Sounds
+                    .Where(s => skipMembers == null || !skipMembers.Contains(s.Member))
+                    .Select(s => s.File + "@" + Format(s.OwnVolume) + "@" + Format(s.OwnDelay)));
         }
 
         /// <summary>
