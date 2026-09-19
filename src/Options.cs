@@ -15,8 +15,9 @@ namespace SoundboardMod
     /// "Sounds": buttons to reload the config and open its folder, a list of any
     /// problems found in soundboard.yaml, and one checkbox per sound entry.
     ///
-    /// "Add Sound": dropdowns for an event and a sound file plus number boxes for
-    /// volume and delay; SAVE adds that sound to the event's list in soundboard.yaml.
+    /// "Add Sound": dropdowns for an event and up to three sound files (each with number
+    /// boxes for volume and delay) and a "play together" checkbox; SAVE adds that sound,
+    /// or group of sounds, to the event's list in soundboard.yaml.
     ///
     /// soundboard.yaml is the only place any of this really lives. Both tabs are a
     /// normal Remix editing screen over it: they start from the file every time
@@ -310,7 +311,7 @@ namespace SoundboardMod
             {
                 Log.LogError($"Adding the sound to soundboard.yaml failed: {e}");
                 added = "Couldn't add the sound: " + e.Message;
-                ShowPickerStatus(added);
+                ShowPickerStatus(added, true);
             }
 
             string message = string.Join(" ", new[] { ticked, added }.Where(m => !string.IsNullOrEmpty(m)));
@@ -462,9 +463,12 @@ namespace SoundboardMod
         // ===================================================================================
 
         private const string PickEventKey = "AddSound_Event";
-        private const string PickSoundKey = "AddSound_Sound";
-        private const string PickVolumeKey = "AddSound_Volume";
-        private const string PickDelayKey = "AddSound_Delay";
+        private const string PickTogetherKey = "AddSound_Together";
+
+        // Sound row n (1-based) uses the keys AddSound_Sound<n>, AddSound_Volume<n> and AddSound_Delay<n>.
+        // The rows are built up front and always shown - the widgets are never created or removed while
+        // the screen is open - so a group can hold at most this many sounds: the first plus two more.
+        private const int SoundRowCount = 3;
 
         private const int DefaultVolumePercent = 100;
         private const int MaxVolumePercent = (int)(NewSound.MaxVolume * 100f);
@@ -473,15 +477,13 @@ namespace SoundboardMod
 
         // The form's Remix settings. Created once, like the checkbox ones (Remix doesn't allow a key twice).
         private Configurable<string> pickEvent;
-        private Configurable<string> pickSound;
-        private Configurable<int> pickVolume;
-        private Configurable<float> pickDelay;
+        private Configurable<bool> pickTogether;
+
+        private readonly SoundRow[] rows = new SoundRow[SoundRowCount];
 
         // What's on the page right now. All null while the menu is closed, or if the page couldn't be built.
         private OpComboBox eventBox;
-        private OpComboBox soundBox;
-        private PickerUpdown volumeBox;
-        private PickerUpdown delayBox;
+        private OpCheckBox togetherBox;
         private OpLabelLong eventInfoLabel;
         private OpLabelLong soundInfoLabel;
         private OpLabelLong pickStatusLabel;
@@ -495,12 +497,37 @@ namespace SoundboardMod
         // failed - the choices that weren't added, so a typo in the file doesn't cost the player their picks.
         private PickerForm pickerState = new PickerForm();
 
-        private sealed class PickerForm
+        /// <summary>One sound row: its Remix settings (kept for good) and its widgets (rebuilt with the page).</summary>
+        private sealed class SoundRow
         {
-            public string Event = string.Empty;
+            public Configurable<string> Sound;
+            public Configurable<int> Volume;
+            public Configurable<float> Delay;
+
+            public OpComboBox Box;
+            public PickerUpdown VolumeBox;
+            public PickerUpdown DelayBox;
+
+            public void ForgetWidgets()
+            {
+                Box = null;
+                VolumeBox = null;
+                DelayBox = null;
+            }
+        }
+
+        private sealed class RowForm
+        {
             public string Sound = string.Empty;
             public int VolumePercent = DefaultVolumePercent;
             public float Delay;
+        }
+
+        private sealed class PickerForm
+        {
+            public string Event = string.Empty;
+            public bool Together;
+            public readonly RowForm[] Rows = Enumerable.Range(0, SoundRowCount).Select(_ => new RowForm()).ToArray();
         }
 
         /// <summary>
@@ -532,9 +559,18 @@ namespace SoundboardMod
             try
             {
                 pickEvent = config.Bind(PickEventKey, string.Empty, new ConfigurableInfo("The event the new sound plays for."));
-                pickSound = config.Bind(PickSoundKey, string.Empty, new ConfigurableInfo("The audio file the new sound plays."));
-                pickVolume = config.Bind(PickVolumeKey, DefaultVolumePercent, new ConfigAcceptableRange<int>(0, MaxVolumePercent));
-                pickDelay = config.Bind(PickDelayKey, 0f, new ConfigAcceptableRange<float>(0f, NewSound.MaxDelay));
+                pickTogether = config.Bind(PickTogetherKey, false, new ConfigurableInfo("Play the chosen sounds all at once, as a single entry in the event's list."));
+
+                for (int i = 0; i < SoundRowCount; i++)
+                {
+                    string n = (i + 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    rows[i] = new SoundRow
+                    {
+                        Sound = config.Bind("AddSound_Sound" + n, string.Empty, new ConfigurableInfo("An audio file the new sound plays.")),
+                        Volume = config.Bind("AddSound_Volume" + n, DefaultVolumePercent, new ConfigAcceptableRange<int>(0, MaxVolumePercent)),
+                        Delay = config.Bind("AddSound_Delay" + n, 0f, new ConfigAcceptableRange<float>(0f, NewSound.MaxDelay)),
+                    };
+                }
             }
             catch (Exception e)
             {
@@ -582,12 +618,22 @@ namespace SoundboardMod
 
             List<string> files = SoundLibrary.List(SoundboardRuntime.Locations.SoundFolders);
 
-            eventInfoLabel = new OpLabelLong(new Vector2(170f, 372f), new Vector2(400f, 72f), string.Empty)
+            soundInfoLabel = new OpLabelLong(new Vector2(20f, 150f), new Vector2(560f, 40f), SoundCountText(files.Count))
             {
                 allowOverflow = false,
             };
 
-            soundInfoLabel = new OpLabelLong(new Vector2(170f, 282f), new Vector2(400f, 40f), SoundCountText(files.Count))
+            if (files.Count == 0)
+            {
+                // Nothing to pick from: just explain, and build none of the form.
+                return new UIelement[]
+                {
+                    new OpLabel(20f, 560f, "Add a Sound", true),
+                    new OpLabelLong(new Vector2(20f, 480f), new Vector2(560f, 60f), SoundCountText(0)) { allowOverflow = false },
+                };
+            }
+
+            eventInfoLabel = new OpLabelLong(new Vector2(170f, 384f), new Vector2(400f, 60f), string.Empty)
             {
                 allowOverflow = false,
             };
@@ -598,24 +644,52 @@ namespace SoundboardMod
             };
             pickStatusColor = pickStatusLabel.color;
 
-            volumeBox = new PickerUpdown(pickVolume, new Vector2(170f, 238f), 100f)
+            togetherBox = new OpCheckBox(pickTogether, new Vector2(20f, 350f))
             {
-                description = "How loud the sound is, as a percentage of the file's own volume. 100 = as recorded, 50 = half as loud, 200 = twice as loud.",
+                description = "Play the sounds in all the rows below at the same time, as a single entry in the event's list. It ticks itself when you pick a sound in the second or third row.",
             };
 
-            delayBox = new PickerUpdown(pickDelay, new Vector2(170f, 194f), 100f, 1)
-            {
-                description = "Seconds to wait after the event before the sound plays. 0 = right away.",
-            };
+            // Bottom edge of each sound row, top to bottom.
+            float[] rowY = { 292f, 258f, 224f };
 
-            // The dropdowns go in last: a list that opens over other widgets has to be drawn on top of them.
-            soundBox = files.Count == 0
-                ? null
-                : new OpComboBox(pickSound, new Vector2(170f, 328f), 400f, files.Select(f => new ListItem(f)).ToList())
+            var rowWidgets = new List<UIelement>();
+            for (int i = 0; i < SoundRowCount; i++)
+            {
+                SoundRow row = rows[i];
+                bool extra = i > 0;
+
+                row.VolumeBox = new PickerUpdown(row.Volume, new Vector2(350f, rowY[i]), 100f)
+                {
+                    description = "How loud this sound is, as a percentage of the file's own volume. 100 = as recorded, 50 = half as loud, 200 = twice as loud.",
+                };
+
+                row.DelayBox = new PickerUpdown(row.Delay, new Vector2(460f, rowY[i]), 100f, 1)
+                {
+                    description = "Seconds to wait after the event before this sound plays. 0 = right away.",
+                };
+
+                row.Box = new OpComboBox(row.Sound, new Vector2(20f, rowY[i] + 3f), 320f, files.Select(f => new ListItem(f)).ToList())
                 {
                     listHeight = 8,
-                    description = "The audio file to play. Click for the list, or start typing to search it.",
+                    description = extra
+                        ? "An extra sound to play together with the first. Only used when 'Play several sounds together' is ticked (picking one ticks it). Click for the list, or start typing to search it."
+                        : "The audio file to play. Click for the list, or start typing to search it.",
                 };
+
+                if (extra)
+                {
+                    row.Box.OnValueUpdate += (box, value, oldValue) =>
+                    {
+                        if (!string.IsNullOrEmpty(value))
+                        {
+                            TickTogether();
+                        }
+                    };
+                }
+
+                rowWidgets.Add(row.VolumeBox);
+                rowWidgets.Add(row.DelayBox);
+            }
 
             eventBox = new OpComboBox(pickEvent, new Vector2(170f, 452f), 400f, events)
             {
@@ -628,26 +702,28 @@ namespace SoundboardMod
             var items = new List<UIelement>
             {
                 new OpLabel(20f, 560f, "Add a Sound", true),
-                new OpLabelLong(new Vector2(20f, 486f), new Vector2(560f, 64f), "Pick an event and a sound file, set how loud it is and how long to wait, then press SAVE. The sound is added to the end of that event's list in soundboard.yaml and works straight away.")
+                new OpLabelLong(new Vector2(20f, 486f), new Vector2(560f, 64f), "Pick an event and a sound file, set how loud it is and how long to wait, then press SAVE. To play up to three sounds at once as a single entry, pick them in the rows below (\"Play several sounds together\" ticks itself).")
                 {
                     allowOverflow = false,
                 },
                 new OpLabel(20f, 456f, "When this happens:", false),
-                new OpLabel(20f, 332f, "Play this sound:", false),
-                new OpLabel(20f, 243f, "Volume:", false),
-                new OpLabel(20f, 199f, "Delay:", false),
-                new OpLabel(280f, 243f, "%  (100 = as recorded)", false),
-                new OpLabel(280f, 199f, "seconds after the event", false),
+                new OpLabel(56f, 353f, "Play several sounds together", false),
+                new OpLabel(20f, 326f, "Sound", false),
+                new OpLabel(350f, 326f, "Volume (%)", false),
+                new OpLabel(460f, 326f, "Delay (seconds)", false),
                 eventInfoLabel,
                 soundInfoLabel,
                 pickStatusLabel,
-                volumeBox,
-                delayBox,
+                togetherBox,
             };
 
-            if (soundBox != null)
+            items.AddRange(rowWidgets);
+
+            // The dropdowns go in last, lowest row first: a list that opens over other widgets has
+            // to be drawn on top of them, and each row's list opens over the rows beneath it.
+            for (int i = SoundRowCount - 1; i >= 0; i--)
             {
-                items.Add(soundBox);
+                items.Add(rows[i].Box);
             }
 
             items.Add(eventBox);
@@ -674,15 +750,26 @@ namespace SoundboardMod
             eventInfoLabel.text = info == null ? "Pick the event the sound should play for." : info.Description;
         }
 
+        /// <summary>Picking an extra sound means the player wants a group, so tick the box for them.</summary>
+        private void TickTogether()
+        {
+            if (togetherBox != null && togetherBox.value != "true")
+            {
+                togetherBox.value = "true";
+            }
+        }
+
         private void ForgetPicker()
         {
             eventBox = null;
-            soundBox = null;
-            volumeBox = null;
-            delayBox = null;
+            togetherBox = null;
             eventInfoLabel = null;
             soundInfoLabel = null;
             pickStatusLabel = null;
+            foreach (SoundRow row in rows)
+            {
+                row?.ForgetWidgets();
+            }
         }
 
         /// <summary>The page was opened: show what the form should hold (Remix's own remembered values are ignored).</summary>
@@ -697,18 +784,26 @@ namespace SoundboardMod
             {
                 // ForceValue rather than value =: this must not count as a change the player made.
                 eventBox?.ForceValue(Known(eventBox, form.Event));
-                soundBox?.ForceValue(Known(soundBox, form.Sound));
+                togetherBox?.ForceValue(form.Together ? "true" : "false");
 
-                if (volumeBox != null)
+                for (int i = 0; i < SoundRowCount; i++)
                 {
-                    volumeBox.ForceValue(form.VolumePercent.ToString(System.Globalization.CultureInfo.InvariantCulture));
-                    volumeBox.Redraw();
-                }
+                    SoundRow row = rows[i];
+                    RowForm values = form.Rows[i];
 
-                if (delayBox != null)
-                {
-                    delayBox.ForceValue(form.Delay.ToString("F1", System.Globalization.CultureInfo.InvariantCulture));
-                    delayBox.Redraw();
+                    row.Box?.ForceValue(Known(row.Box, values.Sound));
+
+                    if (row.VolumeBox != null)
+                    {
+                        row.VolumeBox.ForceValue(values.VolumePercent.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                        row.VolumeBox.Redraw();
+                    }
+
+                    if (row.DelayBox != null)
+                    {
+                        row.DelayBox.ForceValue(values.Delay.ToString("F1", System.Globalization.CultureInfo.InvariantCulture));
+                        row.DelayBox.Redraw();
+                    }
                 }
 
                 UpdateEventInfo();
@@ -727,37 +822,47 @@ namespace SoundboardMod
 
         private PickerForm ReadPicker()
         {
-            return new PickerForm
+            var form = new PickerForm
             {
                 Event = eventBox.value ?? string.Empty,
-                Sound = soundBox?.value ?? string.Empty,
-                VolumePercent = volumeBox != null ? volumeBox.valueInt : DefaultVolumePercent,
-                Delay = delayBox != null ? delayBox.valueFloat : 0f,
+                Together = togetherBox != null && togetherBox.value == "true",
             };
+
+            for (int i = 0; i < SoundRowCount; i++)
+            {
+                SoundRow row = rows[i];
+                form.Rows[i].Sound = row.Box?.value ?? string.Empty;
+                form.Rows[i].VolumePercent = row.VolumeBox != null ? row.VolumeBox.valueInt : DefaultVolumePercent;
+                form.Rows[i].Delay = row.DelayBox != null ? row.DelayBox.valueFloat : 0f;
+            }
+
+            return form;
         }
 
         /// <summary>
-        /// The player pressed SAVE: if an event and a sound are picked, add that sound to
-        /// soundboard.yaml. Returns a message for the status line, or null if there was
-        /// nothing to add. A failure leaves the picks in the form.
+        /// The player pressed SAVE: if an event and a sound are picked, add it to soundboard.yaml -
+        /// as a "together" group when that box is ticked and at least two sounds are picked.
+        /// Returns a message for the status line, or null if there was nothing to add. A failure
+        /// leaves the picks in the form.
         /// </summary>
         private string CommitPicker()
         {
-            if (eventBox == null || volumeBox == null || delayBox == null)
+            if (eventBox == null || togetherBox == null)
             {
                 return null; // no page: the game is just loading its saved settings, or the page couldn't be built
             }
 
             PickerForm form = ReadPicker();
+            List<RowForm> picked = form.Rows.Where(r => !string.IsNullOrEmpty(r.Sound)).ToList();
             bool noEvent = string.IsNullOrEmpty(form.Event);
-            bool noSound = string.IsNullOrEmpty(form.Sound);
-            if (noEvent && noSound)
+
+            if (noEvent && picked.Count == 0)
             {
                 pickerState = form; // only the numbers may have been touched
                 return null;
             }
 
-            if (noEvent || noSound)
+            if (noEvent || picked.Count == 0)
             {
                 pickerState = form;
                 string incomplete = "Add Sound: pick " + (noEvent ? "an event" : "a sound") + " too - nothing was added.";
@@ -765,13 +870,28 @@ namespace SoundboardMod
                 return incomplete;
             }
 
-            var sound = new NewSound
+            // Extra rows only count when "together" is ticked; a group of one is just that sound.
+            bool together = form.Together && picked.Count >= 2;
+            var sound = new NewSound { EventName = form.Event, Together = together };
+            foreach (RowForm row in together ? picked : picked.Take(1).ToList())
             {
-                EventName = form.Event,
-                File = form.Sound,
-                Volume = form.VolumePercent / 100f,
-                Delay = (float)Math.Round(form.Delay, 1),
-            };
+                sound.Parts.Add(new NewSoundPart
+                {
+                    File = row.Sound,
+                    Volume = row.VolumePercent / 100f,
+                    Delay = (float)Math.Round(row.Delay, 1),
+                });
+            }
+
+            string note = string.Empty;
+            if (form.Together && picked.Count == 1)
+            {
+                note = " Only one sound was picked, so it was added on its own.";
+            }
+            else if (!form.Together && picked.Count > 1)
+            {
+                note = " The extra sounds were left out because \"Play several sounds together\" isn't ticked.";
+            }
 
             string problem = SoundboardRuntime.AddSound(sound, out bool written);
             if (!written)
@@ -785,7 +905,7 @@ namespace SoundboardMod
             pickerState = new PickerForm();
             ApplyForm(pickerState);
 
-            string added = "Added \"" + SoundboardConfigParser.PrettyName(form.Sound) + "\" to " + form.Event + ".";
+            string added = "Added \"" + sound.Label + "\" to " + form.Event + (together ? " (played together)." : ".") + note;
             if (problem != null)
             {
                 added += " But " + problem + ".";
@@ -817,18 +937,13 @@ namespace SoundboardMod
             }
         }
 
-        private void ShowPickerStatus(string text)
-        {
-            ShowPickerStatus(text, true);
-        }
-
         /// <summary>
         /// After RELOAD CONFIG: adds files that have appeared in the sounds folder to the
-        /// dropdown, and drops ones that have gone, without touching what's selected.
+        /// dropdowns, and drops ones that have gone, without touching what's selected.
         /// </summary>
         private void RefreshSoundList()
         {
-            if (soundBox == null)
+            if (rows[0]?.Box == null)
             {
                 return;
             }
@@ -836,21 +951,29 @@ namespace SoundboardMod
             try
             {
                 List<string> files = SoundLibrary.List(SoundboardRuntime.Locations.SoundFolders);
-                var have = new HashSet<string>(soundBox.GetItemList().Select(item => item.name));
                 var want = new HashSet<string>(files);
 
-                ListItem[] appeared = files.Where(f => !have.Contains(f)).Select(f => new ListItem(f)).ToArray();
-                string[] gone = have.Where(n => !want.Contains(n)).ToArray();
-
-                if (appeared.Length > 0)
+                foreach (SoundRow row in rows)
                 {
-                    soundBox.AddItems(true, appeared);
-                }
+                    if (row.Box == null)
+                    {
+                        continue;
+                    }
 
-                // A dropdown can't be emptied, so if every file vanished the old list stays.
-                if (gone.Length > 0 && files.Count > 0)
-                {
-                    soundBox.RemoveItems(false, gone);
+                    var have = new HashSet<string>(row.Box.GetItemList().Select(item => item.name));
+                    ListItem[] appeared = files.Where(f => !have.Contains(f)).Select(f => new ListItem(f)).ToArray();
+                    string[] gone = have.Where(n => !want.Contains(n)).ToArray();
+
+                    if (appeared.Length > 0)
+                    {
+                        row.Box.AddItems(true, appeared);
+                    }
+
+                    // A dropdown can't be emptied, so if every file vanished the old list stays.
+                    if (gone.Length > 0 && files.Count > 0)
+                    {
+                        row.Box.RemoveItems(false, gone);
+                    }
                 }
 
                 if (soundInfoLabel != null)

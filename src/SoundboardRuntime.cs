@@ -350,7 +350,8 @@ namespace SoundboardMod
                 return "couldn't write soundboard.yaml (" + e.Message + ")";
             }
 
-            Log.LogInfo($"Added {sound.File} to {sound.EventName} (volume {sound.Volume.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)}, delay {sound.Delay.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)}s) in {Locations.UserConfigPath}");
+            string files = string.Join(", ", sound.Parts.Select(p => p.File));
+            Log.LogInfo($"Added {(sound.Together ? "together group" : "sound")} [{files}] to {sound.EventName} in {Locations.UserConfigPath}");
 
             try
             {

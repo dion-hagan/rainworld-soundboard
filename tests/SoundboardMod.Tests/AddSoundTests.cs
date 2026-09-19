@@ -14,7 +14,25 @@ namespace SoundboardMod.Tests
         private static SoundboardConfig Parse(string yaml) => SoundboardConfigParser.Parse(yaml, Catalog);
 
         private static NewSound Sound(string ev, string file, float volume = 1f, float delay = 0f) =>
-            new NewSound { EventName = ev, File = file, Volume = volume, Delay = delay };
+            NewSound.Single(ev, file, volume, delay);
+
+        /// <summary>A "together" group; each part is "file" or "file|volume|delay".</summary>
+        private static NewSound Group(string ev, params string[] parts)
+        {
+            var sound = new NewSound { EventName = ev, Together = true };
+            foreach (string spec in parts)
+            {
+                string[] bits = spec.Split('|');
+                sound.Parts.Add(new NewSoundPart
+                {
+                    File = bits[0],
+                    Volume = bits.Length > 1 ? float.Parse(bits[1], System.Globalization.CultureInfo.InvariantCulture) : 1f,
+                    Delay = bits.Length > 2 ? float.Parse(bits[2], System.Globalization.CultureInfo.InvariantCulture) : 0f,
+                });
+            }
+
+            return sound;
+        }
 
         private static string Add(string yaml, NewSound sound)
         {
@@ -441,6 +459,114 @@ namespace SoundboardMod.Tests
             Assert.Empty(config.Issues);
             Assert.Equal(new[] { "a.wav", "b.wav", "c.wav" }, config.Events.Single(e => e.EventName == "PlayerDeath").Choices.Select(c => c.Sounds[0].File).ToArray());
             Assert.Equal(new[] { "j1.wav", "j2.wav" }, config.Events.Single(e => e.EventName == "PlayerJump").Choices.Select(c => c.Sounds[0].File).ToArray());
+        }
+
+        // --- "together" groups ---------------------------------------------------------------
+
+        [Fact]
+        public void AGroupIsWrittenAsOneTogetherEntryAtTheEndOfTheList()
+        {
+            const string yaml = "events:\n  PlayerDeath:\n    - a.wav\n  PlayerJump:\n    - c.wav\n";
+
+            string edited = Add(yaml, Group("PlayerDeath", "boom.wav", "crash.wav|0.5|1.5", "zap.wav|0.2"));
+
+            Assert.Equal(
+                "events:\n  PlayerDeath:\n    - a.wav\n" +
+                "    - together:\n" +
+                "        - boom.wav\n" +
+                "        - file: crash.wav\n" +
+                "          volume: 0.5\n" +
+                "          delay: 1.5\n" +
+                "        - file: zap.wav\n" +
+                "          volume: 0.2\n" +
+                "  PlayerJump:\n    - c.wav\n",
+                edited);
+            AssertOnlyInsertions(yaml, edited);
+
+            SoundboardConfig config = Parse(edited);
+            Assert.Empty(config.Issues);
+            EventBinding death = config.Events.Single(e => e.EventName == "PlayerDeath");
+            Assert.Equal(2, death.Choices.Count); // the group is ONE step of the rotation
+            SoundChoice group = death.Choices.Last();
+            Assert.Equal(new[] { "boom.wav", "crash.wav", "zap.wav" }, group.Sounds.Select(s => s.File).ToArray());
+            Assert.Equal(new[] { 1f, 0.5f, 0.2f }, group.Sounds.Select(s => s.Volume).ToArray());
+            Assert.Equal(new[] { 0f, 1.5f, 0f }, group.Sounds.Select(s => s.Delay).ToArray());
+            Assert.Equal("Boom + Crash + Zap", group.Label);
+        }
+
+        [Fact]
+        public void AGroupInANewEventFollowsTheFilesIndentation()
+        {
+            string edited = Add("events:\n  PlayerDeath:\n  - a.wav\n", Group("PlayerJump", "one.wav", "two.wav"));
+
+            Assert.Equal("events:\n  PlayerDeath:\n  - a.wav\n\n  PlayerJump:\n  - together:\n      - one.wav\n      - two.wav\n", edited);
+            Assert.Equal(2, Parse(edited).Events.Single(e => e.EventName == "PlayerJump").Choices[0].Sounds.Count);
+        }
+
+        [Fact]
+        public void AGroupCreatesTheEventsSectionIfNeeded()
+        {
+            string edited = Add("settings:\n  debug: true\n", Group("PlayerDeath", "one.wav", "two.wav|0.5"));
+            Assert.Equal("settings:\n  debug: true\n\nevents:\n  PlayerDeath:\n    - together:\n        - one.wav\n        - file: two.wav\n          volume: 0.5\n", edited);
+            Assert.Equal(2, Parse(edited).Events[0].Choices[0].Sounds.Count);
+        }
+
+        [Fact]
+        public void AGroupCanBeAddedToAnInlineList()
+        {
+            string edited = Add("events:\n  PlayerDeath: [a.wav]\n", Group("PlayerDeath", "one.wav", "two.wav|0.5"));
+
+            Assert.Equal("events:\n  PlayerDeath: [a.wav, { together: [one.wav, { file: two.wav, volume: 0.5 }] }]\n", edited);
+            SoundboardConfig config = Parse(edited);
+            Assert.Equal(2, config.Events[0].Choices.Count);
+            Assert.Equal(2, config.Events[0].Choices[1].Sounds.Count);
+        }
+
+        [Fact]
+        public void AGroupOfAwkwardFileNamesReadsBackExactly()
+        {
+            string[] files = { "it's #1: loud.wav", "memes/two words.ogg", "música.mp3" };
+            string edited = Add("events:\n  PlayerDeath:\n    - a.wav\n", Group("PlayerDeath", files));
+            Assert.Equal(files, Parse(edited).Events[0].Choices.Last().Sounds.Select(s => s.File).ToArray());
+        }
+
+        [Fact]
+        public void GroupsAndSinglesAreRefusedWhenTheyDontAddUp()
+        {
+            const string yaml = "events:\n  PlayerDeath:\n    - a.wav\n";
+
+            Assert.Contains("at least two", Fail(yaml, Group("PlayerDeath", "only.wav")));
+
+            NewSound twoWithoutTogether = Group("PlayerDeath", "one.wav", "two.wav");
+            twoWithoutTogether.Together = false;
+            Assert.Contains("together", Fail(yaml, twoWithoutTogether));
+
+            Assert.Contains("no sound", Fail(yaml, new NewSound { EventName = "PlayerDeath" }));
+        }
+
+        [Fact]
+        public void AnyBadPartRefusesTheWholeGroup()
+        {
+            const string yaml = "events:\n  PlayerDeath:\n    - a.wav\n";
+            Assert.Contains("usable sound file name", Fail(yaml, Group("PlayerDeath", "ok.wav", "../bad.wav")));
+            Assert.Contains("volume", Fail(yaml, Group("PlayerDeath", "ok.wav", "loud.wav|11")));
+            Assert.Contains("delay", Fail(yaml, Group("PlayerDeath", "ok.wav", "late.wav|1|500")));
+        }
+
+        [Fact]
+        public void EveryEventCanTakeAGroupInTheShippedFile()
+        {
+            string yaml = File.ReadAllText(Path.Combine(FindRepoRoot(), "mod", "soundboard.yaml"));
+            SoundboardConfig baseline = Parse(yaml);
+
+            foreach (EventInfo info in Catalog.All)
+            {
+                string edited = Add(yaml, Group(info.Name, "one.wav", "two.wav|0.5|1"));
+                AssertOnlyInsertions(yaml, edited);
+                SoundboardConfig after = Parse(edited);
+                Assert.Equal(baseline.Issues.Count, after.Issues.Count);
+                Assert.Equal(baseline.SoundCount + 2, after.SoundCount);
+            }
         }
 
         [Fact]

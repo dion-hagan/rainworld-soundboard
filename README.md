@@ -52,10 +52,14 @@ Open **Options → Mods → Custom Soundboard** and switch to the **Add Sound** 
 
 1. **When this happens** - pick an event from the dropdown (click it and scroll, or just start typing to
    search; hover a name in the list to see what it means).
-2. **Play this sound** - pick a `.wav`, `.ogg` or `.mp3` from your `sounds` folder or the ones that came with
+2. **Sound** - pick a `.wav`, `.ogg` or `.mp3` from your `sounds` folder or the ones that came with
    the mod. Dropped new files into the folder? Press **RELOAD CONFIG** on the Sounds tab and they show up.
-3. **Volume** (a percentage, `100` = as recorded) and **Delay** (seconds after the event) - the same
-   `volume:` and `delay:` options described below.
+3. **Volume** (a percentage, `100` = as recorded) and **Delay** (seconds after the event) for that sound -
+   the same `volume:` and `delay:` options described below.
+   Want several sounds at once? Pick more in the two extra rows (each with its own volume and delay) and tick
+   **Play several sounds together** - it ticks itself when you pick a second sound. They're saved as one
+   [`together:` group](#playing-sounds-together): a single entry in the event's list whose sounds all play at
+   the same time. (Untick it and only the first sound is added.)
 4. Press **SAVE**. The sound is added to the end of that event's list in your `soundboard.yaml` and starts
    working straight away. If the event wasn't in the file yet, it's added too. Everything else in the file -
    your comments, layout and other entries - is left exactly as it was.
@@ -468,4 +472,4 @@ by the game). VS Code: *Ctrl+Shift+B* builds, and there are `test` and `deploy` 
 `Plugin.cs` and the tag should agree. `v1.0.2` made the options-screen checkboxes work like any Remix setting
 (tick, then SAVE writes them into `soundboard.yaml`) and re-seeds them from the file every time the page opens.
 `v1.1.0` added the **Add Sound** tab: event and sound dropdowns plus volume/delay boxes, and SAVE appends the
-sound to the event's list in `soundboard.yaml`.
+sound to the event's list in `soundboard.yaml`. `v1.1.1` lets that tab add a `together:` group (up to three sounds).
