@@ -151,16 +151,20 @@ namespace SoundboardMod
         // Player.pyroJumpped is a persistent flag, not a one-frame pulse, so
         // track its last value per-player and only fire on the false->true
         // edge (otherwise this would re-trigger every frame it stays true).
+        // Artificer can chain these jumps quickly, so each player also gets a
+        // 10s cooldown. The edge tracking below always updates, so a jump
+        // that's suppressed by the cooldown can't cause a stale edge later.
         [HarmonyPatch(typeof(Player), nameof(Player.ClassMechanicsArtificer))]
         private static class Player_ClassMechanicsArtificer_Patch
         {
             private static readonly ConditionalWeakTable<Player, StrongBox<bool>> LastPyroJumped = new ConditionalWeakTable<Player, StrongBox<bool>>();
+            private static readonly Cooldown PyroJumpCooldown = new Cooldown(10f, () => Time.time);
 
             [HarmonyPostfix]
             private static void Postfix(Player __instance)
             {
                 StrongBox<bool> last = LastPyroJumped.GetOrCreateValue(__instance);
-                if (__instance.pyroJumpped && !last.Value)
+                if (__instance.pyroJumpped && !last.Value && PyroJumpCooldown.TryTrigger(__instance))
                 {
                     Trigger("PlayerArtificerPyroJump", __instance);
                 }
@@ -239,13 +243,29 @@ namespace SoundboardMod
             }
         }
 
-        [HarmonyPatch(typeof(Snail), nameof(Snail.Die))]
-        private static class Snail_Die_Patch
+        // A Snail's "explosion" is Click(): the pop that plays Snail_Pop and
+        // sends a stunning shockwave through the room. It runs for a live,
+        // "triggered" snail (hit hard, dropped fast, bumped, or jumped on by
+        // the player) - Snail.Die() itself does nothing but call the base
+        // version, so dying isn't what makes one go off. Click() returns
+        // immediately while triggerTicker > 0 without popping, so the prefix
+        // records whether this call will really pop.
+        [HarmonyPatch(typeof(Snail), nameof(Snail.Click))]
+        private static class Snail_Click_Patch
         {
-            [HarmonyPostfix]
-            private static void Postfix(Snail __instance)
+            [HarmonyPrefix]
+            private static void Prefix(Snail __instance, out bool __state)
             {
-                Trigger("SnailExplosion", __instance);
+                __state = __instance.triggerTicker <= 0;
+            }
+
+            [HarmonyPostfix]
+            private static void Postfix(Snail __instance, bool __state)
+            {
+                if (__state)
+                {
+                    Trigger("SnailExplosion", __instance);
+                }
             }
         }
 
@@ -316,10 +336,10 @@ namespace SoundboardMod
 
         // --- Thrown weapons --------------------------------------------------
 
-        // Weapon.Thrown is virtual and most weapon types override it, but
-        // Spear (and ExplosiveSpear, which inherits it) is covered here.
-        // MSC's ElectricSpear overrides Thrown separately and isn't hooked,
-        // so a Scavenger throwing one of those won't trigger this.
+        // Scavenger.Throw calls Weapon.Thrown with itself as thrownBy. Spear
+        // has no early return, and ExplosiveSpear inherits it while MSC's
+        // ElectricSpear overrides Thrown but calls base.Thrown, so this
+        // covers every spear type.
         [HarmonyPatch(typeof(Spear), nameof(Spear.Thrown))]
         private static class Spear_Thrown_Patch
         {
@@ -470,26 +490,42 @@ namespace SoundboardMod
         }
 
         // --- Predator noticed the player ---------------------------------
-        // Tracker.CreatureNoticed fires on the predator's own Tracker
-        // (owned by its ArtificialIntelligence) the moment it first spots
-        // something. We only care when that "something" is the player, and
-        // the tracker's owner is one of the predators we're after.
+        // Tracker.CreatureNoticed is where a creature's AI starts tracking
+        // something new - on first sight, or when something asks the tracker
+        // for a creature it isn't tracking yet. We only care when that
+        // "something" is the player, and the tracker's owner is one of the
+        // predators we're after. It returns null (tracking nothing) if the
+        // creature isn't realized, is dead, or this AI never tracks it, and
+        // callers that ask again each frame would hit that path repeatedly,
+        // so only a non-null result counts as a real "noticed". The tracker
+        // forgets creatures it hasn't seen for a while, and a creature that
+        // keeps losing and re-finding the player would re-fire this
+        // constantly, so each creature gets a cooldown (SpottedCooldown).
+
+        // Keyed on the creature's AbstractCreature, which outlives the
+        // realized object, so a predator that leaves and re-enters the camera
+        // range doesn't get a fresh cooldown. Each creature has its own, so
+        // several different predators noticing you together can still all fire.
+        private static readonly Cooldown SpottedCooldown = new Cooldown(10f, () => Time.time);
 
         [HarmonyPatch(typeof(Tracker), "CreatureNoticed")]
         private static class Tracker_CreatureNoticed_Patch
         {
             [HarmonyPostfix]
-            private static void Postfix(Tracker __instance, AbstractCreature crit)
+            private static void Postfix(Tracker __instance, AbstractCreature crit, Tracker.CreatureRepresentation __result)
             {
-                if (!(crit?.realizedObject is Player player))
+                if (__result == null || !(crit?.realizedObject is Player player))
                 {
                     return;
                 }
 
-                PhysicalObject predator = __instance.AI?.creature?.realizedObject;
+                AbstractCreature observer = __instance.AI?.creature;
+                PhysicalObject predator = observer?.realizedObject;
+
+                string eventKey = null;
                 if (predator is Scavenger)
                 {
-                    Trigger("PlayerSpottedByScavenger", player);
+                    eventKey = "PlayerSpottedByScavenger";
                 }
                 else if (predator is DaddyLongLegs
                     || IsCreatureType(predator, CreatureTemplate.Type.RedLizard)
@@ -497,20 +533,25 @@ namespace SoundboardMod
                     || IsCreatureType(predator, CreatureTemplate.Type.KingVulture))
                 {
                     // Takes priority over the generic predator sound below.
-                    Trigger("PlayerSpottedByMajorThreat", player);
+                    eventKey = "PlayerSpottedByMajorThreat";
                 }
                 else if (predator is MirosBird || (predator is Vulture vulture && vulture.IsMiros))
                 {
                     // Miros Vultures are ordinary Vulture objects flagged IsMiros.
-                    Trigger("PlayerSpottedByMiros", player);
+                    eventKey = "PlayerSpottedByMiros";
                 }
                 else if (IsCreatureType(predator, CreatureTemplate.Type.CyanLizard))
                 {
-                    Trigger("PlayerSpottedByCyanLizard", player);
+                    eventKey = "PlayerSpottedByCyanLizard";
                 }
                 else if (predator is Lizard || predator is Spider || predator is BigSpider || predator is Vulture)
                 {
-                    Trigger("PlayerSpottedByPredator", player);
+                    eventKey = "PlayerSpottedByPredator";
+                }
+
+                if (eventKey != null && SpottedCooldown.TryTrigger(observer))
+                {
+                    Trigger(eventKey, player);
                 }
             }
         }

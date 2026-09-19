@@ -39,7 +39,7 @@ out for your own whenever you like.
 | `Soundboard_VineBoom` | `vine-boom.wav` | `PlayerHardLanding` | Enabled | Plays on a hard landing - falling from a height taller than the slugcat and hitting the ground. |
 | `Soundboard_GoodBoy` | `what-a-good-boy.wav` | `PlayerEatCreature` | Enabled | Plays when you eat a creature (meat), as opposed to fruit/plants. |
 | `Soundboard_BennyHill` | `benny-hill.wav` | `PlayerSpottedByPredator` | Enabled | Plays when a Lizard, Spider/BigSpider, or Vulture first notices you (Cyan Lizards, Red Lizards, King Vultures, and Miros Vultures have their own sounds instead). |
-| `Soundboard_YameteKudasai` | `yamete-kudasai.wav` | `SnailExplosion` | Enabled | Plays when a Snail explodes. |
+| `Soundboard_YameteKudasai` | `yamete-kudasai.wav` | `SnailExplosion` | Enabled | Plays when a Snail pops - its stunning shockwave blast (including when you jump on one). |
 | `Soundboard_ScavengerSpotted` | `can-i-put-my-balls-in-your-jaws.wav` | `PlayerSpottedByScavenger` | Enabled | Plays when a Scavenger first notices you - alternating with Enrique+Indian Song (which play together). |
 | `Soundboard_AnimeAhh` | `anime-ahh.wav` | `CicadaOrLanternMouseDeath` | Enabled | Plays when a Cicada ("squidcada") or Lantern Mouse dies. |
 | `Soundboard_BoneCrack` | `bone-crack.wav` | `PlayerHardLanding` | Enabled | Plays on a hard landing, taking turns with Vine Boom. |
@@ -49,9 +49,9 @@ out for your own whenever you like.
 | `Soundboard_HatsuneMikuWeee` | `hatsune-miku-weeeeeeee.wav` | `PlayerJumpWithCicada` | Enabled | Plays when you jump while holding a Cicada ("squidcada"). |
 | `Soundboard_Enrique` | `enrique.wav` | `PlayerSpottedByScavenger` | Enabled | Plays together with Indian Song (taking turns with Can I Put My Balls In Your Jaws) when a Scavenger first notices you. |
 | `Soundboard_IndianSong` | `indian-song.wav` | `PlayerSpottedByScavenger` | Enabled | Plays together with Enrique (taking turns with Can I Put My Balls In Your Jaws) when a Scavenger first notices you. |
-| `Soundboard_Meow` | `m-e-o-w.wav` | `PlayerArtificerPyroJump` | Enabled | Plays when Artificer does a pyro jump (explosion-boosted "double jump"). |
+| `Soundboard_Meow` | `m-e-o-w.wav` | `PlayerArtificerPyroJump` | Enabled | Plays when Artificer does a pyro jump (explosion-boosted "double jump"), at most once every 10 seconds. |
 | `Soundboard_Scatman` | `scatman.wav` | `PlayerSpottedByCyanLizard` | Enabled | Plays when a Cyan Lizard first notices you (instead of Benny Hill). |
-| `Soundboard_NuclearAlarm` | `nuclear-alarm-siren.wav` | `VultureGrubSignal` | Enabled | Plays when a thrown Vulture Grub starts emitting its signal, calling nearby vultures. |
+| `Soundboard_NuclearAlarm` | `nuclear-alarm-siren.wav` | `VultureGrubSignal` | Enabled | Plays when a thrown Vulture Grub starts emitting its signal, calling nearby vultures (about a second after the throw). |
 | `Soundboard_FbiOpenUp` | `fbi-open-up-sfx.wav` | `CreatureEnteredOccupiedShelter` | Enabled | Plays when any creature enters a shelter that already has a player in it. |
 | `Soundboard_FahhSlowed` | `fahh-slowed.wav` | `PlayerDeath` | Enabled | Plays when you die (takes its turn in the death-sound rotation). |
 | `Soundboard_ICantDoNathan` | `i-cant-do-nathan.wav` | `PlayerDeath` | Enabled | Plays when you die (takes its turn in the death-sound rotation). |
@@ -239,20 +239,20 @@ Wired up in `src/EventHooks.cs`:
 | `ScavengerDeath` | A Scavenger dies (`Creature.Die`) |
 | `LizardDeath` | A Lizard dies (`Creature.Die`) |
 | `SpiderDeath` | A Spider or BigSpider dies (`Spider.Die` / `BigSpider.Die`) |
-| `PlayerSpottedByPredator` | A Lizard, Spider/BigSpider, or Vulture first notices you (except the ones with their own events above) (`Tracker.CreatureNoticed`) - fires once per sighting, not continuously while it's chasing you |
-| `SnailExplosion` | A Snail dies/explodes (`Snail.Die`) |
+| `PlayerSpottedByPredator` | A Lizard, Spider/BigSpider, or Vulture first notices you (except the ones with their own events above) (`Tracker.CreatureNoticed`) - fires once per sighting, not continuously while it's chasing you (a creature that loses track of you and re-notices you can trigger it again, but each individual creature is limited to once per 10 seconds, so a predator that keeps flickering in and out of sight doesn't replay the sound constantly; different creatures each have their own cooldown). All the "spotted by" events work this way |
+| `SnailExplosion` | A Snail pops (`Snail.Click`): the stunning shockwave blast that happens when a live snail is hit hard, dropped fast, bumped, or jumped on. Killing a snail doesn't set it off (`Snail.Die` does nothing extra) |
 | `PlayerSpottedByScavenger` | A Scavenger first notices you (`Tracker.CreatureNoticed`) - separate from `PlayerSpottedByPredator` since Scavengers aren't strictly hostile |
 | `PlayerSpottedByCyanLizard` | Specifically a Cyan Lizard first notices you (`Tracker.CreatureNoticed`) - takes priority over `PlayerSpottedByPredator` for that one lizard color |
 | `PlayerSpottedByMiros` | A Miros Bird, or a Miros Vulture (`Vulture.IsMiros`), first notices you (`Tracker.CreatureNoticed`) - takes priority over `PlayerSpottedByPredator` for Miros Vultures |
 | `CicadaOrLanternMouseDeath` | A Cicada ("squidcada") or Lantern Mouse dies (`Cicada.Die` / `LanternMouse.Die`) |
 | `RegionGateTransition` | A region gate starts its transition - the moment it begins closing around you and loading the next region (`OverWorld.GateRequestsSwitchInitiation`, called once per gate use) |
 | `PlayerJumpWithCicada` | The slugcat jumps while grasping a Cicada ("squidcada") (`Player.Jump` + grasp check) - fires alongside `PlayerJump`, not instead of it |
-| `PlayerArtificerPyroJump` | Artificer does an explosion-boosted jump (`Player.ClassMechanicsArtificer`, edge-detected on `pyroJumpped`) |
-| `VultureGrubSignal` | A thrown Vulture Grub starts emitting its call (`VultureGrub.InitiateSignal`), which summons nearby vultures |
+| `PlayerArtificerPyroJump` | Artificer does an explosion-boosted jump (`Player.ClassMechanicsArtificer`, edge-detected on `pyroJumpped`, with a 10 second cooldown per player) |
+| `VultureGrubSignal` | A thrown Vulture Grub starts emitting its call (`VultureGrub.InitiateSignal`), which summons nearby vultures. Fires about a second after the throw: tossing the grub starts a 40-tick countdown first |
 | `CreatureEnteredOccupiedShelter` | Any creature moves into a shelter room that already has a player in it (`Creature.NewRoom`) - some creature types override `NewRoom` themselves and may not trigger this, same caveat as the death-event hooks above |
 | `CyanLizardJump` | A Cyan Lizard jumps (`LizardJumpModule.Jump`, called once per leap) |
 | `PlayerGrabYeek` | The slugcat grabs a Yeek (`Creature.Grab`) |
-| `ScavengerThrowSpear` | A Scavenger throws a spear (`Spear.Thrown`; covers normal and explosive spears, but not MSC's `ElectricSpear`, which overrides `Thrown` itself) |
+| `ScavengerThrowSpear` | A Scavenger throws a spear (`Spear.Thrown`; covers every spear type - explosive and MSC electric spears call through to it) |
 | `PlayerBitByLizard` | A Lizard's bite lands on the player (`Lizard.Bite`) |
 | `PlayerHitByDartMaggot` | A Spitter Spider's dart maggot sticks into the player (`DartMaggot.Update`, fires once per maggot) |
 | `PlayerSpottedByMajorThreat` | A Red Lizard, Red Centipede, King Vulture, or Long Legs first notices you (`Tracker.CreatureNoticed`) - takes priority over `PlayerSpottedByPredator` for those creatures |

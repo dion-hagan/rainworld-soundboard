@@ -99,7 +99,7 @@
     {
       "id": "Soundboard_YameteKudasai",
       "displayName": "Yamete Kudasai",
-      "description": "Plays when a Snail explodes.",
+      "description": "Plays when a Snail pops - its stunning shockwave blast (including when you jump on one).",
       "file": "yamete-kudasai.wav",
       "event": "SnailExplosion",
       "defaultEnabled": true
@@ -181,7 +181,7 @@
     {
       "id": "Soundboard_Meow",
       "displayName": "Meow",
-      "description": "Plays when Artificer does a pyro jump (explosion-boosted \"double jump\").",
+      "description": "Plays when Artificer does a pyro jump (explosion-boosted \"double jump\"), at most once every 10 seconds.",
       "file": "m-e-o-w.wav",
       "event": "PlayerArtificerPyroJump",
       "defaultEnabled": true
@@ -197,7 +197,7 @@
     {
       "id": "Soundboard_NuclearAlarm",
       "displayName": "Nuclear Alarm Siren",
-      "description": "Plays when a thrown Vulture Grub starts emitting its signal, calling nearby vultures.",
+      "description": "Plays when a thrown Vulture Grub starts emitting its signal, calling nearby vultures (about a second after the throw).",
       "file": "nuclear-alarm-siren.wav",
       "event": "VultureGrubSignal",
       "defaultEnabled": true
