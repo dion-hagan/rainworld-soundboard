@@ -21,7 +21,7 @@ namespace SoundboardMod
     /// event key, and add that key to EventCatalog so it shows up in
     /// events.txt and validates in the config.
     /// </summary>
-    public static class EventHooks
+    public static partial class EventHooks
     {
         private static readonly ManualLogSource Log = BepInEx.Logging.Logger.CreateLogSource("SoundboardMod");
 

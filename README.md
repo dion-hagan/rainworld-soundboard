@@ -221,6 +221,7 @@ A few events have numbers you may want to tune. All are optional.
 | `player-jump-cooldown` | `2` | Seconds between `PlayerJumpCooldown` sounds. |
 | `artificer-pyro-jump-cooldown` | `10` | Seconds between Artificer pyro-jump sounds. |
 | `spotted-cooldown` | `10` | Seconds before the same creature can "spot" you again. |
+| `swim-underwater-cooldown` | `5` | Seconds between `PlayerSwimUnderwater` sounds. |
 | `debug` | `false` | `true` writes every event that fires to `BepInEx/LogOutput.log` (great for working out why a sound doesn't play, and for finding good speed values). |
 
 Falling in Rain World has no real speed cap, so "terminal velocity" is just a speed *you* pick.
@@ -306,14 +307,36 @@ and still have a generic one for the rest. (Each event's rotation is separate.)
 | `PlayerSpottedByMajorThreat` | A Red Lizard, Red Centipede, King Vulture or Daddy Long Legs notices you. |
 | `PlayerSpottedByMiros` | A Miros Bird or Miros Vulture notices you. |
 
+### Water and breathing
+
+| Event | Fires when |
+|---|---|
+| `PlayerSwimUnderwater` | The slugcat dives under the surface: head fully under water and swimming (the deep-swim animation). Fires once per dive, and at most once per 'swim-underwater-cooldown' seconds (setting, default 5) so bobbing at the surface doesn't spam it. |
+| `PlayerDrowning` | The slugcat runs low on air underwater - the point where the game slows it down and makes it thrash about. Fires once per struggle; it fires again only after the slugcat has recovered most of its breath. |
+| `PlayerDrowned` | The slugcat dies of drowning. Fires alongside PlayerDeath. |
+
+How the game's own rules are used, so you know exactly when these fire:
+
+- **Underwater** means the game's `submerged` flag (the head is more than 90% under water) *and* the deep-swim
+  animation. Treading water at the surface, standing on the floor of a flooded room or climbing a pole in it
+  doesn't count. Diving fires `PlayerSwimUnderwater` once; the next dive counts again after the cooldown.
+- **Low on air** means the slugcat's air is below *its own* "out of breath" level (the game's `drownThreshold`,
+  a third of the lungs for every slugcat), not a number of ours. Slugcats that hold their breath longer (like
+  Rivulet) just take longer to get there. It only counts while the head is under water.
+  It fires once and is armed again once the slugcat has got its air back to roughly two thirds (halfway between
+  "out of breath" and full), so bobbing up for one gasp doesn't re-fire it every time.
+- **Drowned** is the death that happens when the game's drowning counter fills (about three seconds after the
+  air hits zero), not any death that happens to be underwater. `PlayerDeath` fires as well.
+- Slugpups and other computer-controlled slugcats never fire these.
+
 <details>
-<summary><b>Full list of every event name (205)</b> - click to expand</summary>
+<summary><b>Full list of every event name (208)</b> - click to expand</summary>
 
 Every event you can put under `events:` in `soundboard.yaml`, as of Rain World v1.11.8 with the
 More Slugcats and Watcher creatures. Creatures added by other mods get the same two events
 automatically; the list the mod writes to `events.txt` always includes them.
 
-**Built-in events (32)** - described in the tables above:
+**Built-in events (35)** - described in the tables above:
 
 ```
 PlayerDeath
@@ -348,6 +371,9 @@ PlayerSpottedByPredator
 PlayerSpottedByScavenger
 PlayerSpottedByMajorThreat
 PlayerSpottedByMiros
+PlayerSwimUnderwater
+PlayerDrowning
+PlayerDrowned
 ```
 
 **Per-creature events (88 creature types)** - one "dies" and one "notices you" event each:

@@ -61,6 +61,7 @@ settings:
   player-jump-cooldown: 2           # seconds between PlayerJumpCooldown sounds
   artificer-pyro-jump-cooldown: 10  # seconds between Artificer pyro-jump sounds
   spotted-cooldown: 10              # seconds before the same creature can "spot" you again
+  swim-underwater-cooldown: 5       # seconds between PlayerSwimUnderwater sounds
   debug: false                      # true = log every event to BepInEx/LogOutput.log
 
 

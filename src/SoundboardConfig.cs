@@ -36,6 +36,7 @@ namespace SoundboardMod
         public float PlayerJumpCooldown = 2f;
         public float ArtificerPyroJumpCooldown = 10f;
         public float SpottedCooldown = 10f;
+        public float SwimUnderwaterCooldown = 5f;
         public bool Debug;
     }
 
@@ -184,6 +185,7 @@ namespace SoundboardMod
             new FloatSetting { Name = "player-jump-cooldown", Min = 0f, Max = 600f, Set = (s, v) => s.PlayerJumpCooldown = v },
             new FloatSetting { Name = "artificer-pyro-jump-cooldown", Min = 0f, Max = 600f, Set = (s, v) => s.ArtificerPyroJumpCooldown = v },
             new FloatSetting { Name = "spotted-cooldown", Min = 0f, Max = 600f, Set = (s, v) => s.SpottedCooldown = v },
+            new FloatSetting { Name = "swim-underwater-cooldown", Min = 0f, Max = 600f, Set = (s, v) => s.SwimUnderwaterCooldown = v },
         };
 
         private const string DebugSettingName = "debug";

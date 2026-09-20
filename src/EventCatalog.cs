@@ -112,6 +112,7 @@ namespace SoundboardMod
         public const string SectionWorld = "The world";
         public const string SectionCreatureDeath = "Creatures dying";
         public const string SectionSpotted = "The player being spotted";
+        public const string SectionWater = "Water and breathing";
 
         /// <summary>Event key fired when a creature of the given type (e.g. "RedLizard") is spotted by/spots the player.</summary>
         public static string SpottedKey(string creatureType)
@@ -162,6 +163,10 @@ namespace SoundboardMod
             new EventInfo { Section = SectionSpotted, Name = "PlayerSpottedByScavenger", Description = "Any scavenger (every variant) notices you. For one variant use e.g. PlayerSpottedByScavengerElite." },
             new EventInfo { Section = SectionSpotted, Name = "PlayerSpottedByMajorThreat", Description = "A Red Lizard, Red Centipede, King Vulture or Daddy Long Legs notices you." },
             new EventInfo { Section = SectionSpotted, Name = "PlayerSpottedByMiros", Description = "A Miros Bird or Miros Vulture notices you." },
+
+            new EventInfo { Section = SectionWater, Name = "PlayerSwimUnderwater", Description = "The slugcat dives under the surface: head fully under water and swimming (the deep-swim animation). Fires once per dive, and at most once per 'swim-underwater-cooldown' seconds (setting, default 5) so bobbing at the surface doesn't spam it." },
+            new EventInfo { Section = SectionWater, Name = "PlayerDrowning", Description = "The slugcat runs low on air underwater - the point where the game slows it down and makes it thrash about. Fires once per struggle; it fires again only after the slugcat has recovered most of its breath." },
+            new EventInfo { Section = SectionWater, Name = "PlayerDrowned", Description = "The slugcat dies of drowning. Fires alongside PlayerDeath." },
         };
 
         private readonly List<EventInfo> all = new List<EventInfo>();
