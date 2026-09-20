@@ -4,7 +4,7 @@ Every release of Custom Soundboard, newest first. Each version is a git tag (`vX
 `mod/modinfo.json`, the `[BepInPlugin]` version in `src/Plugin.cs` and the tag always agree.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [1.7.0] - 2026-09-20
 
 ### Changed
 
@@ -121,6 +121,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 First release: plays your own sound files on Rain World events, configured with `meta.json` and `sounds.txt`.
 
+[1.7.0]: https://github.com/dion-hagan/rainworld-soundboard/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/dion-hagan/rainworld-soundboard/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/dion-hagan/rainworld-soundboard/compare/v1.4.1...v1.5.0
 [1.4.1]: https://github.com/dion-hagan/rainworld-soundboard/compare/v1.4.0...v1.4.1
