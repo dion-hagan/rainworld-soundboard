@@ -193,6 +193,7 @@ namespace SoundboardMod
 
             new EventInfo { Section = SectionWorld, Name = "RegionGateTransition", Description = "A region gate starts carrying you into the next region." },
             new EventInfo { Section = SectionWorld, Name = "CreatureEnteredOccupiedShelter", Description = "Any creature walks into a shelter that already has a player in it." },
+            new EventInfo { Section = SectionWorld, Name = "FatalRainImminent", Description = "The fatal rain is one minute away: the cycle's rain timer reaches 60 seconds. Once per cycle, even if you're already in a shelter. Never in The Rot (More Slugcats), where the rain doesn't hit." },
             new EventInfo { Section = SectionWorld, Name = "SnailExplosion", Description = "A snail pops (its stunning shockwave)." },
             new EventInfo { Section = SectionWorld, Name = "VultureGrubSignal", Description = "A thrown vulture grub starts calling for vultures." },
             new EventInfo { Section = SectionWorld, Name = "FlareBombThrown", Description = "A flashbang is thrown by anyone." },

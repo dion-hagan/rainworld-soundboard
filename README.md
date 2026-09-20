@@ -359,6 +359,7 @@ The three `Rivulet...` events fire **in addition to** the generic ones, only for
 |---|---|
 | `RegionGateTransition` | A region gate starts carrying you into the next region. |
 | `CreatureEnteredOccupiedShelter` | Any creature walks into a shelter that already has a player in it. |
+| `FatalRainImminent` | The fatal rain is one minute away: the cycle's rain timer reaches 60 seconds. Once per cycle, even if you're already in a shelter. Never in The Rot (More Slugcats), where the rain doesn't hit. |
 | `SnailExplosion` | A snail pops (its stunning shockwave). |
 | `VultureGrubSignal` | A thrown vulture grub starts calling for vultures. |
 | `FlareBombThrown` | A flashbang is thrown by anyone. |
@@ -456,13 +457,13 @@ is on) other players aren't hurt by it, so they don't fire it either.
 | `GourmandRollHit` | The Gourmand rolls into a living creature and hurts it (the roll has its own half-second lockout). Plays at the Gourmand. |
 
 <details>
-<summary><b>Full list of every event name (324)</b> - click to expand</summary>
+<summary><b>Full list of every event name (325)</b> - click to expand</summary>
 
 Every event you can put under `events:` in `soundboard.yaml`, as of Rain World v1.11.8 with the
 More Slugcats and Watcher creatures. Creatures added by other mods get the same three events
 automatically; the list the mod writes to `events.txt` always includes them.
 
-**Built-in events (63)** - described in the tables above:
+**Built-in events (64)** - described in the tables above:
 
 ```
 PlayerDeath
@@ -494,6 +495,7 @@ RivuletSlide
 RivuletSlidePounce
 RegionGateTransition
 CreatureEnteredOccupiedShelter
+FatalRainImminent
 SnailExplosion
 VultureGrubSignal
 FlareBombThrown
@@ -681,7 +683,8 @@ SoundboardMod/
 │  ├─ EntryCooldowns.cs        Tracks which entries are cooling down (an entry's `cooldown:`)
 │  ├─ EventHooks.Gourmand.cs   The Gourmand's slide/drop/roll hit events (a partial of EventHooks)
 │  ├─ EventHooks.CreatureNear.cs   The <Creature>Near poll (a partial of EventHooks)
-│  └─ Cooldown.cs, DelayQueue.cs, FallTracker.cs, GourmandHitTracker.cs, NearTracker.cs, SoundRotation.cs   Small game-independent helpers
+│  ├─ EventHooks.Rain.cs       The one-minute-to-rain warning (a partial of EventHooks)
+│  └─ Cooldown.cs, DelayQueue.cs, FallTracker.cs, GourmandHitTracker.cs, NearTracker.cs, RainWarning.cs, SoundRotation.cs   Small game-independent helpers
 ├─ tests/SoundboardMod.Tests/  xUnit tests for everything that doesn't need the game
 ├─ mod/                        The deployable Rain World mod folder
 │  ├─ modinfo.json             Also what the Workshop shows: title, description, tags
