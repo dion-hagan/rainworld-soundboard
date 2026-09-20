@@ -37,6 +37,9 @@ namespace SoundboardMod
             public bool Failed;
             public bool Injected;
 
+            /// <summary>Why the last load failed, for the Test button to repeat.</summary>
+            public string Error;
+
             /// <summary>File's last-modified time when it was loaded, to notice a replaced file on reload.</summary>
             public DateTime Stamp;
 
@@ -130,6 +133,73 @@ namespace SoundboardMod
             return Entries.TryGetValue(path, out Entry entry) ? entry.Id : null;
         }
 
+        /// <summary>
+        /// Plays a file once, straight away, through the menu's microphone: the Test button on the
+        /// Add Sound page. The file doesn't have to be in soundboard.yaml - it is loaded and added to
+        /// the game's tables here the first time, and then stays there like any other sound. If the
+        /// file is still loading the sound starts as soon as it's ready. <paramref name="onProblem"/>
+        /// is called (on the main thread, possibly a moment later) with a reason if it can't be played.
+        /// </summary>
+        public static void Preview(string path, float volume, Action<string> onProblem)
+        {
+            if (!Available)
+            {
+                onProblem("custom sounds can't play (" + UnavailableReason + ")");
+                return;
+            }
+
+            if (host == null)
+            {
+                onProblem("the mod hasn't finished starting up");
+                return;
+            }
+
+            Sync(new[] { path });
+            host.StartCoroutine(PreviewWhenReady(path, volume, onProblem));
+        }
+
+        /// <summary>How long a Test press waits for clips that are still loading before giving up.</summary>
+        private const float PreviewWaitSeconds = 15f;
+
+        private static IEnumerator PreviewWhenReady(string path, float volume, Action<string> onProblem)
+        {
+            // This file's first Test (or files queued ahead of it) may still be loading, one a frame.
+            float waited = 0f;
+            while ((loading || LoadQueue.Count > 0) && waited < PreviewWaitSeconds)
+            {
+                waited += Time.unscaledDeltaTime;
+                yield return null;
+            }
+
+            if (!Entries.TryGetValue(path, out Entry entry))
+            {
+                yield break;
+            }
+
+            if (entry.Failed)
+            {
+                onProblem("the file couldn't be loaded (" + entry.Error + ")");
+                yield break;
+            }
+
+            // Covers the game having rebuilt its sound tables since the clip finished loading.
+            TryInjectCurrent();
+            if (!entry.Injected)
+            {
+                onProblem(Available ? "the file didn't finish loading - try again in a moment" : "custom sounds can't play (" + UnavailableReason + ")");
+                yield break;
+            }
+
+            MenuMicrophone mic = Custom.rainWorld?.processManager?.menuMic;
+            if (mic == null)
+            {
+                onProblem("sounds can only be tested from the menus");
+                yield break;
+            }
+
+            mic.PlaySound(entry.Id, 0f, volume, 1f);
+        }
+
         private static string Sanitize(string s)
         {
             var chars = s.ToCharArray();
@@ -207,6 +277,7 @@ namespace SoundboardMod
             if (error != null)
             {
                 entry.Failed = true;
+                entry.Error = error;
                 Log.LogError($"Couldn't load sound '{entry.Path}': {error}");
                 ClipFailed?.Invoke(entry.Path, error);
             }
