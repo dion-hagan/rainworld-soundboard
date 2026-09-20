@@ -23,6 +23,7 @@
     <Compile Include="..\..\src\DelayQueue.cs" Link="Src\DelayQueue.cs" />
     <Compile Include="..\..\src\FallTracker.cs" Link="Src\FallTracker.cs" />
     <Compile Include="..\..\src\Cooldown.cs" Link="Src\Cooldown.cs" />
+    <Compile Include="..\..\src\BreathTracker.cs" Link="Src\BreathTracker.cs" />
     <Compile Include="..\..\src\EntryCooldowns.cs" Link="Src\EntryCooldowns.cs" />
     <Compile Include="..\..\src\SoundRotation.cs" Link="Src\SoundRotation.cs" />
   </ItemGroup>
