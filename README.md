@@ -775,3 +775,5 @@ flips, wall jump, super jump) with Rivulet versions, and the Gourmand's slide/dr
 the files for publishing to the Steam Workshop (`mod/thumbnail.png`, `workshop/`).
 `v1.6.0` adds the `FatalRainImminent` event (one minute until the rain) and makes the Add Sound tab start new sounds at
 30% volume with a 30 second cooldown. Every release is listed in [CHANGELOG.md](CHANGELOG.md).
+`v1.7.0` shuffles the order sounds play in: an event's entries take turns in a random order, different each launch,
+unless you set `shuffle: false`.
