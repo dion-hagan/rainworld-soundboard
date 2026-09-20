@@ -63,13 +63,15 @@ Open **Remix → Custom Soundboard** and switch to the **Add Sound** tab:
    Press **TEST** beside a sound to hear it once, at the volume in that row's Volume box, before you add
    it - nothing is saved. A long file plays only its first 10 seconds. It's the level you'd get in the game from a sound that isn't tied to a spot in the
    room; sounds that come from somewhere in a room get quieter with distance in the game, which a menu can't copy.
-3. **Volume** (a percentage, `100` = as recorded) and **Delay** (seconds after the event) for that sound -
+3. **Volume** (a percentage, `100` = as recorded; a new sound starts at `30`) and **Delay** (seconds after the event) for that sound -
    the same `volume:` and `delay:` options described below.
    Want several sounds at once? Pick more in the two extra rows (each with its own volume and delay) and tick
    **Play several sounds together** - it ticks itself when you pick a second sound. They're saved as one
    [`together:` group](#playing-sounds-together): a single entry in the event's list whose sounds all play at
    the same time. (Untick it and only the first sound is added.)
-   **Cooldown** (seconds, `0` = none) is the entry's [`cooldown:`](#cooldowns); for a group it covers the whole group.
+   **Cooldown** (seconds, `0` = none; a new sound starts at `30`) is the entry's [`cooldown:`](#cooldowns); for a group it covers the whole group.
+   Those two starting values are only what this tab fills in, to keep a freshly added sound quiet and from playing over and over -
+   change them per sound as you like. An entry you write by hand with no `volume:` or `cooldown:` still plays at full volume with no limit.
 4. Press **SAVE**. The sound is added to the end of that event's list in your `soundboard.yaml` and starts
    working straight away. If the event wasn't in the file yet, it's added too. Everything else in the file -
    your comments, layout and other entries - is left exactly as it was.
@@ -359,6 +361,7 @@ The three `Rivulet...` events fire **in addition to** the generic ones, only for
 |---|---|
 | `RegionGateTransition` | A region gate starts carrying you into the next region. |
 | `CreatureEnteredOccupiedShelter` | Any creature walks into a shelter that already has a player in it. |
+| `FatalRainImminent` | The fatal rain is one minute away: the cycle's rain timer reaches 60 seconds. Once per cycle, even if you're already in a shelter. Never in The Rot (More Slugcats), where the rain doesn't hit. |
 | `SnailExplosion` | A snail pops (its stunning shockwave). |
 | `VultureGrubSignal` | A thrown vulture grub starts calling for vultures. |
 | `FlareBombThrown` | A flashbang is thrown by anyone. |
@@ -456,13 +459,13 @@ is on) other players aren't hurt by it, so they don't fire it either.
 | `GourmandRollHit` | The Gourmand rolls into a living creature and hurts it (the roll has its own half-second lockout). Plays at the Gourmand. |
 
 <details>
-<summary><b>Full list of every event name (324)</b> - click to expand</summary>
+<summary><b>Full list of every event name (325)</b> - click to expand</summary>
 
 Every event you can put under `events:` in `soundboard.yaml`, as of Rain World v1.11.8 with the
 More Slugcats and Watcher creatures. Creatures added by other mods get the same three events
 automatically; the list the mod writes to `events.txt` always includes them.
 
-**Built-in events (63)** - described in the tables above:
+**Built-in events (64)** - described in the tables above:
 
 ```
 PlayerDeath
@@ -494,6 +497,7 @@ RivuletSlide
 RivuletSlidePounce
 RegionGateTransition
 CreatureEnteredOccupiedShelter
+FatalRainImminent
 SnailExplosion
 VultureGrubSignal
 FlareBombThrown
@@ -681,7 +685,8 @@ SoundboardMod/
 │  ├─ EntryCooldowns.cs        Tracks which entries are cooling down (an entry's `cooldown:`)
 │  ├─ EventHooks.Gourmand.cs   The Gourmand's slide/drop/roll hit events (a partial of EventHooks)
 │  ├─ EventHooks.CreatureNear.cs   The <Creature>Near poll (a partial of EventHooks)
-│  └─ Cooldown.cs, DelayQueue.cs, FallTracker.cs, GourmandHitTracker.cs, NearTracker.cs, SoundRotation.cs   Small game-independent helpers
+│  ├─ EventHooks.Rain.cs       The one-minute-to-rain warning (a partial of EventHooks)
+│  └─ Cooldown.cs, DelayQueue.cs, FallTracker.cs, GourmandHitTracker.cs, NearTracker.cs, RainWarning.cs, SoundRotation.cs   Small game-independent helpers
 ├─ tests/SoundboardMod.Tests/  xUnit tests for everything that doesn't need the game
 ├─ mod/                        The deployable Rain World mod folder
 │  ├─ modinfo.json             Also what the Workshop shows: title, description, tags
@@ -763,3 +768,5 @@ dropdowns, and a lot of new events: a creature of any type coming near (`<Creatu
 (`PlayerEat<Food>`), swimming underwater, running low on air and drowning, the movement techs (slide, slide pounce,
 flips, wall jump, super jump) with Rivulet versions, and the Gourmand's slide/drop/roll hits. The repo also gained
 the files for publishing to the Steam Workshop (`mod/thumbnail.png`, `workshop/`).
+`v1.6.0` adds the `FatalRainImminent` event (one minute until the rain) and makes the Add Sound tab start new sounds at
+30% volume with a 30 second cooldown. Every release is listed in [CHANGELOG.md](CHANGELOG.md).
