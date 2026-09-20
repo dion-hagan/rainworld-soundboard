@@ -28,6 +28,7 @@
     <Compile Include="..\..\src\GourmandHitTracker.cs" Link="Src\GourmandHitTracker.cs" />
     <Compile Include="..\..\src\EntryCooldowns.cs" Link="Src\EntryCooldowns.cs" />
     <Compile Include="..\..\src\SoundRotation.cs" Link="Src\SoundRotation.cs" />
+    <Compile Include="..\..\src\MovementTech.cs" Link="Src\MovementTech.cs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -310,6 +310,25 @@ if that content is off.
 | `PlayerEatLillyPuck` | The slugcat eats a Lilypuck. |
 | `PlayerEatFireSpriteLarva` | The slugcat eats a Box Worm larva (the game calls it a Fire Sprite larva). |
 
+### Movement techs
+
+The game has no "tech happened" callback, so these are worked out from what the slugcat is doing at the moment of the jump. They fire once per move, and (except `PlayerWallJump`) alongside `PlayerJump`, so you can give the plain jump one sound and a tech another. A slide has no "ended" event; use `PlayerSlidePounce` / `PlayerSlideFlip` for jumping out of one.
+
+| Event | Fires when |
+|---|---|
+| `PlayerSlide` | The slugcat starts a belly slide (while crawling, jump with down and a direction held). Fires alongside PlayerJump, because the game starts a slide from the jump. |
+| `PlayerSlidePounce` | The slugcat jumps out of a belly slide, launching forward in a rocket-style pounce. Fires alongside PlayerJump. Jumping backwards out of a slide (PlayerSlideFlip) or out of a roll (PlayerRollPounce) are separate events. |
+| `PlayerSlideFlip` | The slugcat jumps backwards out of a belly slide (a whiplash flip: you held the opposite direction to the slide). Fires alongside PlayerJump. |
+| `PlayerRollPounce` | The slugcat jumps out of a roll (the tumble after a fast, diagonal-down landing), launching forward like a pounce. Fires alongside PlayerJump. |
+| `PlayerWallJump` | The slugcat kicks off a wall sideways, including from hanging on a ledge. Not the plain hop you get with a floor under you. The game doesn't always count these as a jump, so this can fire without PlayerJump. |
+| `PlayerBackflip` | The slugcat backflips: jumps within the first moments of the skid you get from reversing direction at a run. Fires alongside PlayerJump. |
+| `PlayerSuperJump` | The slugcat does a fully charged crouch super jump (crouch still, hold jump until charged, release). Fires alongside PlayerJump. |
+| `RivuletJump` | Rivulet jumps: every jump, the same moments as PlayerJump. Only for the Rivulet character (More Slugcats), not the Expedition agility perk. |
+| `RivuletSlide` | Rivulet starts a belly slide. Fires alongside PlayerSlide and PlayerJump. |
+| `RivuletSlidePounce` | Rivulet jumps out of a belly slide. Fires alongside PlayerSlidePounce and PlayerJump. |
+
+The three `Rivulet...` events fire **in addition to** the generic ones, only for the Rivulet character (they need More Slugcats), the same way `PlayerJumpWithCicada` fires alongside `PlayerJump`. Rivulet also gets `PlayerSlide`, `PlayerSlidePounce` and the other generic events.
+
 ### The world
 
 | Event | Fires when |
@@ -377,13 +396,13 @@ is on) other players aren't hurt by it, so they don't fire it either.
 | `GourmandRollHit` | The Gourmand rolls into a living creature and hurts it (the roll has its own half-second lockout). Plays at the Gourmand. |
 
 <details>
-<summary><b>Full list of every event name (226)</b> - click to expand</summary>
+<summary><b>Full list of every event name (236)</b> - click to expand</summary>
 
 Every event you can put under `events:` in `soundboard.yaml`, as of Rain World v1.11.8 with the
 More Slugcats and Watcher creatures. Creatures added by other mods get the same two events
 automatically; the list the mod writes to `events.txt` always includes them.
 
-**Built-in events (53)** - described in the tables above:
+**Built-in events (63)** - described in the tables above:
 
 ```
 PlayerDeath
@@ -403,6 +422,16 @@ PlayerBitByLizard
 PlayerHitByDartMaggot
 PlayerRoomTransition
 PlayerEnterShelter
+PlayerSlide
+PlayerSlidePounce
+PlayerSlideFlip
+PlayerRollPounce
+PlayerWallJump
+PlayerBackflip
+PlayerSuperJump
+RivuletJump
+RivuletSlide
+RivuletSlidePounce
 RegionGateTransition
 CreatureEnteredOccupiedShelter
 SnailExplosion
