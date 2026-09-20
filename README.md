@@ -243,6 +243,8 @@ A few events have numbers you may want to tune. All are optional.
 | `artificer-pyro-jump-cooldown` | `10` | Seconds between Artificer pyro-jump sounds. |
 | `spotted-cooldown` | `10` | Seconds before the same creature can "spot" you again. |
 | `swim-underwater-cooldown` | `5` | Seconds between `PlayerSwimUnderwater` sounds. |
+| `creature-near-distance` | `10` | How close a creature has to get, in tiles (1 to 200), for its `<Creature>Near` event. See [Creatures nearby](#creatures-nearby). |
+| `creature-near-cooldown` | `10` | Seconds before the same creature can fire its `<Creature>Near` event again (`0` = only ever when it newly comes into range). |
 | `debug` | `false` | `true` writes every event that fires to `BepInEx/LogOutput.log` (great for working out why a sound doesn't play, and for finding good speed values). |
 
 Falling in Rain World has no real speed cap, so "terminal velocity" is just a speed *you* pick.
@@ -267,10 +269,11 @@ including the per-creature ones, is in the collapsed section at the end of this 
 also writes it to `events.txt` in your config folder each time the game starts (that copy includes
 creatures added by other mods).
 
-**Every creature type also gets its own two events**, named after the creature the way the game spells it:
+**Every creature type also gets its own three events**, named after the creature the way the game spells it:
 
 - `<Creature>Death` - e.g. `GreenLizardDeath`, `KingVultureDeath`, `BigSpiderDeath`, `EggBugDeath`
 - `PlayerSpottedBy<Creature>` - e.g. `PlayerSpottedByRedLizard`, `PlayerSpottedByMirosBird`
+- `<Creature>Near` - e.g. `RedLizardNear`, `ScavengerEliteNear`, `DaddyLongLegsNear` (see [Creatures nearby](#creatures-nearby))
 
 Every food you can eat that isn't a creature also gets a `PlayerEat<Food>` event, listed under "Food eaten" below.
 
@@ -380,6 +383,42 @@ The three `Rivulet...` events fire **in addition to** the generic ones, only for
 | `PlayerSpottedByMajorThreat` | A Red Lizard, Red Centipede, King Vulture or Daddy Long Legs notices you. |
 | `PlayerSpottedByMiros` | A Miros Bird or Miros Vulture notices you. |
 
+### Creatures nearby
+
+There are no fixed events in this section: like `<Creature>Death`, **every creature type gets its own event**,
+named `<Creature>Near` after the creature the way the game spells it - `RedLizardNear`, `GreenLizardNear`,
+`ScavengerEliteNear`, `KingVultureNear`, `DaddyLongLegsNear`, and one for every creature another mod adds (the
+per-creature table in the full list at the end of this chapter has them all). Each fires when a
+creature of that type comes within `creature-near-distance` tiles of you (setting, default 10), and at most once per
+creature per `creature-near-cooldown` seconds (setting, default 10). Unlike `PlayerSpottedBy...`, the creature
+doesn't have to have noticed you: this is "something is close", not "something has seen me".
+
+```yaml
+events:
+  RedLizardNear:
+    - oh-no.wav
+```
+
+How exactly it works, so you know when to expect it:
+
+- **Same room only.** A creature counts only while it is in the room you are in. One in the next room, or
+  inside a pipe or den, isn't near however close it is on the map. Walls don't block it: a creature on the other
+  side of a thin wall counts.
+- **Distance** is a straight line in *tiles* (the small grid squares rooms are built from; the game screen is about 68 tiles
+  wide, so the default 10 is about a seventh of it), measured from you to the *closest part* of the
+  creature's body, so a long one (a Daddy Long Legs, a centipede) counts when any part of it is close.
+  It is checked four times a second, so a creature that darts in and out between two checks can be missed.
+- **Only when it arrives.** It fires the moment the creature comes into range, not repeatedly while it stays
+  there. A creature has to get clearly outside (a quarter further away than the range) before it counts as having
+  left, so one hovering right at the edge doesn't keep firing; and after it has left and come back, the
+  cooldown still has to be over. A creature that is already near when you enter its room counts as arriving.
+- **Not counted:** dead creatures, other slugcats (including slugpups), and a creature you are carrying - one
+  you're holding doesn't fire, and doesn't fire when you put it down next to you either.
+- Friendly or tame creatures count like any other, so a lizard that follows you around fires whenever the
+  cooldown allows. With several players (Jolly Co-op) the cooldown is shared, so one creature fires once rather than once per player (unless the cooldown is 0).
+- The check only runs at all if `soundboard.yaml` has a sound for at least one `...Near` event, so leaving them
+  out costs nothing.
+
 ### Water and breathing
 
 | Event | Fires when |
@@ -417,10 +456,10 @@ is on) other players aren't hurt by it, so they don't fire it either.
 | `GourmandRollHit` | The Gourmand rolls into a living creature and hurts it (the roll has its own half-second lockout). Plays at the Gourmand. |
 
 <details>
-<summary><b>Full list of every event name (236)</b> - click to expand</summary>
+<summary><b>Full list of every event name (324)</b> - click to expand</summary>
 
 Every event you can put under `events:` in `soundboard.yaml`, as of Rain World v1.11.8 with the
-More Slugcats and Watcher creatures. Creatures added by other mods get the same two events
+More Slugcats and Watcher creatures. Creatures added by other mods get the same three events
 automatically; the list the mod writes to `events.txt` always includes them.
 
 **Built-in events (63)** - described in the tables above:
@@ -491,98 +530,98 @@ PlayerEatLillyPuck
 PlayerEatFireSpriteLarva
 ```
 
-**Per-creature events (88 creature types)** - one "dies" and one "notices you" event each:
+**Per-creature events (88 creature types)** - one "dies", one "notices you" and one "comes near" event each:
 
-| Creature | Dies | Notices you |
-|---|---|---|
-| Angler | `AnglerDeath` | `PlayerSpottedByAngler` |
-| AquaCenti | `AquaCentiDeath` | `PlayerSpottedByAquaCenti` |
-| Barnacle | `BarnacleDeath` | `PlayerSpottedByBarnacle` |
-| BasiliskLizard | `BasiliskLizardDeath` | `PlayerSpottedByBasiliskLizard` |
-| BigEel | `BigEelDeath` | `PlayerSpottedByBigEel` |
-| BigJelly | `BigJellyDeath` | `PlayerSpottedByBigJelly` |
-| BigMoth | `BigMothDeath` | `PlayerSpottedByBigMoth` |
-| BigNeedleWorm | `BigNeedleWormDeath` | `PlayerSpottedByBigNeedleWorm` |
-| BigSandGrub | `BigSandGrubDeath` | `PlayerSpottedByBigSandGrub` |
-| BigSpider | `BigSpiderDeath` | `PlayerSpottedByBigSpider` |
-| BlackLizard | `BlackLizardDeath` | `PlayerSpottedByBlackLizard` |
-| BlizzardLizard | `BlizzardLizardDeath` | `PlayerSpottedByBlizzardLizard` |
-| BlueLizard | `BlueLizardDeath` | `PlayerSpottedByBlueLizard` |
-| BoxWorm | `BoxWormDeath` | `PlayerSpottedByBoxWorm` |
-| BrotherLongLegs | `BrotherLongLegsDeath` | `PlayerSpottedByBrotherLongLegs` |
-| Centipede | `CentipedeDeath` | `PlayerSpottedByCentipede` |
-| Centiwing | `CentiwingDeath` | `PlayerSpottedByCentiwing` |
-| CicadaA | `CicadaADeath` | `PlayerSpottedByCicadaA` |
-| CicadaB | `CicadaBDeath` | `PlayerSpottedByCicadaB` |
-| CyanLizard | `CyanLizardDeath` | `PlayerSpottedByCyanLizard` |
-| DaddyLongLegs | `DaddyLongLegsDeath` | `PlayerSpottedByDaddyLongLegs` |
-| Deer | `DeerDeath` | `PlayerSpottedByDeer` |
-| DrillCrab | `DrillCrabDeath` | `PlayerSpottedByDrillCrab` |
-| DropBug | `DropBugDeath` | `PlayerSpottedByDropBug` |
-| EelLizard | `EelLizardDeath` | `PlayerSpottedByEelLizard` |
-| EggBug | `EggBugDeath` | `PlayerSpottedByEggBug` |
-| FireBug | `FireBugDeath` | `PlayerSpottedByFireBug` |
-| FireSprite | `FireSpriteDeath` | `PlayerSpottedByFireSprite` |
-| Fly | `FlyDeath` | `PlayerSpottedByFly` |
-| Frog | `FrogDeath` | `PlayerSpottedByFrog` |
-| GarbageWorm | `GarbageWormDeath` | `PlayerSpottedByGarbageWorm` |
-| GrappleSnake | `GrappleSnakeDeath` | `PlayerSpottedByGrappleSnake` |
-| GreenLizard | `GreenLizardDeath` | `PlayerSpottedByGreenLizard` |
-| Hazer | `HazerDeath` | `PlayerSpottedByHazer` |
-| HunterDaddy | `HunterDaddyDeath` | `PlayerSpottedByHunterDaddy` |
-| IndigoLizard | `IndigoLizardDeath` | `PlayerSpottedByIndigoLizard` |
-| Inspector | `InspectorDeath` | `PlayerSpottedByInspector` |
-| JetFish | `JetFishDeath` | `PlayerSpottedByJetFish` |
-| JungleLeech | `JungleLeechDeath` | `PlayerSpottedByJungleLeech` |
-| KingVulture | `KingVultureDeath` | `PlayerSpottedByKingVulture` |
-| LanternMouse | `LanternMouseDeath` | `PlayerSpottedByLanternMouse` |
-| Leech | `LeechDeath` | `PlayerSpottedByLeech` |
-| Loach | `LoachDeath` | `PlayerSpottedByLoach` |
-| Millipede | `MillipedeDeath` | `PlayerSpottedByMillipede` |
-| MirosBird | `MirosBirdDeath` | `PlayerSpottedByMirosBird` |
-| MirosVulture | `MirosVultureDeath` | `PlayerSpottedByMirosVulture` |
-| MotherSpider | `MotherSpiderDeath` | `PlayerSpottedByMotherSpider` |
-| MothGrub | `MothGrubDeath` | `PlayerSpottedByMothGrub` |
-| Overseer | `OverseerDeath` | `PlayerSpottedByOverseer` |
-| PeachLizard | `PeachLizardDeath` | `PlayerSpottedByPeachLizard` |
-| PinkLizard | `PinkLizardDeath` | `PlayerSpottedByPinkLizard` |
-| PoleMimic | `PoleMimicDeath` | `PlayerSpottedByPoleMimic` |
-| Rat | `RatDeath` | `PlayerSpottedByRat` |
-| Rattler | `RattlerDeath` | `PlayerSpottedByRattler` |
-| RedCentipede | `RedCentipedeDeath` | `PlayerSpottedByRedCentipede` |
-| RedLizard | `RedLizardDeath` | `PlayerSpottedByRedLizard` |
-| RippleSpider | `RippleSpiderDeath` | `PlayerSpottedByRippleSpider` |
-| RotLoach | `RotLoachDeath` | `PlayerSpottedByRotLoach` |
-| Salamander | `SalamanderDeath` | `PlayerSpottedBySalamander` |
-| SandGrub | `SandGrubDeath` | `PlayerSpottedBySandGrub` |
-| Scavenger | `ScavengerDeath` | `PlayerSpottedByScavenger` |
-| ScavengerDisciple | `ScavengerDiscipleDeath` | `PlayerSpottedByScavengerDisciple` |
-| ScavengerElite | `ScavengerEliteDeath` | `PlayerSpottedByScavengerElite` |
-| ScavengerKing | `ScavengerKingDeath` | `PlayerSpottedByScavengerKing` |
-| ScavengerTemplar | `ScavengerTemplarDeath` | `PlayerSpottedByScavengerTemplar` |
-| SeaLeech | `SeaLeechDeath` | `PlayerSpottedBySeaLeech` |
-| SkyWhale | `SkyWhaleDeath` | `PlayerSpottedBySkyWhale` |
-| SmallCentipede | `SmallCentipedeDeath` | `PlayerSpottedBySmallCentipede` |
-| SmallMoth | `SmallMothDeath` | `PlayerSpottedBySmallMoth` |
-| SmallNeedleWorm | `SmallNeedleWormDeath` | `PlayerSpottedBySmallNeedleWorm` |
-| Snail | `SnailDeath` | `PlayerSpottedBySnail` |
-| Spider | `SpiderDeath` | `PlayerSpottedBySpider` |
-| SpitLizard | `SpitLizardDeath` | `PlayerSpottedBySpitLizard` |
-| SpitterSpider | `SpitterSpiderDeath` | `PlayerSpottedBySpitterSpider` |
-| StowawayBug | `StowawayBugDeath` | `PlayerSpottedByStowawayBug` |
-| Tardigrade | `TardigradeDeath` | `PlayerSpottedByTardigrade` |
-| TempleGuard | `TempleGuardDeath` | `PlayerSpottedByTempleGuard` |
-| TentaclePlant | `TentaclePlantDeath` | `PlayerSpottedByTentaclePlant` |
-| TerrorLongLegs | `TerrorLongLegsDeath` | `PlayerSpottedByTerrorLongLegs` |
-| TowerCrab | `TowerCrabDeath` | `PlayerSpottedByTowerCrab` |
-| TrainLizard | `TrainLizardDeath` | `PlayerSpottedByTrainLizard` |
-| TubeWorm | `TubeWormDeath` | `PlayerSpottedByTubeWorm` |
-| Vulture | `VultureDeath` | `PlayerSpottedByVulture` |
-| VultureGrub | `VultureGrubDeath` | `PlayerSpottedByVultureGrub` |
-| WhiteLizard | `WhiteLizardDeath` | `PlayerSpottedByWhiteLizard` |
-| Yeek | `YeekDeath` | `PlayerSpottedByYeek` |
-| YellowLizard | `YellowLizardDeath` | `PlayerSpottedByYellowLizard` |
-| ZoopLizard | `ZoopLizardDeath` | `PlayerSpottedByZoopLizard` |
+| Creature | Dies | Notices you | Comes near |
+|---|---|---|---|
+| Angler | `AnglerDeath` | `PlayerSpottedByAngler` | `AnglerNear` |
+| AquaCenti | `AquaCentiDeath` | `PlayerSpottedByAquaCenti` | `AquaCentiNear` |
+| Barnacle | `BarnacleDeath` | `PlayerSpottedByBarnacle` | `BarnacleNear` |
+| BasiliskLizard | `BasiliskLizardDeath` | `PlayerSpottedByBasiliskLizard` | `BasiliskLizardNear` |
+| BigEel | `BigEelDeath` | `PlayerSpottedByBigEel` | `BigEelNear` |
+| BigJelly | `BigJellyDeath` | `PlayerSpottedByBigJelly` | `BigJellyNear` |
+| BigMoth | `BigMothDeath` | `PlayerSpottedByBigMoth` | `BigMothNear` |
+| BigNeedleWorm | `BigNeedleWormDeath` | `PlayerSpottedByBigNeedleWorm` | `BigNeedleWormNear` |
+| BigSandGrub | `BigSandGrubDeath` | `PlayerSpottedByBigSandGrub` | `BigSandGrubNear` |
+| BigSpider | `BigSpiderDeath` | `PlayerSpottedByBigSpider` | `BigSpiderNear` |
+| BlackLizard | `BlackLizardDeath` | `PlayerSpottedByBlackLizard` | `BlackLizardNear` |
+| BlizzardLizard | `BlizzardLizardDeath` | `PlayerSpottedByBlizzardLizard` | `BlizzardLizardNear` |
+| BlueLizard | `BlueLizardDeath` | `PlayerSpottedByBlueLizard` | `BlueLizardNear` |
+| BoxWorm | `BoxWormDeath` | `PlayerSpottedByBoxWorm` | `BoxWormNear` |
+| BrotherLongLegs | `BrotherLongLegsDeath` | `PlayerSpottedByBrotherLongLegs` | `BrotherLongLegsNear` |
+| Centipede | `CentipedeDeath` | `PlayerSpottedByCentipede` | `CentipedeNear` |
+| Centiwing | `CentiwingDeath` | `PlayerSpottedByCentiwing` | `CentiwingNear` |
+| CicadaA | `CicadaADeath` | `PlayerSpottedByCicadaA` | `CicadaANear` |
+| CicadaB | `CicadaBDeath` | `PlayerSpottedByCicadaB` | `CicadaBNear` |
+| CyanLizard | `CyanLizardDeath` | `PlayerSpottedByCyanLizard` | `CyanLizardNear` |
+| DaddyLongLegs | `DaddyLongLegsDeath` | `PlayerSpottedByDaddyLongLegs` | `DaddyLongLegsNear` |
+| Deer | `DeerDeath` | `PlayerSpottedByDeer` | `DeerNear` |
+| DrillCrab | `DrillCrabDeath` | `PlayerSpottedByDrillCrab` | `DrillCrabNear` |
+| DropBug | `DropBugDeath` | `PlayerSpottedByDropBug` | `DropBugNear` |
+| EelLizard | `EelLizardDeath` | `PlayerSpottedByEelLizard` | `EelLizardNear` |
+| EggBug | `EggBugDeath` | `PlayerSpottedByEggBug` | `EggBugNear` |
+| FireBug | `FireBugDeath` | `PlayerSpottedByFireBug` | `FireBugNear` |
+| FireSprite | `FireSpriteDeath` | `PlayerSpottedByFireSprite` | `FireSpriteNear` |
+| Fly | `FlyDeath` | `PlayerSpottedByFly` | `FlyNear` |
+| Frog | `FrogDeath` | `PlayerSpottedByFrog` | `FrogNear` |
+| GarbageWorm | `GarbageWormDeath` | `PlayerSpottedByGarbageWorm` | `GarbageWormNear` |
+| GrappleSnake | `GrappleSnakeDeath` | `PlayerSpottedByGrappleSnake` | `GrappleSnakeNear` |
+| GreenLizard | `GreenLizardDeath` | `PlayerSpottedByGreenLizard` | `GreenLizardNear` |
+| Hazer | `HazerDeath` | `PlayerSpottedByHazer` | `HazerNear` |
+| HunterDaddy | `HunterDaddyDeath` | `PlayerSpottedByHunterDaddy` | `HunterDaddyNear` |
+| IndigoLizard | `IndigoLizardDeath` | `PlayerSpottedByIndigoLizard` | `IndigoLizardNear` |
+| Inspector | `InspectorDeath` | `PlayerSpottedByInspector` | `InspectorNear` |
+| JetFish | `JetFishDeath` | `PlayerSpottedByJetFish` | `JetFishNear` |
+| JungleLeech | `JungleLeechDeath` | `PlayerSpottedByJungleLeech` | `JungleLeechNear` |
+| KingVulture | `KingVultureDeath` | `PlayerSpottedByKingVulture` | `KingVultureNear` |
+| LanternMouse | `LanternMouseDeath` | `PlayerSpottedByLanternMouse` | `LanternMouseNear` |
+| Leech | `LeechDeath` | `PlayerSpottedByLeech` | `LeechNear` |
+| Loach | `LoachDeath` | `PlayerSpottedByLoach` | `LoachNear` |
+| Millipede | `MillipedeDeath` | `PlayerSpottedByMillipede` | `MillipedeNear` |
+| MirosBird | `MirosBirdDeath` | `PlayerSpottedByMirosBird` | `MirosBirdNear` |
+| MirosVulture | `MirosVultureDeath` | `PlayerSpottedByMirosVulture` | `MirosVultureNear` |
+| MotherSpider | `MotherSpiderDeath` | `PlayerSpottedByMotherSpider` | `MotherSpiderNear` |
+| MothGrub | `MothGrubDeath` | `PlayerSpottedByMothGrub` | `MothGrubNear` |
+| Overseer | `OverseerDeath` | `PlayerSpottedByOverseer` | `OverseerNear` |
+| PeachLizard | `PeachLizardDeath` | `PlayerSpottedByPeachLizard` | `PeachLizardNear` |
+| PinkLizard | `PinkLizardDeath` | `PlayerSpottedByPinkLizard` | `PinkLizardNear` |
+| PoleMimic | `PoleMimicDeath` | `PlayerSpottedByPoleMimic` | `PoleMimicNear` |
+| Rat | `RatDeath` | `PlayerSpottedByRat` | `RatNear` |
+| Rattler | `RattlerDeath` | `PlayerSpottedByRattler` | `RattlerNear` |
+| RedCentipede | `RedCentipedeDeath` | `PlayerSpottedByRedCentipede` | `RedCentipedeNear` |
+| RedLizard | `RedLizardDeath` | `PlayerSpottedByRedLizard` | `RedLizardNear` |
+| RippleSpider | `RippleSpiderDeath` | `PlayerSpottedByRippleSpider` | `RippleSpiderNear` |
+| RotLoach | `RotLoachDeath` | `PlayerSpottedByRotLoach` | `RotLoachNear` |
+| Salamander | `SalamanderDeath` | `PlayerSpottedBySalamander` | `SalamanderNear` |
+| SandGrub | `SandGrubDeath` | `PlayerSpottedBySandGrub` | `SandGrubNear` |
+| Scavenger | `ScavengerDeath` | `PlayerSpottedByScavenger` | `ScavengerNear` |
+| ScavengerDisciple | `ScavengerDiscipleDeath` | `PlayerSpottedByScavengerDisciple` | `ScavengerDiscipleNear` |
+| ScavengerElite | `ScavengerEliteDeath` | `PlayerSpottedByScavengerElite` | `ScavengerEliteNear` |
+| ScavengerKing | `ScavengerKingDeath` | `PlayerSpottedByScavengerKing` | `ScavengerKingNear` |
+| ScavengerTemplar | `ScavengerTemplarDeath` | `PlayerSpottedByScavengerTemplar` | `ScavengerTemplarNear` |
+| SeaLeech | `SeaLeechDeath` | `PlayerSpottedBySeaLeech` | `SeaLeechNear` |
+| SkyWhale | `SkyWhaleDeath` | `PlayerSpottedBySkyWhale` | `SkyWhaleNear` |
+| SmallCentipede | `SmallCentipedeDeath` | `PlayerSpottedBySmallCentipede` | `SmallCentipedeNear` |
+| SmallMoth | `SmallMothDeath` | `PlayerSpottedBySmallMoth` | `SmallMothNear` |
+| SmallNeedleWorm | `SmallNeedleWormDeath` | `PlayerSpottedBySmallNeedleWorm` | `SmallNeedleWormNear` |
+| Snail | `SnailDeath` | `PlayerSpottedBySnail` | `SnailNear` |
+| Spider | `SpiderDeath` | `PlayerSpottedBySpider` | `SpiderNear` |
+| SpitLizard | `SpitLizardDeath` | `PlayerSpottedBySpitLizard` | `SpitLizardNear` |
+| SpitterSpider | `SpitterSpiderDeath` | `PlayerSpottedBySpitterSpider` | `SpitterSpiderNear` |
+| StowawayBug | `StowawayBugDeath` | `PlayerSpottedByStowawayBug` | `StowawayBugNear` |
+| Tardigrade | `TardigradeDeath` | `PlayerSpottedByTardigrade` | `TardigradeNear` |
+| TempleGuard | `TempleGuardDeath` | `PlayerSpottedByTempleGuard` | `TempleGuardNear` |
+| TentaclePlant | `TentaclePlantDeath` | `PlayerSpottedByTentaclePlant` | `TentaclePlantNear` |
+| TerrorLongLegs | `TerrorLongLegsDeath` | `PlayerSpottedByTerrorLongLegs` | `TerrorLongLegsNear` |
+| TowerCrab | `TowerCrabDeath` | `PlayerSpottedByTowerCrab` | `TowerCrabNear` |
+| TrainLizard | `TrainLizardDeath` | `PlayerSpottedByTrainLizard` | `TrainLizardNear` |
+| TubeWorm | `TubeWormDeath` | `PlayerSpottedByTubeWorm` | `TubeWormNear` |
+| Vulture | `VultureDeath` | `PlayerSpottedByVulture` | `VultureNear` |
+| VultureGrub | `VultureGrubDeath` | `PlayerSpottedByVultureGrub` | `VultureGrubNear` |
+| WhiteLizard | `WhiteLizardDeath` | `PlayerSpottedByWhiteLizard` | `WhiteLizardNear` |
+| Yeek | `YeekDeath` | `PlayerSpottedByYeek` | `YeekNear` |
+| YellowLizard | `YellowLizardDeath` | `PlayerSpottedByYellowLizard` | `YellowLizardNear` |
+| ZoopLizard | `ZoopLizardDeath` | `PlayerSpottedByZoopLizard` | `ZoopLizardNear` |
 
 Notes: `ScavengerDeath` / `PlayerSpottedByScavenger` cover every scavenger variant, and `SpiderDeath`
 covers Spiders and all Big Spider variants (see the tables above). Slugcats (including slugpups) use the
@@ -641,7 +680,8 @@ SoundboardMod/
 │  ├─ Options.cs               The in-game options screen (Sounds, Add Sound and Edit Sound tabs)
 │  ├─ EntryCooldowns.cs        Tracks which entries are cooling down (an entry's `cooldown:`)
 │  ├─ EventHooks.Gourmand.cs   The Gourmand's slide/drop/roll hit events (a partial of EventHooks)
-│  └─ Cooldown.cs, DelayQueue.cs, FallTracker.cs, GourmandHitTracker.cs, SoundRotation.cs   Small game-independent helpers
+│  ├─ EventHooks.CreatureNear.cs   The <Creature>Near poll (a partial of EventHooks)
+│  └─ Cooldown.cs, DelayQueue.cs, FallTracker.cs, GourmandHitTracker.cs, NearTracker.cs, SoundRotation.cs   Small game-independent helpers
 ├─ tests/SoundboardMod.Tests/  xUnit tests for everything that doesn't need the game
 ├─ mod/                        The deployable Rain World mod folder
 │  ├─ modinfo.json             Also what the Workshop shows: title, description, tags
@@ -671,8 +711,9 @@ logged and shown on the options screen; nothing else breaks.
 
 **Adding a hook.** Add a nested `[HarmonyPatch]` class to `EventHooks.cs` that calls
 `Trigger("YourEventName", thing)`, and add `YourEventName` to `EventCatalog` so it appears in `events.txt`
-and validates in the config. Per-creature events (`<Creature>Death`, `PlayerSpottedBy<Creature>`) need no
-hook at all: they're generated from the game's creature list.
+and validates in the config. Per-creature events (`<Creature>Death`, `PlayerSpottedBy<Creature>`, `<Creature>Near`) need no
+hook of their own: they are generated from the game's creature list, and one shared hook per family (the `Die()` patches,
+`Tracker.CreatureNoticed`, the poll in `EventHooks.CreatureNear.cs`) covers every creature type.
 
 **Build and test** (needs the .NET SDK, and a Rain World install with BepInEx; set `RAINWORLD_PATH` if
 it isn't in the default Steam location):
