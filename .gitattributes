@@ -1,0 +1,14 @@
+# Text is stored with LF in the repo and checked out with LF on every machine,
+# whatever core.autocrlf says (Git for Windows defaults it to true, which is what
+# produced "LF will be replaced by CRLF" warnings on every commit).
+* text=auto eol=lf
+
+# Visual Studio solution files are conventionally CRLF.
+*.sln text eol=crlf
+
+# Never touch these.
+*.dll binary
+*.pdb binary
+*.wav binary
+*.ogg binary
+*.mp3 binary
