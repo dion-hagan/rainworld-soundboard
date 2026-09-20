@@ -54,20 +54,35 @@ and the **Edit Sound** tab to change or delete sounds later. Both are covered in
 
 ## Documentation
 
-| Guide | What's in it |
-|---|---|
-| [Where your files live](docs/where-files-live.md) | The data folder, which `soundboard.yaml` the game reads (and which one it doesn't), backups. |
-| [The options screen](docs/options-screen.md) | The three tabs, what **APPLY**, **BACK** and **REVERT** do, and how the dropdown search works. |
-| [Adding a sound](docs/add-sound.md) | The **Add Sound** tab: pick an event and a sound, set volume, delay and cooldown, play several together. |
-| [Changing or deleting a sound](docs/edit-sound.md) | The **Edit Sound** tab: change numbers in place, or delete an entry (with a backup). |
-| [Writing `soundboard.yaml`](docs/config-file.md) | Every per-sound option, the shuffled rotation, cooldowns, `together` groups and tips. |
-| [Settings](docs/settings.md) | The `settings:` section: landing speed, cooldowns, creature distance, `shuffle` and `debug`. |
-| [Events](docs/events.md) | What every built-in event is, when it fires, plus the pages on [creatures nearby](docs/events-creatures-nearby.md), [water and breathing](docs/events-water-and-breathing.md) and [the Gourmand](docs/events-gourmand.md). |
-| [Full list of event names](docs/events-full-list.md) | Every event name, including all the per-creature ones. |
-| [Importing your MyInstants favorites](docs/myinstants.md) | A script that downloads all your favorites into the `sounds` folder. |
-| [Something not working?](docs/troubleshooting.md) | Where to look, and the `debug` log. |
-| [Upgrading from 0.1.0](docs/upgrading-from-0.1.0.md) | How the old `meta.json` + `sounds.txt` setup maps onto `soundboard.yaml`. |
-| [For developers](docs/developers.md) | Project layout, building and testing, adding a hook, publishing to the Steam Workshop, releases. |
+**Getting set up**
+
+- [Where your files live: the data folder, and which `soundboard.yaml` the game actually reads](docs/where-files-live.md)
+- [Using the options screen: the three tabs, APPLY / BACK / REVERT, and searching the dropdowns](docs/options-screen.md)
+
+**Adding and changing sounds**
+
+- [Adding a sound from the Add Sound tab: event, file, volume, delay, cooldown and playing several together](docs/add-sound.md)
+- [Changing or deleting a sound from the Edit Sound tab](docs/edit-sound.md)
+- [Importing your MyInstants favorites into the `sounds` folder](docs/myinstants.md)
+
+**Configuring `soundboard.yaml`**
+
+- [Writing `soundboard.yaml`: per-sound options, shuffled rotation, cooldowns and `together` groups](docs/config-file.md)
+- [Settings: landing speed, cooldowns, creature distance, `shuffle` and `debug`](docs/settings.md)
+
+**Events**
+
+- [Event reference: what each built-in event is and when it fires](docs/events.md)
+  - [Creatures nearby: the `<Creature>Near` events](docs/events-creatures-nearby.md)
+  - [Water and breathing: swimming, drowning and drowned](docs/events-water-and-breathing.md)
+  - [The Gourmand: slide, drop and roll hits](docs/events-gourmand.md)
+- [Full list of every event name, including all the per-creature ones](docs/events-full-list.md)
+
+**Help and reference**
+
+- [Troubleshooting: something not working?](docs/troubleshooting.md)
+- [Upgrading from 0.1.0: how the old `meta.json` and `sounds.txt` map onto `soundboard.yaml`](docs/upgrading-from-0.1.0.md)
+- [Developer guide: project layout, building and testing, adding a hook, the Steam Workshop and releases](docs/developers.md)
 
 ## Something not working?
 
