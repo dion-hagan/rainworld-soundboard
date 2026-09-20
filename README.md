@@ -55,7 +55,7 @@ Open **Remix → Custom Soundboard** and switch to the **Add Sound** tab:
    search; hover a name in the list to see what it means).
 2. **Sound** - pick a `.wav`, `.ogg` or `.mp3` from your `sounds` folder or the ones that came with
    the mod. Dropped new files into the folder? Press **RELOAD CONFIG** on the Sounds tab and they show up.
-   Press **TEST** beside a sound to hear it once, quietly (at 10% volume, whatever the Volume box says), before
+   Press **TEST** beside a sound to hear it once (at 30% volume, whatever the Volume box says), before
    you add it - nothing is saved.
 3. **Volume** (a percentage, `100` = as recorded) and **Delay** (seconds after the event) for that sound -
    the same `volume:` and `delay:` options described below.

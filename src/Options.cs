@@ -497,9 +497,11 @@ namespace SoundboardMod
         private const int DefaultVolumePercent = 100;
         private const int MaxVolumePercent = (int)(NewSound.MaxVolume * 100f);
 
-        // What the Test button plays at: the same 0-1+ scale as a sound's volume, where 1 is the
-        // sound as recorded. Deliberately fixed and low, whatever the row's Volume box says.
-        private const float TestVolume = 0.1f;
+        // How loud the Test button plays: a fraction of the file's full volume (0.3 = 30%), which
+        // SoundRegistry.Preview turns into the game's own volume scale. Deliberately fixed and
+        // modest, whatever the row's Volume box says. The player's Sound Effects setting still applies.
+        private const float TestVolume = 0.3f;
+        private static readonly string TestVolumeText = ((int)Math.Round(TestVolume * 100f)).ToString(System.Globalization.CultureInfo.InvariantCulture) + "%";
 
         private static readonly Color PickerErrorColor = new Color(1f, 0.45f, 0.4f);
 
@@ -709,7 +711,7 @@ namespace SoundboardMod
 
                 row.TestButton = new OpSimpleButton(new Vector2(320f, rowY[i] + 3f), new Vector2(60f, 24f), "TEST")
                 {
-                    description = "Play the sound picked in this row once, quietly (10% volume), to check it's the one you want. Nothing is saved.",
+                    description = "Play the sound picked in this row once, at " + TestVolumeText + " volume, to check it's the one you want. Nothing is saved.",
                 };
                 row.TestButton.OnClick += _ => TestSound(row);
 
@@ -830,7 +832,7 @@ namespace SoundboardMod
                     return;
                 }
 
-                ShowPickerStatus("Playing \"" + name + "\" at 10% volume.", false);
+                ShowPickerStatus("Playing \"" + name + "\" at " + TestVolumeText + " volume.", false);
                 SoundRegistry.Preview(path, TestVolume, reason => ShowPickerStatus("Couldn't play \"" + name + "\": " + reason + ".", true));
             }
             catch (Exception e)
