@@ -75,7 +75,7 @@ if ((Test-Path $legacyModifyRoot) -and -not (Get-ChildItem $legacyModifyRoot -Fo
 Copy-Item -Path (Join-Path $modSource '*') -Destination $modDest -Recurse -Force
 
 Write-Host ""
-Write-Host "Done. Now, in-game: Options -> Mods -> enable 'Custom Soundboard' -> apply/restart." -ForegroundColor Green
+Write-Host "Done. Now, in-game: Remix -> enable 'Custom Soundboard' -> apply/restart." -ForegroundColor Green
 Write-Host "After that, soundboard.yaml changes need no restart: press RELOAD CONFIG in the mod's options screen."
 Write-Host "(Your personal copy of soundboard.yaml lives in the game's data folder - OPEN FOLDER in the options screen finds it.)"
 Write-Host "(Deploying never touches it. To try the shipped defaults again, delete that copy and restart.)"

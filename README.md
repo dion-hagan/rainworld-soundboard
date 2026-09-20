@@ -21,9 +21,9 @@ setup, see [Upgrading from 0.1.0](#upgrading-from-010).)*
 
 ## Quick start
 
-1. Install the mod and enable **Custom Soundboard** under **Options → Mods**, then restart the game.
+1. Install the mod and enable **Custom Soundboard** in **Remix**, then restart the game.
    It comes with a set of example sounds so you can hear it working straight away.
-2. Open **Options → Mods → Custom Soundboard**. Press **OPEN FOLDER**.
+2. Open **Remix → Custom Soundboard**. Press **OPEN FOLDER**.
 3. In that folder:
    - drop your own `.wav`, `.ogg` or `.mp3` files into the `sounds` folder, and
    - open `soundboard.yaml` in Notepad (or any text editor) and point an event at them.
@@ -49,12 +49,14 @@ the change) - and it lists any problems it found in your file (with line numbers
 
 ## Adding a sound from the options screen
 
-Open **Options → Mods → Custom Soundboard** and switch to the **Add Sound** tab:
+Open **Remix → Custom Soundboard** and switch to the **Add Sound** tab:
 
 1. **When this happens** - pick an event from the dropdown (click it and scroll, or just start typing to
    search; hover a name in the list to see what it means).
 2. **Sound** - pick a `.wav`, `.ogg` or `.mp3` from your `sounds` folder or the ones that came with
    the mod. Dropped new files into the folder? Press **RELOAD CONFIG** on the Sounds tab and they show up.
+   Press **TEST** beside a sound to hear it once (at 30% volume, whatever the Volume box says), before
+   you add it - nothing is saved.
 3. **Volume** (a percentage, `100` = as recorded) and **Delay** (seconds after the event) for that sound -
    the same `volume:` and `delay:` options described below.
    Want several sounds at once? Pick more in the two extra rows (each with its own volume and delay) and tick
@@ -449,7 +451,7 @@ covers Spiders and all Big Spider variants (see the tables above). Slugcats (inc
 
 ## Something not working?
 
-1. Open **Options → Mods → Custom Soundboard**: problems in the file are listed at the top with line numbers.
+1. Open **Remix → Custom Soundboard**: problems in the file are listed at the top with line numbers.
 2. Set `debug: true` under `settings:`, press RELOAD CONFIG, then look at `BepInEx/LogOutput.log` in the
    game folder. Every event that fires is logged along with the sound chosen, so you can tell
    "the event never happened" apart from "the event happened but nothing is set up for it".

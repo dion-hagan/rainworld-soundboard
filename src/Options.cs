@@ -9,15 +9,16 @@ using UnityEngine;
 namespace SoundboardMod
 {
     /// <summary>
-    /// Builds the mod's in-game options screen (Options -> Mods -> Custom Soundboard).
+    /// Builds the mod's in-game options screen (Remix -> Custom Soundboard).
     /// It has three tabs:
     ///
     /// "Sounds": buttons to reload the config and open its folder, a list of any
     /// problems found in soundboard.yaml, and one checkbox per sound entry.
     ///
     /// "Add Sound": dropdowns for an event and up to three sound files (each with number
-    /// boxes for volume and delay) and a "play together" checkbox; SAVE adds that sound,
-    /// or group of sounds, to the event's list in soundboard.yaml.
+    /// boxes for volume and delay, and a TEST button that plays the file quietly) and a "play
+    /// together" checkbox; SAVE adds that sound, or group of sounds, to the event's list in
+    /// soundboard.yaml.
     ///
     /// "Edit Sound": pick an entry that's already in the file and change the volume and delay
     /// of its sounds and its cooldown, or delete the entry (or single sounds of a group); SAVE
@@ -496,6 +497,12 @@ namespace SoundboardMod
         private const int DefaultVolumePercent = 100;
         private const int MaxVolumePercent = (int)(NewSound.MaxVolume * 100f);
 
+        // How loud the Test button plays: a fraction of the file's full volume (0.3 = 30%), which
+        // SoundRegistry.Preview turns into the game's own volume scale. Deliberately fixed and
+        // modest, whatever the row's Volume box says. The player's Sound Effects setting still applies.
+        private const float TestVolume = 0.3f;
+        private static readonly string TestVolumeText = ((int)Math.Round(TestVolume * 100f)).ToString(System.Globalization.CultureInfo.InvariantCulture) + "%";
+
         private static readonly Color PickerErrorColor = new Color(1f, 0.45f, 0.4f);
 
         // The form's Remix settings. Created once, like the checkbox ones (Remix doesn't allow a key twice).
@@ -530,12 +537,14 @@ namespace SoundboardMod
             public Configurable<float> Delay;
 
             public OpComboBox Box;
+            public OpSimpleButton TestButton;
             public PickerUpdown VolumeBox;
             public PickerUpdown DelayBox;
 
             public void ForgetWidgets()
             {
                 Box = null;
+                TestButton = null;
                 VolumeBox = null;
                 DelayBox = null;
             }
@@ -690,17 +699,23 @@ namespace SoundboardMod
                 SoundRow row = rows[i];
                 bool extra = i > 0;
 
-                row.VolumeBox = new PickerUpdown(row.Volume, new Vector2(350f, rowY[i]), 100f)
+                row.VolumeBox = new PickerUpdown(row.Volume, new Vector2(385f, rowY[i]), 90f)
                 {
                     description = "How loud this sound is, as a percentage of the file's own volume. 100 = as recorded, 50 = half as loud, 200 = twice as loud.",
                 };
 
-                row.DelayBox = new PickerUpdown(row.Delay, new Vector2(460f, rowY[i]), 100f, 1)
+                row.DelayBox = new PickerUpdown(row.Delay, new Vector2(480f, rowY[i]), 100f, 1)
                 {
                     description = "Seconds to wait after the event before this sound plays. 0 = right away.",
                 };
 
-                row.Box = new OpComboBox(row.Sound, new Vector2(20f, rowY[i] + 3f), 320f, files.Select(f => new ListItem(f)).ToList())
+                row.TestButton = new OpSimpleButton(new Vector2(320f, rowY[i] + 3f), new Vector2(60f, 24f), "TEST")
+                {
+                    description = "Play the sound picked in this row once, at " + TestVolumeText + " volume, to check it's the one you want. Nothing is saved.",
+                };
+                row.TestButton.OnClick += _ => TestSound(row);
+
+                row.Box = new OpComboBox(row.Sound, new Vector2(20f, rowY[i] + 3f), 295f, files.Select(f => new ListItem(f)).ToList())
                 {
                     listHeight = 8,
                     description = extra
@@ -719,6 +734,7 @@ namespace SoundboardMod
                     };
                 }
 
+                rowWidgets.Add(row.TestButton);
                 rowWidgets.Add(row.VolumeBox);
                 rowWidgets.Add(row.DelayBox);
             }
@@ -743,8 +759,8 @@ namespace SoundboardMod
                 new OpLabel(20f, 181f, "Cooldown:", false),
                 new OpLabel(280f, 181f, "seconds before it can play again (0 = no limit)", false),
                 new OpLabel(20f, 326f, "Sound", false),
-                new OpLabel(350f, 326f, "Volume (%)", false),
-                new OpLabel(460f, 326f, "Delay (seconds)", false),
+                new OpLabel(385f, 326f, "Volume (%)", false),
+                new OpLabel(480f, 326f, "Delay (seconds)", false),
                 eventInfoLabel,
                 soundInfoLabel,
                 pickStatusLabel,
@@ -791,6 +807,38 @@ namespace SoundboardMod
             if (togetherBox != null && togetherBox.value != "true")
             {
                 togetherBox.value = "true";
+            }
+        }
+
+        /// <summary>
+        /// TEST beside a sound row: plays that row's picked file once at <see cref="TestVolume"/>.
+        /// Nothing is added or saved, so the file doesn't need to be in soundboard.yaml yet.
+        /// </summary>
+        private void TestSound(SoundRow row)
+        {
+            try
+            {
+                string name = row.Box?.value;
+                if (string.IsNullOrEmpty(name))
+                {
+                    ShowPickerStatus("Pick a sound in this row first, then press TEST.", true);
+                    return;
+                }
+
+                string path = SoundFileResolver.Find(name, SoundboardRuntime.Locations.SoundFolders, out string problem);
+                if (path == null)
+                {
+                    ShowPickerStatus("Can't test \"" + name + "\": " + problem, true);
+                    return;
+                }
+
+                ShowPickerStatus("Playing \"" + name + "\" at " + TestVolumeText + " volume.", false);
+                SoundRegistry.Preview(path, TestVolume, reason => ShowPickerStatus("Couldn't play \"" + name + "\": " + reason + ".", true));
+            }
+            catch (Exception e)
+            {
+                Log.LogError($"Testing a sound failed: {e}");
+                ShowPickerStatus("Couldn't play the sound: " + e.Message, true);
             }
         }
 

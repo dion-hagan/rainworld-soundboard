@@ -118,5 +118,5 @@ elseif (-not (Test-Path $installedMod)) {
 }
 
 Write-Host ""
-Write-Host "Done. In the game: Options -> Mods -> Custom Soundboard -> RELOAD CONFIG." -ForegroundColor Green
+Write-Host "Done. In the game: Remix -> Custom Soundboard -> RELOAD CONFIG." -ForegroundColor Green
 Write-Host "(Changed the C# code? That needs deploy.ps1 and a game restart.)"
