@@ -102,11 +102,11 @@ namespace SoundboardMod
     }
 
     /// <summary>
-    /// Every event name a sound can be attached to: the fixed ones, plus two
+    /// Every event name a sound can be attached to: the fixed ones, plus
     /// families generated from the game's creature list so that every
     /// creature type (including ones added by other mods) gets its own
-    /// "spotted by" and "dies" event without a hook per creature, plus one
-    /// "eats" event per non-creature food (from EdibleFoods).
+    /// "spotted by", "dies" and "comes near" event without a hook per creature,
+    /// plus one "eats" event per non-creature food (from EdibleFoods).
     /// </summary>
     public sealed class EventCatalog
     {
@@ -118,6 +118,7 @@ namespace SoundboardMod
         public const string SectionGourmand = "The Gourmand";
         public const string SectionFood = "Food eaten";
         public const string SectionMovement = "Movement techs";
+        public const string SectionNear = "Creatures nearby";
 
         /// <summary>Event key fired when a creature of the given type (e.g. "RedLizard") is spotted by/spots the player.</summary>
         public static string SpottedKey(string creatureType)
@@ -135,6 +136,28 @@ namespace SoundboardMod
         public static string EatKey(string foodType)
         {
             return "PlayerEat" + foodType;
+        }
+
+        private const string NearSuffix = "Near";
+
+        /// <summary>Event key fired when a creature of the given type (e.g. "RedLizard") comes within 'creature-near-distance' of the player.</summary>
+        public static string NearKey(string creatureType)
+        {
+            return creatureType + NearSuffix;
+        }
+
+        /// <summary>
+        /// If eventName is a "...Near" event as spelled by the catalog (e.g. "RedLizardNear"), the
+        /// creature type it is about ("RedLizard"); otherwise null. The reverse of NearKey.
+        /// </summary>
+        public static string CreatureTypeOfNearKey(string eventName)
+        {
+            if (eventName == null || eventName.Length <= NearSuffix.Length || !eventName.EndsWith(NearSuffix, StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            return eventName.Substring(0, eventName.Length - NearSuffix.Length);
         }
 
         private static readonly EventInfo[] FixedEvents =
@@ -199,7 +222,7 @@ namespace SoundboardMod
 
         /// <param name="creatureTypeNames">
         /// Names of every creature type the game knows (CreatureTemplate.Type),
-        /// each of which gets a PlayerSpottedBy... and ...Death event.
+        /// each of which gets a PlayerSpottedBy..., ...Death and ...Near event.
         /// </param>
         public EventCatalog(IEnumerable<string> creatureTypeNames)
         {
@@ -217,6 +240,7 @@ namespace SoundboardMod
             {
                 Add(new EventInfo { Section = SectionCreatureDeath, Name = DeathKey(type), Description = "A " + type + " dies." });
                 Add(new EventInfo { Section = SectionSpotted, Name = SpottedKey(type), Description = "A " + type + " notices you. Once per creature per 'spotted-cooldown' seconds." });
+                Add(new EventInfo { Section = SectionNear, Name = NearKey(type), Description = "A " + type + " comes within 'creature-near-distance' tiles of you (setting, default 10). Once per creature per 'creature-near-cooldown' seconds." });
             }
         }
 

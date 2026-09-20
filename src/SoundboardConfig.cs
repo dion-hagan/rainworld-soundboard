@@ -38,6 +38,8 @@ namespace SoundboardMod
         public float SpottedCooldown = 10f;
         public float SwimUnderwaterCooldown = 5f;
         public bool Debug;
+        public float CreatureNearDistance = 10f;
+        public float CreatureNearCooldown = 10f;
     }
 
     /// <summary>One thing to play: a file plus how loud and how late.</summary>
@@ -186,6 +188,8 @@ namespace SoundboardMod
             new FloatSetting { Name = "artificer-pyro-jump-cooldown", Min = 0f, Max = 600f, Set = (s, v) => s.ArtificerPyroJumpCooldown = v },
             new FloatSetting { Name = "spotted-cooldown", Min = 0f, Max = 600f, Set = (s, v) => s.SpottedCooldown = v },
             new FloatSetting { Name = "swim-underwater-cooldown", Min = 0f, Max = 600f, Set = (s, v) => s.SwimUnderwaterCooldown = v },
+            new FloatSetting { Name = "creature-near-distance", Min = 1f, Max = 200f, Set = (s, v) => s.CreatureNearDistance = v },
+            new FloatSetting { Name = "creature-near-cooldown", Min = 0f, Max = 600f, Set = (s, v) => s.CreatureNearCooldown = v },
         };
 
         private const string DebugSettingName = "debug";

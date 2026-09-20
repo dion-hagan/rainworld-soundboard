@@ -30,6 +30,7 @@
     <Compile Include="..\..\src\SoundRotation.cs" Link="Src\SoundRotation.cs" />
     <Compile Include="..\..\src\MovementTech.cs" Link="Src\MovementTech.cs" />
     <Compile Include="..\..\src\DropdownFilter.cs" Link="Src\DropdownFilter.cs" />
+    <Compile Include="..\..\src\NearTracker.cs" Link="Src\NearTracker.cs" />
   </ItemGroup>
 
   <ItemGroup>
