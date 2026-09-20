@@ -89,13 +89,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - **Add Sound tab** in the Remix options screen: pick an event and a sound from dropdowns, set volume and delay,
-  press SAVE, and the sound is added to `soundboard.yaml` and starts working straight away.
+  press APPLY, and the sound is added to `soundboard.yaml` and starts working straight away.
 
 ## [1.0.2] - 2026-09-18
 
 ### Changed
 
-- The options-screen checkboxes now work like any Remix setting: tick, then SAVE writes them into
+- The options-screen checkboxes now work like any Remix setting: tick, then APPLY writes them into
   `soundboard.yaml`. They are re-seeded from the file every time the page opens.
 
 ## [1.0.1] - 2026-09-18

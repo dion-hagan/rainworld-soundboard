@@ -11,7 +11,7 @@ It comes with a set of example sounds so you can hear it working straight away. 
 [olist]
 [*] Subscribe, then enable [b]Custom Soundboard[/b] in [b]Remix[/b] (Mods list) and restart the game.
 [*] Open [b]Remix -> Custom Soundboard[/b] (the mod's options screen).
-[*] Go to the [b]Add Sound[/b] tab. Pick an event ("When this happens"), pick a sound, set its volume and delay, and press [b]SAVE[/b]. It starts working straight away.
+[*] Go to the [b]Add Sound[/b] tab. Pick an event ("When this happens"), pick a sound, set its volume and delay, and press [b]APPLY[/b]. It starts working straight away.
 [*] Want your own sounds? Press [b]OPEN FOLDER[/b], drop your [b].wav[/b], [b].ogg[/b] or [b].mp3[/b] files into the [b]sounds[/b] folder, then press [b]RELOAD CONFIG[/b]. They now show up in the sound dropdown.
 [/olist]
 
