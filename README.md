@@ -23,6 +23,11 @@ setup, see [Upgrading from 0.1.0](#upgrading-from-010).)*
 
 1. Install the mod and enable **Custom Soundboard** in **Remix**, then restart the game.
    It comes with a set of example sounds so you can hear it working straight away.
+   <!-- TODO: link the Workshop page here after the first upload -->
+   *Install from the Steam Workshop:* subscribe to it there and it appears in Remix's mod list.
+   *Install from GitHub:* copy the contents of
+   this repo's `mod/` folder into `Rain World\RainWorld_Data\StreamingAssets\mods\dion_soundboard\` (or run
+   `./scripts/deploy.ps1`).
 2. Open **Remix → Custom Soundboard**. Press **OPEN FOLDER**.
 3. In that folder:
    - drop your own `.wav`, `.ogg` or `.mp3` files into the `sounds` folder, and
@@ -623,15 +628,22 @@ SoundboardMod/
 │  └─ Cooldown.cs, DelayQueue.cs, FallTracker.cs, GourmandHitTracker.cs, SoundRotation.cs   Small game-independent helpers
 ├─ tests/SoundboardMod.Tests/  xUnit tests for everything that doesn't need the game
 ├─ mod/                        The deployable Rain World mod folder
-│  ├─ modinfo.json
+│  ├─ modinfo.json             Also what the Workshop shows: title, description, tags
+│  ├─ thumbnail.png            The Workshop / Remix preview image (16:9, under 1 MB)
 │  ├─ soundboard.yaml          The default config (copied to the player's data folder on first run)
 │  ├─ sounds/                  The bundled example sounds
 │  └─ plugins/                 Build output (SoundboardMod.dll) lands here
+├─ workshop/                   Steam Workshop upload helpers (NOT shipped): description.bbcode.txt, PUBLISHING.md
 └─ scripts/
    ├─ deploy.ps1               Build + copy mod/ into your Rain World install
    ├─ sync-config.ps1          Push mod/soundboard.yaml (+ new sounds) into the running game's personal copy
    └─ download_myinstants_favorites.py   Download a MyInstants user's favorites into the game's sounds folder
 ```
+
+**Steam Workshop.** Rain World uploads a mod from inside the game (Remix, select the mod, upload button), and it sends the
+*installed* mod folder, so run `./scripts/deploy.ps1` first. The uploader rejects a `thumbnail.png` that is 1 MB or larger
+or not 16:9. [`workshop/PUBLISHING.md`](workshop/PUBLISHING.md) has the step-by-step checklist (first upload, updates) and
+`workshop/description.bbcode.txt` is the Workshop page text to paste in.
 
 **How sounds get into the game.** The game normally learns about sounds from `modify/soundeffects/sounds.txt`,
 merged only when mods are *applied* from the menu - before plugins run - so a plugin can't use it for the

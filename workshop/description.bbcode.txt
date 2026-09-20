@@ -1,0 +1,67 @@
+[h1]Custom Soundboard[/h1]
+
+Play [b]your own sound effects[/b] when things happen in Rain World: you die, you jump, you eat, a Green Lizard spots you, you fall too fast, you change rooms, a scavenger throws a spear... [b]One text file, soundboard.yaml, decides which sound plays for which event[/b] - along with how loud it is and how long to wait before it plays.
+
+You can edit that file by hand, or use the [b]Add Sound[/b] and [b]Edit Sound[/b] tabs in the mod's options screen to add sounds from dropdowns and tweak or delete the ones you already have. No coding, no rebuilding, and no game restart to try a change.
+
+It comes with a set of example sounds so you can hear it working straight away. Not a fan of them? Untick them in the options screen and add your own.
+
+[h2]Quick start[/h2]
+
+[olist]
+[*] Subscribe, then enable [b]Custom Soundboard[/b] in [b]Remix[/b] (Mods list) and restart the game.
+[*] Open [b]Remix -> Custom Soundboard[/b] (the mod's options screen).
+[*] Go to the [b]Add Sound[/b] tab. Pick an event ("When this happens"), pick a sound, set its volume and delay, and press [b]SAVE[/b]. It starts working straight away.
+[*] Want your own sounds? Press [b]OPEN FOLDER[/b], drop your [b].wav[/b], [b].ogg[/b] or [b].mp3[/b] files into the [b]sounds[/b] folder, then press [b]RELOAD CONFIG[/b]. They now show up in the sound dropdown.
+[/olist]
+
+[h2]What you can do[/h2]
+
+[list]
+[*] Give any event one sound, or several that [b]take turns[/b] (a different death sound each time, for example).
+[*] Play [b]several sounds at once[/b] as one step of the rotation.
+[*] Set a per-sound [b]volume[/b], [b]delay[/b] and [b]cooldown[/b].
+[*] Switch individual sounds on and off with checkboxes.
+[*] Test-play a sound in the options screen before you add it.
+[*] Events cover the player (death, jump, landing, eating, grabbing things, entering a shelter...), the world (region gates, snails, flashbangs...), creatures dying, and being spotted by creatures. Every creature type also gets its own death and spotted events.
+[/list]
+
+[h2]Where your settings live[/h2]
+
+Your personal [b]soundboard.yaml[/b] and your own sounds are kept in the game's data folder, [b]not[/b] in the mod's folder, so Workshop updates never wipe them. Press [b]OPEN FOLDER[/b] on the options screen to jump straight there (on Windows it is [i]%USERPROFILE%\AppData\LocalLow\Videocult\Rain World\Soundboard[/i]). The soundboard.yaml inside the mod's own folder is only a template that is copied over the first time the game starts; to start over with the defaults, delete your copy and restart.
+
+A tiny taste of the file:
+
+[code]
+events:
+  PlayerDeath:
+    - boom.wav                 # just a file name
+    - file: sad-trombone.wav   # or with options
+      volume: 0.5              # 1 = as recorded
+      delay: 1.5               # seconds after the event
+      cooldown: 30             # at most once every 30 seconds
+[/code]
+
+The options screen lists any mistakes it finds in your file, with line numbers, and every event name you can use is written to [b]events.txt[/b] in the same folder.
+
+[h2]Something not working?[/h2]
+
+[list]
+[*] Open Remix -> Custom Soundboard: problems in the file are listed at the top with line numbers.
+[*] Set [b]debug: true[/b] under [b]settings:[/b], press RELOAD CONFIG, then look at BepInEx/LogOutput.log in the game folder to see every event that fires and the sound chosen.
+[*] A sound that can't be played (corrupt, or an odd format) is reported by name. Re-saving it as a plain 16-bit .wav with a free editor like Audacity always works.
+[/list]
+
+[h2]Links[/h2]
+
+[list]
+[*] [url=https://github.com/dion-hagan/rainworld-soundboard]Source code, full documentation, demo video and bug reports on GitHub[/url]
+[/list]
+
+[h2]Credits[/h2]
+
+[list]
+[*] Made by Dion, for me and my friends to play around with. It is possibly the dumbest thing I have ever written, but I could not find anything general purpose like it - feel free to use it and extend it.
+[*] [b]AI-assisted:[/b] this mod's code was written with the help of AI. I reviewed it, but did not pay close attention to the architecture.
+[*] The included example sounds are short clips of well-known memes, games and shows, bundled only as placeholders so the mod makes noise out of the box. They belong to their respective owners; replace them with your own sounds.
+[/list]
