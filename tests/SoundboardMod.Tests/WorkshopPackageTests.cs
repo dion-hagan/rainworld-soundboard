@@ -183,13 +183,13 @@ namespace SoundboardMod.Tests
             }
 
             string[] plugins = Directory.GetFileSystemEntries(Path.Combine(mod, "plugins")).Select(Path.GetFileName).ToArray();
-            Assert.Empty(plugins.Where(f => !f.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) && !f.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase)));
+            Assert.All(plugins, f => Assert.True(f.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) || f.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase), f + " doesn't belong in plugins/"));
             Assert.Contains("SoundboardMod.dll", plugins);
 
             string[] audio = { ".wav", ".ogg", ".mp3" };
             string[] sounds = Directory.GetFileSystemEntries(Path.Combine(mod, "sounds"));
             Assert.NotEmpty(sounds);
-            Assert.Empty(sounds.Where(f => !audio.Contains(Path.GetExtension(f).ToLowerInvariant())));
+            Assert.All(sounds, f => Assert.True(audio.Contains(Path.GetExtension(f).ToLowerInvariant()), f + " isn't a .wav/.ogg/.mp3"));
         }
 
         [Fact]
