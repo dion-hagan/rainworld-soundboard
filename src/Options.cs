@@ -495,6 +495,13 @@ namespace SoundboardMod
         private const int SoundRowCount = 3;
 
         private const int DefaultVolumePercent = 100;
+
+        // What the Add Sound form starts with (and goes back to after each add): quiet and rate-limited, so a
+        // freshly added meme can't blast or spam. Only the form; a hand-written entry without volume: or
+        // cooldown: still means 100% and no limit, and Edit Sound shows an entry's own numbers.
+        private const int NewSoundVolumePercent = 30;
+        private const float NewSoundCooldownSeconds = 30f;
+
         private const int MaxVolumePercent = (int)(NewSound.MaxVolume * 100f);
 
         private static readonly Color PickerErrorColor = new Color(1f, 0.45f, 0.4f);
@@ -547,7 +554,7 @@ namespace SoundboardMod
         private sealed class RowForm
         {
             public string Sound = string.Empty;
-            public int VolumePercent = DefaultVolumePercent;
+            public int VolumePercent = NewSoundVolumePercent;
             public float Delay;
         }
 
@@ -555,7 +562,7 @@ namespace SoundboardMod
         {
             public string Event = string.Empty;
             public bool Together;
-            public float Cooldown;
+            public float Cooldown = NewSoundCooldownSeconds;
             public readonly RowForm[] Rows = Enumerable.Range(0, SoundRowCount).Select(_ => new RowForm()).ToArray();
         }
 
@@ -589,7 +596,7 @@ namespace SoundboardMod
             {
                 pickEvent = config.Bind(PickEventKey, string.Empty, new ConfigurableInfo("The event the new sound plays for."));
                 pickTogether = config.Bind(PickTogetherKey, false, new ConfigurableInfo("Play the chosen sounds all at once, as a single entry in the event's list."));
-                pickCooldown = config.Bind(PickCooldownKey, 0f, new ConfigAcceptableRange<float>(0f, NewSound.MaxCooldown));
+                pickCooldown = config.Bind(PickCooldownKey, NewSoundCooldownSeconds, new ConfigAcceptableRange<float>(0f, NewSound.MaxCooldown));
 
                 for (int i = 0; i < SoundRowCount; i++)
                 {
@@ -597,7 +604,7 @@ namespace SoundboardMod
                     rows[i] = new SoundRow
                     {
                         Sound = config.Bind("AddSound_Sound" + n, string.Empty, new ConfigurableInfo("An audio file the new sound plays.")),
-                        Volume = config.Bind("AddSound_Volume" + n, DefaultVolumePercent, new ConfigAcceptableRange<int>(0, MaxVolumePercent)),
+                        Volume = config.Bind("AddSound_Volume" + n, NewSoundVolumePercent, new ConfigAcceptableRange<int>(0, MaxVolumePercent)),
                         Delay = config.Bind("AddSound_Delay" + n, 0f, new ConfigAcceptableRange<float>(0f, NewSound.MaxDelay)),
                     };
                 }
@@ -827,7 +834,7 @@ namespace SoundboardMod
                     return;
                 }
 
-                int percent = row.VolumeBox != null ? row.VolumeBox.valueInt : DefaultVolumePercent;
+                int percent = row.VolumeBox != null ? row.VolumeBox.valueInt : NewSoundVolumePercent;
                 if (percent <= 0)
                 {
                     ShowPickerStatus("The Volume box for \"" + name + "\" is 0, so it would be silent. Raise it to test.", true);
@@ -918,14 +925,14 @@ namespace SoundboardMod
             {
                 Event = eventBox.value ?? string.Empty,
                 Together = togetherBox != null && togetherBox.value == "true",
-                Cooldown = cooldownBox != null ? cooldownBox.valueFloat : 0f,
+                Cooldown = cooldownBox != null ? cooldownBox.valueFloat : NewSoundCooldownSeconds,
             };
 
             for (int i = 0; i < SoundRowCount; i++)
             {
                 SoundRow row = rows[i];
                 form.Rows[i].Sound = row.Box?.value ?? string.Empty;
-                form.Rows[i].VolumePercent = row.VolumeBox != null ? row.VolumeBox.valueInt : DefaultVolumePercent;
+                form.Rows[i].VolumePercent = row.VolumeBox != null ? row.VolumeBox.valueInt : NewSoundVolumePercent;
                 form.Rows[i].Delay = row.DelayBox != null ? row.DelayBox.valueFloat : 0f;
             }
 
