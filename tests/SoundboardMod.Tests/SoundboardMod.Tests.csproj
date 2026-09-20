@@ -14,6 +14,7 @@
   <ItemGroup>
     <Compile Include="..\..\src\MiniYaml.cs" Link="Src\MiniYaml.cs" />
     <Compile Include="..\..\src\EventCatalog.cs" Link="Src\EventCatalog.cs" />
+    <Compile Include="..\..\src\EdibleFoods.cs" Link="Src\EdibleFoods.cs" />
     <Compile Include="..\..\src\SoundboardConfig.cs" Link="Src\SoundboardConfig.cs" />
     <Compile Include="..\..\src\ConfigFiles.cs" Link="Src\ConfigFiles.cs" />
     <Compile Include="..\..\src\YamlEditor.cs" Link="Src\YamlEditor.cs" />

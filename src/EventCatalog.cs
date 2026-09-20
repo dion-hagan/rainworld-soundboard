@@ -43,26 +43,27 @@ namespace SoundboardMod
 
             string best = null;
             int bestDistance = int.MaxValue;
+            string bestPrefixMatch = null;
             foreach (string candidate in candidates)
             {
                 string normalized = Normalize(candidate);
                 int distance = Distance(wanted, normalized);
-
-                // "Player" -> "PlayerDeath"-style prefixes are also worth suggesting.
-                if (normalized.StartsWith(wanted) || wanted.StartsWith(normalized))
-                {
-                    distance = Math.Min(distance, 1);
-                }
-
                 if (distance < bestDistance)
                 {
                     bestDistance = distance;
                     best = candidate;
                 }
+
+                // "Player" -> "PlayerDeath"-style prefixes are also worth suggesting, but only as a
+                // fallback: otherwise a typo in "PlayerEatGooieDuck" would suggest the shorter "PlayerEat".
+                if (bestPrefixMatch == null && (normalized.StartsWith(wanted) || wanted.StartsWith(normalized)))
+                {
+                    bestPrefixMatch = candidate;
+                }
             }
 
             int allowed = Math.Max(2, wanted.Length / 4);
-            return bestDistance <= allowed ? best : null;
+            return bestDistance <= allowed ? best : bestPrefixMatch;
         }
 
         /// <summary>Levenshtein edit distance.</summary>
@@ -104,7 +105,8 @@ namespace SoundboardMod
     /// Every event name a sound can be attached to: the fixed ones, plus two
     /// families generated from the game's creature list so that every
     /// creature type (including ones added by other mods) gets its own
-    /// "spotted by" and "dies" event without a hook per creature.
+    /// "spotted by" and "dies" event without a hook per creature, plus one
+    /// "eats" event per non-creature food (from EdibleFoods).
     /// </summary>
     public sealed class EventCatalog
     {
@@ -114,6 +116,7 @@ namespace SoundboardMod
         public const string SectionSpotted = "The player being spotted";
         public const string SectionWater = "Water and breathing";
         public const string SectionGourmand = "The Gourmand";
+        public const string SectionFood = "Food eaten";
 
         /// <summary>Event key fired when a creature of the given type (e.g. "RedLizard") is spotted by/spots the player.</summary>
         public static string SpottedKey(string creatureType)
@@ -125,6 +128,12 @@ namespace SoundboardMod
         public static string DeathKey(string creatureType)
         {
             return creatureType + "Death";
+        }
+
+        /// <summary>Event key fired when the slugcat finishes eating a non-creature food of the given object type (e.g. "DangleFruit").</summary>
+        public static string EatKey(string foodType)
+        {
+            return "PlayerEat" + foodType;
         }
 
         private static readonly EventInfo[] FixedEvents =
@@ -185,6 +194,11 @@ namespace SoundboardMod
             foreach (EventInfo info in FixedEvents)
             {
                 Add(info);
+            }
+
+            foreach (EdibleFood food in EdibleFoods.All)
+            {
+                Add(new EventInfo { Section = SectionFood, Name = EatKey(food.TypeName), Description = "The slugcat eats " + food.Eats + "." });
             }
 
             foreach (string type in (creatureTypeNames ?? Enumerable.Empty<string>()).Where(t => !string.IsNullOrEmpty(t)).Distinct().OrderBy(t => t, StringComparer.OrdinalIgnoreCase))
