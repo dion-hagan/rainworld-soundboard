@@ -705,7 +705,7 @@ namespace SoundboardMod
 
                 row.TestButton = new OpSimpleButton(new Vector2(320f, rowY[i] + 3f), new Vector2(60f, 24f), "TEST")
                 {
-                    description = "Play the sound picked in this row once, at the volume in its Volume box, the way it will sound in the game (a menu can't add distance or room effects). Nothing is saved.",
+                    description = "Play the sound picked in this row once, at the volume in its Volume box, the way it will sound in the game (a menu can't add distance or room effects). Plays at most 10 seconds. Nothing is saved.",
                 };
                 row.TestButton.OnClick += _ => TestSound(row);
 

@@ -137,7 +137,9 @@ namespace SoundboardMod
         /// Plays a file once, straight away, through the menu's microphone: the Test button on the
         /// Add Sound page. The file doesn't have to be in soundboard.yaml - it is loaded and added to
         /// the game's tables here the first time, and then stays there like any other sound. If the
-        /// file is still loading the sound starts as soon as it's ready. <paramref name="onProblem"/>
+        /// file is still loading the sound starts as soon as it's ready. At most the first
+        /// <see cref="PreviewMaxSeconds"/> seconds play, so a long file can't run on after the
+        /// player has left the screen. <paramref name="onProblem"/>
         /// is called (on the main thread, possibly a moment later) with a reason if it can't be played.
         ///
         /// <paramref name="volume"/> is on the same scale as a sound's volume in soundboard.yaml
@@ -167,6 +169,12 @@ namespace SoundboardMod
 
         /// <summary>How long a Test press waits for clips that are still loading before giving up.</summary>
         private const float PreviewWaitSeconds = 15f;
+
+        /// <summary>A Test never plays more than this much of a file; a shorter file plays to its end.</summary>
+        private const float PreviewMaxSeconds = 10f;
+
+        /// <summary>How much of the end of a cut-off Test is faded out.</summary>
+        private const float PreviewFadeSeconds = 0.3f;
 
         private static IEnumerator PreviewWhenReady(string path, float volume, Action<string> onProblem)
         {
@@ -216,6 +224,33 @@ namespace SoundboardMod
 
             MenuMicrophone.MenuSoundObject started = mic.soundObjects[mic.soundObjects.Count - 1];
             Log.LogInfo($"Test: playing '{entry.Path}' - volume {volume:0.###}, audio source volume {started.audioSource.volume:0.####}, playing {started.audioSource.isPlaying}, clip {(started.audioSource.clip != null ? started.audioSource.clip.length.ToString("0.0#") + "s" : "none")}");
+
+            // A song shouldn't keep playing once the player has moved on (e.g. pressed APPLY): cut it off
+            // after PreviewMaxSeconds, with a short fade so it doesn't end on a click. A shorter file just plays out.
+            AudioSource source = started.audioSource;
+            if (source.clip == null || source.clip.length <= PreviewMaxSeconds)
+            {
+                yield break;
+            }
+
+            float startVolume = source.volume;
+            while (!started.slatedForDeletion && source.isPlaying)
+            {
+                // slatedForDeletion first: once the microphone is done with the sound, its audio source goes back to a pool and may be someone else's.
+                float left = PreviewMaxSeconds - source.time;
+                if (left <= 0f)
+                {
+                    started.Stop();
+                    yield break;
+                }
+
+                if (left < PreviewFadeSeconds)
+                {
+                    source.volume = startVolume * left / PreviewFadeSeconds;
+                }
+
+                yield return null;
+            }
         }
 
         private static string Sanitize(string s)
