@@ -329,14 +329,28 @@ How the game's own rules are used, so you know exactly when these fire:
   air hits zero), not any death that happens to be underwater. `PlayerDeath` fires as well.
 - Slugpups and other computer-controlled slugcats never fire these.
 
+### The Gourmand
+
+The Gourmand's body is a weapon: sliding, rolling or dropping onto a living creature stuns and hurts it.
+These events fire at the moment the game applies that damage (not on every overlap), for the Gourmand only,
+and play at the Gourmand. The same creature can't set off another of them for half a second, since the game
+can register one impact more than once. Creatures that are already dead, the slugpup and (unless friendly fire
+is on) other players aren't hurt by it, so they don't fire it either.
+
+| Event | Fires when |
+|---|---|
+| `GourmandSlideHit` | The Gourmand's belly slide (or the rocket jump out of one) slams into a living creature and hurts it. Plays at the Gourmand, once per creature per half second. |
+| `GourmandDropHit` | The Gourmand comes down hard on a living creature (a fast fall onto it) and hurts it. Plays at the Gourmand, once per creature per half second. |
+| `GourmandRollHit` | The Gourmand rolls into a living creature and hurts it (the roll has its own half-second lockout). Plays at the Gourmand. |
+
 <details>
-<summary><b>Full list of every event name (208)</b> - click to expand</summary>
+<summary><b>Full list of every event name (211)</b> - click to expand</summary>
 
 Every event you can put under `events:` in `soundboard.yaml`, as of Rain World v1.11.8 with the
 More Slugcats and Watcher creatures. Creatures added by other mods get the same two events
 automatically; the list the mod writes to `events.txt` always includes them.
 
-**Built-in events (35)** - described in the tables above:
+**Built-in events (38)** - described in the tables above:
 
 ```
 PlayerDeath
@@ -374,6 +388,9 @@ PlayerSpottedByMiros
 PlayerSwimUnderwater
 PlayerDrowning
 PlayerDrowned
+GourmandSlideHit
+GourmandDropHit
+GourmandRollHit
 ```
 
 **Per-creature events (88 creature types)** - one "dies" and one "notices you" event each:
@@ -524,7 +541,8 @@ SoundboardMod/
 │  ├─ EventHooks.cs            Harmony patches that turn game moments into event names
 │  ├─ Options.cs               The in-game options screen (Sounds, Add Sound and Edit Sound tabs)
 │  ├─ EntryCooldowns.cs        Tracks which entries are cooling down (an entry's `cooldown:`)
-│  └─ Cooldown.cs, DelayQueue.cs, FallTracker.cs, SoundRotation.cs   Small game-independent helpers
+│  ├─ EventHooks.Gourmand.cs   The Gourmand's slide/drop/roll hit events (a partial of EventHooks)
+│  └─ Cooldown.cs, DelayQueue.cs, FallTracker.cs, GourmandHitTracker.cs, SoundRotation.cs   Small game-independent helpers
 ├─ tests/SoundboardMod.Tests/  xUnit tests for everything that doesn't need the game
 ├─ mod/                        The deployable Rain World mod folder
 │  ├─ modinfo.json
