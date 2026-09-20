@@ -533,3 +533,5 @@ sound to the event's list in `soundboard.yaml`. `v1.1.1` lets that tab add a `to
 `v1.2.0` added the per-entry `cooldown:` option (and a Cooldown box on the Add Sound tab).
 `v1.3.0` added the **Edit Sound** tab: change an existing entry's volume, delay and cooldown in place.
 `v1.4.0` lets that tab delete an entry, or single sounds of a group (with a backup of the file first).
+`v1.4.1` moves `PlayerEnterShelter` to the moment you walk into a shelter instead of when its door finishes closing,
+which was too late for the sound to be heard before the sleep screen.
