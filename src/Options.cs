@@ -16,7 +16,7 @@ namespace SoundboardMod
     /// problems found in soundboard.yaml, and one checkbox per sound entry.
     ///
     /// "Add Sound": dropdowns for an event and up to three sound files (each with number
-    /// boxes for volume and delay, and a TEST button that plays the file quietly) and a "play
+    /// boxes for volume and delay, and a TEST button that plays the file at that volume) and a "play
     /// together" checkbox; SAVE adds that sound, or group of sounds, to the event's list in
     /// soundboard.yaml.
     ///
@@ -497,12 +497,6 @@ namespace SoundboardMod
         private const int DefaultVolumePercent = 100;
         private const int MaxVolumePercent = (int)(NewSound.MaxVolume * 100f);
 
-        // How loud the Test button plays: a fraction of the file's full volume (0.3 = 30%), which
-        // SoundRegistry.Preview turns into the game's own volume scale. Deliberately fixed and
-        // modest, whatever the row's Volume box says. The player's Sound Effects setting still applies.
-        private const float TestVolume = 0.3f;
-        private static readonly string TestVolumeText = ((int)Math.Round(TestVolume * 100f)).ToString(System.Globalization.CultureInfo.InvariantCulture) + "%";
-
         private static readonly Color PickerErrorColor = new Color(1f, 0.45f, 0.4f);
 
         // The form's Remix settings. Created once, like the checkbox ones (Remix doesn't allow a key twice).
@@ -711,7 +705,7 @@ namespace SoundboardMod
 
                 row.TestButton = new OpSimpleButton(new Vector2(320f, rowY[i] + 3f), new Vector2(60f, 24f), "TEST")
                 {
-                    description = "Play the sound picked in this row once, at " + TestVolumeText + " volume, to check it's the one you want. Nothing is saved.",
+                    description = "Play the sound picked in this row once, at the volume in its Volume box, the way it will sound in the game (a menu can't add distance or room effects). Nothing is saved.",
                 };
                 row.TestButton.OnClick += _ => TestSound(row);
 
@@ -811,8 +805,9 @@ namespace SoundboardMod
         }
 
         /// <summary>
-        /// TEST beside a sound row: plays that row's picked file once at <see cref="TestVolume"/>.
-        /// Nothing is added or saved, so the file doesn't need to be in soundboard.yaml yet.
+        /// TEST beside a sound row: plays that row's picked file once at the volume in the row's
+        /// Volume box, so it's what the player will hear in the game. Nothing is added or saved,
+        /// so the file doesn't need to be in soundboard.yaml yet.
         /// </summary>
         private void TestSound(SoundRow row)
         {
@@ -832,8 +827,15 @@ namespace SoundboardMod
                     return;
                 }
 
-                ShowPickerStatus("Playing \"" + name + "\" at " + TestVolumeText + " volume.", false);
-                SoundRegistry.Preview(path, TestVolume, reason => ShowPickerStatus("Couldn't play \"" + name + "\": " + reason + ".", true));
+                int percent = row.VolumeBox != null ? row.VolumeBox.valueInt : DefaultVolumePercent;
+                if (percent <= 0)
+                {
+                    ShowPickerStatus("The Volume box for \"" + name + "\" is 0, so it would be silent. Raise it to test.", true);
+                    return;
+                }
+
+                ShowPickerStatus("Playing \"" + name + "\" at volume " + percent + "%.", false);
+                SoundRegistry.Preview(path, percent / 100f, reason => ShowPickerStatus("Couldn't play \"" + name + "\": " + reason + ".", true));
             }
             catch (Exception e)
             {

@@ -55,8 +55,9 @@ Open **Remix → Custom Soundboard** and switch to the **Add Sound** tab:
    search; hover a name in the list to see what it means).
 2. **Sound** - pick a `.wav`, `.ogg` or `.mp3` from your `sounds` folder or the ones that came with
    the mod. Dropped new files into the folder? Press **RELOAD CONFIG** on the Sounds tab and they show up.
-   Press **TEST** beside a sound to hear it once (at 30% volume, whatever the Volume box says), before
-   you add it - nothing is saved.
+   Press **TEST** beside a sound to hear it once, at the volume in that row's Volume box, before you add
+   it - nothing is saved. It's the level you'd get in the game from a sound that isn't tied to a spot in the
+   room; sounds that come from somewhere in a room get quieter with distance in the game, which a menu can't copy.
 3. **Volume** (a percentage, `100` = as recorded) and **Delay** (seconds after the event) for that sound -
    the same `volume:` and `delay:` options described below.
    Want several sounds at once? Pick more in the two extra rows (each with its own volume and delay) and tick

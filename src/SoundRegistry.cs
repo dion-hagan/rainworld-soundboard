@@ -140,12 +140,14 @@ namespace SoundboardMod
         /// file is still loading the sound starts as soon as it's ready. <paramref name="onProblem"/>
         /// is called (on the main thread, possibly a moment later) with a reason if it can't be played.
         ///
-        /// <paramref name="loudness"/> is how loud it comes out, as a fraction of the file's full volume
-        /// (0.1 = a tenth of the amplitude, before the player's Sound Effects setting). It is NOT the
-        /// game's own volume scale: the game raises a volume to a power (SoundLoader.volumeExponent,
-        /// 1.8) before using it, so a game-scale 0.1 would come out at about 0.016 - near silence.
+        /// <paramref name="volume"/> is on the same scale as a sound's volume in soundboard.yaml
+        /// (1 = as recorded), handed to the microphone unchanged - exactly what Room.PlaySound hands
+        /// it in-game, so the game applies the same Sound Effects setting and volume curve
+        /// (SoundLoader.volumeExponent) and the level matches what the player hears from a
+        /// sound that isn't positioned in the room. What a menu can't reproduce is anything the
+        /// room adds: distance from the sound's source, muffling, rain drowning it out.
         /// </summary>
-        public static void Preview(string path, float loudness, Action<string> onProblem)
+        public static void Preview(string path, float volume, Action<string> onProblem)
         {
             if (!Available)
             {
@@ -160,13 +162,13 @@ namespace SoundboardMod
             }
 
             Sync(new[] { path });
-            host.StartCoroutine(PreviewWhenReady(path, loudness, onProblem));
+            host.StartCoroutine(PreviewWhenReady(path, volume, onProblem));
         }
 
         /// <summary>How long a Test press waits for clips that are still loading before giving up.</summary>
         private const float PreviewWaitSeconds = 15f;
 
-        private static IEnumerator PreviewWhenReady(string path, float loudness, Action<string> onProblem)
+        private static IEnumerator PreviewWhenReady(string path, float volume, Action<string> onProblem)
         {
             // This file's first Test (or files queued ahead of it) may still be loading, one a frame.
             float waited = 0f;
@@ -202,22 +204,18 @@ namespace SoundboardMod
                 yield break;
             }
 
-            // The microphone applies (volume * Sound Effects setting) ^ volumeExponent, so undo the power to land on the loudness asked for.
-            float exponent = mic.soundLoader != null && mic.soundLoader.volumeExponent > 0f ? mic.soundLoader.volumeExponent : 1f;
-            float gameVolume = Mathf.Clamp01(Mathf.Pow(loudness, 1f / exponent));
-
             int before = mic.soundObjects.Count;
-            mic.PlaySound(entry.Id, 0f, gameVolume, 1f);
+            mic.PlaySound(entry.Id, 0f, volume, 1f);
 
             if (mic.soundObjects.Count <= before)
             {
-                Log.LogWarning($"Test: the menu microphone didn't start '{entry.Path}' (sound {entry.Id}, game volume {gameVolume:0.###})");
+                Log.LogWarning($"Test: the menu microphone didn't start '{entry.Path}' (sound {entry.Id}, volume {volume:0.###})");
                 onProblem("the game didn't start the sound");
                 yield break;
             }
 
             MenuMicrophone.MenuSoundObject started = mic.soundObjects[mic.soundObjects.Count - 1];
-            Log.LogInfo($"Test: playing '{entry.Path}' - loudness {loudness:0.###}, game volume {gameVolume:0.###} (exponent {exponent:0.##}), audio source volume {started.audioSource.volume:0.####}, playing {started.audioSource.isPlaying}, clip {(started.audioSource.clip != null ? started.audioSource.clip.length.ToString("0.0#") + "s" : "none")}");
+            Log.LogInfo($"Test: playing '{entry.Path}' - volume {volume:0.###}, audio source volume {started.audioSource.volume:0.####}, playing {started.audioSource.isPlaying}, clip {(started.audioSource.clip != null ? started.audioSource.clip.length.ToString("0.0#") + "s" : "none")}");
         }
 
         private static string Sanitize(string s)
