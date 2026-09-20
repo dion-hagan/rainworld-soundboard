@@ -4,6 +4,15 @@ Every release of Custom Soundboard, newest first. Each version is a git tag (`vX
 `mod/modinfo.json`, the `[BepInPlugin]` version in `src/Plugin.cs` and the tag always agree.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Changed
+
+- **Sounds under an event now play in a shuffled order.** Entries still take turns, but in a random order:
+  every entry plays once before any plays again, the same one never plays twice in a row, and the order is
+  different each time you start the game (it used to start at the top of the list every launch). Set
+  `shuffle: false` under `settings:` in `soundboard.yaml` to get the old in-file order back.
+
 ## [1.6.0] - 2026-09-20
 
 ### Added

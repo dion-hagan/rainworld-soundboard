@@ -18,7 +18,7 @@ It comes with a set of example sounds so you can hear it working straight away. 
 [h2]What you can do[/h2]
 
 [list]
-[*] Give any event one sound, or several that [b]take turns[/b] (a different death sound each time, for example).
+[*] Give any event one sound, or several that [b]take turns in a shuffled order[/b] (a different death sound each time, for example).
 [*] Play [b]several sounds at once[/b] as one step of the rotation.
 [*] Set a per-sound [b]volume[/b], [b]delay[/b] and [b]cooldown[/b].
 [*] Switch individual sounds on and off with checkboxes.

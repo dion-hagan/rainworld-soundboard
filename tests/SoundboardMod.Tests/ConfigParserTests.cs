@@ -275,6 +275,23 @@ namespace SoundboardMod.Tests
             Assert.Equal(10f, s.ArtificerPyroJumpCooldown);
             Assert.Equal(10f, s.SpottedCooldown);
             Assert.False(s.Debug);
+            Assert.True(s.Shuffle);
+        }
+
+        [Fact]
+        public void ShuffleCanBeSwitchedOff()
+        {
+            SoundboardConfig config = Parse("settings:\n  shuffle: false\n");
+            Assert.Empty(config.Issues);
+            Assert.False(config.Settings.Shuffle);
+        }
+
+        [Fact]
+        public void ShuffleThatIsntABooleanKeepsTheDefault()
+        {
+            SoundboardConfig config = Parse("settings:\n  shuffle: sometimes\n");
+            Assert.Contains("should be true or false", config.Issues.Single().Message);
+            Assert.True(config.Settings.Shuffle);
         }
 
         [Fact]

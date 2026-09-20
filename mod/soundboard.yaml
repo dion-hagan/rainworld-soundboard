@@ -35,8 +35,11 @@
 #            name: "Big Boom"          <- label in the options menu (optional)
 #            enabled: false            <- switched off (optional; "disabled: true" works too)
 #
-#    Several entries under one event take turns: the first death plays the
-#    first sound, the next death plays the second, and so on, around again.
+#    Several entries under one event take turns, in a random order: every entry
+#    plays once before any plays again, and the order is different each time you
+#    start the game. (Set "shuffle: false" under settings to play them in the
+#    order they're written instead: the first death plays the first sound, the
+#    next death the second, and so on, around again.)
 #
 #    To play several sounds AT THE SAME TIME as a single step of that rotation:
 #
@@ -62,6 +65,7 @@ settings:
   artificer-pyro-jump-cooldown: 10  # seconds between Artificer pyro-jump sounds
   spotted-cooldown: 10              # seconds before the same creature can "spot" you again
   swim-underwater-cooldown: 5       # seconds between PlayerSwimUnderwater sounds
+  shuffle: true                     # true = entries take turns in a random order; false = the order written below
   debug: false                      # true = log every event to BepInEx/LogOutput.log
 
 

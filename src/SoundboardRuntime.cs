@@ -42,6 +42,11 @@ namespace SoundboardMod
         // turn. In memory only: every launch starts each rotation at the top.
         private static readonly Dictionary<string, string> LastChoice = new Dictionary<string, string>();
 
+        // With "shuffle" on: the choices of each event that haven't had a turn yet this lap. In memory
+        // only, so every launch (and every reload) draws a fresh random order.
+        private static readonly Dictionary<string, List<string>> ShuffleBags = new Dictionary<string, List<string>>();
+        private static readonly System.Random ShuffleRandom = new System.Random();
+
         // Entries that have played and are waiting out their "cooldown:". In memory only, and started
         // fresh for every game session.
         private static readonly EntryCooldowns Cooldowns = new EntryCooldowns();
@@ -193,6 +198,7 @@ namespace SoundboardMod
             }
 
             LastChoice.Clear();
+            ShuffleBags.Clear();
             Delays.Clear();
             Cooldowns.Clear();
 
@@ -551,10 +557,25 @@ namespace SoundboardMod
 
             // An entry that's switched off, or still cooling down from its last play, is skipped
             // (keeping its place in the rotation).
-            string nextId = SoundRotation.NextKey(
-                binding.Choices.Select(c => c.Id).ToList(),
-                id => IsEnabled(binding.Choices.First(c => c.Id == id)) && !Cooldowns.IsCoolingDown(id),
-                lastId);
+            List<string> ids = binding.Choices.Select(c => c.Id).ToList();
+            Func<string, bool> playable = id => IsEnabled(binding.Choices.First(c => c.Id == id)) && !Cooldowns.IsCoolingDown(id);
+
+            string nextId;
+            if (Settings.Shuffle)
+            {
+                if (!ShuffleBags.TryGetValue(normalized, out List<string> bag))
+                {
+                    bag = new List<string>();
+                    ShuffleBags[normalized] = bag;
+                }
+
+                nextId = SoundRotation.NextShuffled(ids, playable, bag, lastId, ShuffleRandom);
+            }
+            else
+            {
+                nextId = SoundRotation.NextKey(ids, playable, lastId);
+            }
+
             if (nextId == null)
             {
                 if (Settings.Debug)

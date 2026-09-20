@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SoundboardMod
 {
@@ -42,6 +43,45 @@ namespace SoundboardMod
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// The shuffled version of NextKey: picks at random from the keys that haven't had a turn
+        /// yet this lap, so every key plays once before any plays again, in a different order each
+        /// lap and each launch.
+        ///
+        /// bag is the caller's per-event state, the keys still waiting for their turn this lap; an
+        /// empty bag (the very first call) starts a lap. When a lap is used up, or everything left
+        /// in the bag is unplayable, a new lap starts with every key - and the key that played last
+        /// is left out of the first pick, so a lap boundary never plays the same sound twice in a
+        /// row (unless it's the only one available). An unplayable key just stays in the bag until
+        /// it is playable and gets drawn, so it doesn't lose its turn.
+        /// </summary>
+        public static string NextShuffled(IList<string> orderedKeys, Func<string, bool> isPlayable, List<string> bag, string lastKey, Random random)
+        {
+            // Keys removed from the event since the bag was filled have no turn to take.
+            bag.RemoveAll(k => !orderedKeys.Contains(k));
+
+            List<string> candidates = bag.Where(isPlayable).ToList();
+            if (candidates.Count == 0)
+            {
+                bag.Clear();
+                bag.AddRange(orderedKeys);
+                candidates = bag.Where(isPlayable).ToList();
+                if (candidates.Count > 1 && lastKey != null)
+                {
+                    candidates.Remove(lastKey);
+                }
+            }
+
+            if (candidates.Count == 0)
+            {
+                return null;
+            }
+
+            string pick = candidates[random.Next(candidates.Count)];
+            bag.Remove(pick);
+            return pick;
         }
     }
 }

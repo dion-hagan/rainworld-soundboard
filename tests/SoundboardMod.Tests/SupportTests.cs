@@ -268,6 +268,119 @@ namespace SoundboardMod.Tests
             Assert.Null(SoundRotation.NextKey(keys, _ => false, null));
             Assert.Null(SoundRotation.NextKey(new string[0], _ => true, null));
         }
+
+        // --- shuffled ---------------------------------------------------------------
+
+        /// <summary>Draws n keys the way SoundboardRuntime.Fire does, keeping the bag and last key between draws.</summary>
+        private static List<string> Draw(int n, IList<string> keys, Func<string, bool> isPlayable, List<string> bag, Random random)
+        {
+            string last = null;
+            var drawn = new List<string>();
+            for (int i = 0; i < n; i++)
+            {
+                last = SoundRotation.NextShuffled(keys, isPlayable, bag, last, random);
+                drawn.Add(last);
+            }
+
+            return drawn;
+        }
+
+        [Fact]
+        public void ShuffledPlaysEveryKeyOncePerLap()
+        {
+            var keys = new[] { "a", "b", "c", "d", "e" };
+            List<string> played = Draw(keys.Length * 20, keys, _ => true, new List<string>(), new Random(1));
+
+            for (int lap = 0; lap < 20; lap++)
+            {
+                Assert.Equal(keys, played.Skip(lap * keys.Length).Take(keys.Length).OrderBy(k => k).ToArray());
+            }
+        }
+
+        [Fact]
+        public void ShuffledOrderDependsOnTheRandomSource()
+        {
+            var keys = Enumerable.Range(0, 8).Select(i => "k" + i).ToArray();
+            var orders = new HashSet<string>();
+
+            for (int seed = 0; seed < 30; seed++)
+            {
+                orders.Add(string.Join(",", Draw(keys.Length, keys, _ => true, new List<string>(), new Random(seed))));
+            }
+
+            // 8 keys have 40320 orders; 30 launches landing on only a couple of them would mean it isn't shuffling.
+            Assert.True(orders.Count > 20, "only " + orders.Count + " different orders in 30 launches");
+        }
+
+        [Fact]
+        public void ShuffledNeverRepeatsTheSameKeyBackToBack()
+        {
+            var keys = new[] { "a", "b", "c" };
+            var bag = new List<string>();
+            var random = new Random(7);
+
+            List<string> played = Draw(600, keys, _ => true, bag, random);
+            for (int i = 1; i < played.Count; i++)
+            {
+                Assert.NotEqual(played[i - 1], played[i]);
+            }
+        }
+
+        [Fact]
+        public void ShuffledSkipsUnplayableKeysAndThePlayableOnesStillTakeTurns()
+        {
+            var keys = new[] { "a", "b", "c", "d" };
+            var bag = new List<string>();
+            var random = new Random(3);
+
+            List<string> played = Draw(30, keys, k => k != "b", bag, random);
+            Assert.DoesNotContain("b", played);
+            for (int lap = 0; lap < 10; lap++)
+            {
+                Assert.Equal(new[] { "a", "c", "d" }, played.Skip(lap * 3).Take(3).OrderBy(k => k).ToArray());
+            }
+        }
+
+        [Fact]
+        public void ShuffledKeyThatBecomesPlayableAgainStillGetsItsTurn()
+        {
+            var keys = new[] { "a", "b", "c" };
+            var bag = new List<string>();
+            var random = new Random(5);
+            bool bReady = false;
+            Func<string, bool> playable = k => k != "b" || bReady;
+
+            List<string> first = Draw(2, keys, playable, bag, random);
+            Assert.DoesNotContain("b", first);
+
+            bReady = true;
+            // The lap started with a, b, c: a and c have played, so b is all that's left in it.
+            Assert.Equal("b", SoundRotation.NextShuffled(keys, playable, bag, first[1], random));
+        }
+
+        [Fact]
+        public void ShuffledWithASingleKeyRepeatsIt()
+        {
+            var keys = new[] { "only" };
+            Assert.Equal(new[] { "only", "only", "only" }, Draw(3, keys, _ => true, new List<string>(), new Random(0)));
+        }
+
+        [Fact]
+        public void ShuffledReturnsNullWhenNothingIsPlayable()
+        {
+            var bag = new List<string>();
+            Assert.Null(SoundRotation.NextShuffled(new[] { "a", "b" }, _ => false, bag, null, new Random(0)));
+            Assert.Null(SoundRotation.NextShuffled(new string[0], _ => true, bag, null, new Random(0)));
+        }
+
+        [Fact]
+        public void ShuffledForgetsKeysRemovedFromTheEvent()
+        {
+            var bag = new List<string> { "gone", "b" };
+            string next = SoundRotation.NextShuffled(new[] { "a", "b" }, _ => true, bag, null, new Random(0));
+            Assert.Equal("b", next);
+            Assert.DoesNotContain("gone", bag);
+        }
     }
 
     public class ConfigFilesTests : IDisposable
