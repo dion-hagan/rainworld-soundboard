@@ -56,10 +56,10 @@ the change) - and it lists any problems it found in your file (with line numbers
 
 Open **Remix → Custom Soundboard** and switch to the **Add Sound** tab:
 
-1. **When this happens** - pick an event from the dropdown (click it and scroll, or just start typing to
-   search; hover a name in the list to see what it means).
+1. **When this happens** - pick an event from the dropdown: click it, then just type to narrow the list
+   down ([more on searching](#searching-the-dropdowns)), or scroll; hover a name in the list to see what it means.
 2. **Sound** - pick a `.wav`, `.ogg` or `.mp3` from your `sounds` folder or the ones that came with
-   the mod. Dropped new files into the folder? Press **RELOAD CONFIG** on the Sounds tab and they show up.
+   the mod (the sound dropdowns search the same way). Dropped new files into the folder? Press **RELOAD CONFIG** on the Sounds tab and they show up.
    Press **TEST** beside a sound to hear it once, at the volume in that row's Volume box, before you add
    it - nothing is saved. A long file plays only its first 10 seconds. It's the level you'd get in the game from a sound that isn't tied to a spot in the
    room; sounds that come from somewhere in a room get quieter with distance in the game, which a menu can't copy.
@@ -73,6 +73,22 @@ Open **Remix → Custom Soundboard** and switch to the **Add Sound** tab:
 4. Press **SAVE**. The sound is added to the end of that event's list in your `soundboard.yaml` and starts
    working straight away. If the event wasn't in the file yet, it's added too. Everything else in the file -
    your comments, layout and other entries - is left exactly as it was.
+
+### Searching the dropdowns
+
+The event, sound and entry dropdowns on the Add Sound and Edit Sound tabs all search the same way:
+
+- Click a dropdown to open it and **start typing** - the box shows what you've typed and the list narrows
+  as you type. (Any dropdown from Remix itself needs a quick double-click before it will take typed letters;
+  these don't.)
+- It finds what you typed **anywhere in the name**, ignoring capitals and anything that isn't a letter or number,
+  so `death`, `player death` and `player_death` all find `PlayerDeath`, and `boom1` finds `boom_1.wav`.
+  Several words all have to match, in any order: `lizard near` shows every `...LizardNear` event.
+- The best matches come first: names that start with what you typed, then names with a word starting with it,
+  then the rest. Letters that merely appear in order somewhere in a name (`pdj` for `PlayerJump`) don't count.
+- **Backspace** deletes a letter and **Enter** picks the top result and closes the list.
+  Clicking a name still works as before, and hovering a name still shows what it means.
+- With a controller the list opens as usual, without the search box.
 
 A few things to know:
 
@@ -89,7 +105,7 @@ A few things to know:
 The **Edit Sound** tab changes the numbers of sounds that are already in your file, and can delete them:
 
 1. **Entry** - pick one from the dropdown (they're listed as `Event: Name`, in the order they appear in the file;
-   type to search, hover to see the files).
+   [type to search](#searching-the-dropdowns), hover to see the files).
 2. Its sounds appear in up to three rows, each with **Volume** (%) and **Delay** (seconds). An entry with a
    [`together` group](#playing-sounds-together) shows one row per sound; unused rows are greyed out. (If a group has
    more than three sounds, only the first three can be edited here.)

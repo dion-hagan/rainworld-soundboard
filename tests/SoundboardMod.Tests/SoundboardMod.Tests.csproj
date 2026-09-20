@@ -29,6 +29,7 @@
     <Compile Include="..\..\src\EntryCooldowns.cs" Link="Src\EntryCooldowns.cs" />
     <Compile Include="..\..\src\SoundRotation.cs" Link="Src\SoundRotation.cs" />
     <Compile Include="..\..\src\MovementTech.cs" Link="Src\MovementTech.cs" />
+    <Compile Include="..\..\src\DropdownFilter.cs" Link="Src\DropdownFilter.cs" />
   </ItemGroup>
 
   <ItemGroup>

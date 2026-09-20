@@ -709,12 +709,12 @@ namespace SoundboardMod
                 };
                 row.TestButton.OnClick += _ => TestSound(row);
 
-                row.Box = new OpComboBox(row.Sound, new Vector2(20f, rowY[i] + 3f), 295f, files.Select(f => new ListItem(f)).ToList())
+                row.Box = new SearchComboBox(row.Sound, new Vector2(20f, rowY[i] + 3f), 295f, files.Select(f => new ListItem(f)).ToList())
                 {
                     listHeight = 8,
                     description = extra
-                        ? "An extra sound to play together with the first. Only used when 'Play several sounds together' is ticked (picking one ticks it). Click for the list, or start typing to search it."
-                        : "The audio file to play. Click for the list, or start typing to search it.",
+                        ? "An extra sound to play together with the first. Only used when 'Play several sounds together' is ticked (picking one ticks it). Click to open the list, then type to narrow it down."
+                        : "The audio file to play. Click to open the list, then type to narrow it down.",
                 };
 
                 if (extra)
@@ -733,10 +733,10 @@ namespace SoundboardMod
                 rowWidgets.Add(row.DelayBox);
             }
 
-            eventBox = new OpComboBox(pickEvent, new Vector2(170f, 452f), 400f, events)
+            eventBox = new SearchComboBox(pickEvent, new Vector2(170f, 452f), 400f, events)
             {
                 listHeight = 10,
-                description = "The in-game event that makes the sound play. Click for the list (hover a name to see what it means), or start typing to search it.",
+                description = "The in-game event that makes the sound play. Click to open the list, then type to narrow it down (hover a name to see what it means).",
             };
 
             eventBox.OnValueUpdate += (box, value, oldValue) => UpdateEventInfo();
@@ -1274,10 +1274,10 @@ namespace SoundboardMod
                 widgets.Add(row.DeleteBox);
             }
 
-            editBox = new OpComboBox(editEntry, new Vector2(170f, 452f), 400f, entries)
+            editBox = new SearchComboBox(editEntry, new Vector2(170f, 452f), 400f, entries)
             {
                 listHeight = 10,
-                description = "The entry to change. Click for the list (hover one to see its files), or start typing to search it.",
+                description = "The entry to change. Click to open the list, then type to narrow it down (hover one to see its files).",
             };
 
             editBox.OnValueUpdate += (box, value, oldValue) => ShowEntry(value);
