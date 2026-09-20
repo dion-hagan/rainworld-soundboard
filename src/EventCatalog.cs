@@ -143,7 +143,7 @@ namespace SoundboardMod
             new EventInfo { Section = SectionPlayer, Name = "PlayerBitByLizard", Description = "A lizard's bite lands on the slugcat." },
             new EventInfo { Section = SectionPlayer, Name = "PlayerHitByDartMaggot", Description = "A Spitter Spider's dart maggot sticks into the slugcat." },
             new EventInfo { Section = SectionPlayer, Name = "PlayerRoomTransition", Description = "The slugcat moves from one room into another (through a pipe/shortcut)." },
-            new EventInfo { Section = SectionPlayer, Name = "PlayerEnterShelter", Description = "A shelter door closes with you inside." },
+            new EventInfo { Section = SectionPlayer, Name = "PlayerEnterShelter", Description = "The slugcat walks into a shelter, before the door closes (so a long sound has time to play). Fires every time you enter one, even if you leave again without sleeping." },
 
             new EventInfo { Section = SectionWorld, Name = "RegionGateTransition", Description = "A region gate starts carrying you into the next region." },
             new EventInfo { Section = SectionWorld, Name = "CreatureEnteredOccupiedShelter", Description = "Any creature walks into a shelter that already has a player in it." },

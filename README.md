@@ -243,7 +243,7 @@ and still have a generic one for the rest. (Each event's rotation is separate.)
 | `PlayerBitByLizard` | A lizard's bite lands on the slugcat. |
 | `PlayerHitByDartMaggot` | A Spitter Spider's dart maggot sticks into the slugcat. |
 | `PlayerRoomTransition` | The slugcat moves from one room into another (through a pipe/shortcut). |
-| `PlayerEnterShelter` | A shelter door closes with you inside. |
+| `PlayerEnterShelter` | The slugcat walks into a shelter, before the door closes (so a long sound has time to play). Fires every time you enter one, even if you leave again without sleeping. |
 
 ### The world
 

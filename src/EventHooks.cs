@@ -337,28 +337,48 @@ namespace SoundboardMod
 
         // --- Shelter -----------------------------------------------------
 
-        // ShelterDoor.Update calls DoorClosed() on every frame the door is
-        // shut, right up until the game switches to the sleep screen (the only
-        // thing stopping RainWorldGame.Win from repeating is its own
-        // manager.upcomingProcess check). Without a guard this would start a
-        // new sound every frame, so fire once per door.
-        [HarmonyPatch(typeof(ShelterDoor), "DoorClosed")]
-        private static class ShelterDoor_DoorClosed_Patch
+        // PlayerEnterShelter fires when the camera moves into a shelter room,
+        // not when the door shuts. ShelterDoor.DoorClosed (which an earlier
+        // version hooked) is the very last tick of the ~8 second closing
+        // animation and calls RainWorldGame.Win straight away, so a sound
+        // started there is cut off by the sleep screen after a split second.
+        //
+        // RoomCamera.ChangeRoom is private and runs once when the camera has
+        // finished switching rooms (the shortcut handler asks the camera to
+        // follow the player out of a pipe, and ChangeRoom runs once the room's
+        // texture has loaded); it sets the camera's room to newRoom. Moving
+        // between camera screens inside one room never reaches it.
+        //
+        // Two calls are skipped: the camera's first-ever room (the game placing
+        // it in the starting shelter at the start of a cycle, when the camera
+        // has no room yet), and a "change" to the room it already showed.
+        // Shelters whose door is broken can't be slept in, so they're skipped too.
+        [HarmonyPatch(typeof(RoomCamera), "ChangeRoom")]
+        private static class RoomCamera_ChangeRoom_Patch
         {
-            private static readonly ConditionalWeakTable<ShelterDoor, object> AlreadyPlayed = new ConditionalWeakTable<ShelterDoor, object>();
+            [HarmonyPrefix]
+            private static void Prefix(RoomCamera __instance, out Room __state)
+            {
+                __state = __instance.room;
+            }
 
             [HarmonyPostfix]
-            private static void Postfix(ShelterDoor __instance)
+            private static void Postfix(Room newRoom, Room __state)
             {
-                if (AlreadyPlayed.TryGetValue(__instance, out _))
+                if (__state == null || __state == newRoom)
                 {
                     return;
                 }
 
-                AlreadyPlayed.Add(__instance, null);
-                TriggerNonPositional("PlayerEnterShelter", __instance.room);
+                if (newRoom?.shelterDoor == null || newRoom.shelterDoor.Broken)
+                {
+                    return;
+                }
+
+                TriggerNonPositional("PlayerEnterShelter", newRoom);
             }
         }
+
 
         // Fires whenever ANY creature moves into a shelter room that
         // already has a player physically present in it (excluding the
