@@ -113,6 +113,7 @@ namespace SoundboardMod
         public const string SectionCreatureDeath = "Creatures dying";
         public const string SectionSpotted = "The player being spotted";
         public const string SectionWater = "Water and breathing";
+        public const string SectionGourmand = "The Gourmand";
 
         /// <summary>Event key fired when a creature of the given type (e.g. "RedLizard") is spotted by/spots the player.</summary>
         public static string SpottedKey(string creatureType)
@@ -167,6 +168,9 @@ namespace SoundboardMod
             new EventInfo { Section = SectionWater, Name = "PlayerSwimUnderwater", Description = "The slugcat dives under the surface: head fully under water and swimming (the deep-swim animation). Fires once per dive, and at most once per 'swim-underwater-cooldown' seconds (setting, default 5) so bobbing at the surface doesn't spam it." },
             new EventInfo { Section = SectionWater, Name = "PlayerDrowning", Description = "The slugcat runs low on air underwater - the point where the game slows it down and makes it thrash about. Fires once per struggle; it fires again only after the slugcat has recovered most of its breath." },
             new EventInfo { Section = SectionWater, Name = "PlayerDrowned", Description = "The slugcat dies of drowning. Fires alongside PlayerDeath." },
+            new EventInfo { Section = SectionGourmand, Name = "GourmandSlideHit", Description = "The Gourmand's belly slide (or the rocket jump out of one) slams into a living creature and hurts it. Plays at the Gourmand, once per creature per half second." },
+            new EventInfo { Section = SectionGourmand, Name = "GourmandDropHit", Description = "The Gourmand comes down hard on a living creature (a fast fall onto it) and hurts it. Plays at the Gourmand, once per creature per half second." },
+            new EventInfo { Section = SectionGourmand, Name = "GourmandRollHit", Description = "The Gourmand rolls into a living creature and hurts it (the roll has its own half-second lockout). Plays at the Gourmand." },
         };
 
         private readonly List<EventInfo> all = new List<EventInfo>();
