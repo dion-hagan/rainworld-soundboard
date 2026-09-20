@@ -117,6 +117,7 @@ namespace SoundboardMod
         public const string SectionWater = "Water and breathing";
         public const string SectionGourmand = "The Gourmand";
         public const string SectionFood = "Food eaten";
+        public const string SectionMovement = "Movement techs";
 
         /// <summary>Event key fired when a creature of the given type (e.g. "RedLizard") is spotted by/spots the player.</summary>
         public static string SpottedKey(string creatureType)
@@ -155,6 +156,17 @@ namespace SoundboardMod
             new EventInfo { Section = SectionPlayer, Name = "PlayerHitByDartMaggot", Description = "A Spitter Spider's dart maggot sticks into the slugcat." },
             new EventInfo { Section = SectionPlayer, Name = "PlayerRoomTransition", Description = "The slugcat moves from one room into another (through a pipe/shortcut)." },
             new EventInfo { Section = SectionPlayer, Name = "PlayerEnterShelter", Description = "The slugcat walks into a shelter, before the door closes (so a long sound has time to play). Fires every time you enter one, even if you leave again without sleeping." },
+
+            new EventInfo { Section = SectionMovement, Name = "PlayerSlide", Description = "The slugcat starts a belly slide (while crawling, jump with down and a direction held). Fires alongside PlayerJump, because the game starts a slide from the jump." },
+            new EventInfo { Section = SectionMovement, Name = "PlayerSlidePounce", Description = "The slugcat jumps out of a belly slide, launching forward in a rocket-style pounce. Fires alongside PlayerJump. Jumping backwards out of a slide (PlayerSlideFlip) or out of a roll (PlayerRollPounce) are separate events." },
+            new EventInfo { Section = SectionMovement, Name = "PlayerSlideFlip", Description = "The slugcat jumps backwards out of a belly slide (a whiplash flip: you held the opposite direction to the slide). Fires alongside PlayerJump." },
+            new EventInfo { Section = SectionMovement, Name = "PlayerRollPounce", Description = "The slugcat jumps out of a roll (the tumble after a fast, diagonal-down landing), launching forward like a pounce. Fires alongside PlayerJump." },
+            new EventInfo { Section = SectionMovement, Name = "PlayerWallJump", Description = "The slugcat kicks off a wall sideways, including from hanging on a ledge. Not the plain hop you get with a floor under you. The game doesn't always count these as a jump, so this can fire without PlayerJump." },
+            new EventInfo { Section = SectionMovement, Name = "PlayerBackflip", Description = "The slugcat backflips: jumps within the first moments of the skid you get from reversing direction at a run. Fires alongside PlayerJump." },
+            new EventInfo { Section = SectionMovement, Name = "PlayerSuperJump", Description = "The slugcat does a fully charged crouch super jump (crouch still, hold jump until charged, release). Fires alongside PlayerJump." },
+            new EventInfo { Section = SectionMovement, Name = "RivuletJump", Description = "Rivulet jumps: every jump, the same moments as PlayerJump. Only for the Rivulet character (More Slugcats), not the Expedition agility perk." },
+            new EventInfo { Section = SectionMovement, Name = "RivuletSlide", Description = "Rivulet starts a belly slide. Fires alongside PlayerSlide and PlayerJump." },
+            new EventInfo { Section = SectionMovement, Name = "RivuletSlidePounce", Description = "Rivulet jumps out of a belly slide. Fires alongside PlayerSlidePounce and PlayerJump." },
 
             new EventInfo { Section = SectionWorld, Name = "RegionGateTransition", Description = "A region gate starts carrying you into the next region." },
             new EventInfo { Section = SectionWorld, Name = "CreatureEnteredOccupiedShelter", Description = "Any creature walks into a shelter that already has a player in it." },
