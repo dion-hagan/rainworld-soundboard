@@ -251,6 +251,8 @@ creatures added by other mods).
 - `<Creature>Death` - e.g. `GreenLizardDeath`, `KingVultureDeath`, `BigSpiderDeath`, `EggBugDeath`
 - `PlayerSpottedBy<Creature>` - e.g. `PlayerSpottedByRedLizard`, `PlayerSpottedByMirosBird`
 
+Every food you can eat that isn't a creature also gets a `PlayerEat<Food>` event, listed under "Food eaten" below.
+
 Grouped events like `LizardDeath` (any lizard) or `PlayerSpottedByPredator` are in the tables below.
 When something matches both, both events fire, so you can give a specific creature its own sound
 and still have a generic one for the rest. (Each event's rotation is separate.)
@@ -276,6 +278,37 @@ and still have a generic one for the rest. (Each event's rotation is separate.)
 | `PlayerHitByDartMaggot` | A Spitter Spider's dart maggot sticks into the slugcat. |
 | `PlayerRoomTransition` | The slugcat moves from one room into another (through a pipe/shortcut). |
 | `PlayerEnterShelter` | The slugcat walks into a shelter, before the door closes (so a long sound has time to play). Fires every time you enter one, even if you leave again without sleeping. |
+
+### Food eaten
+
+Besides `PlayerEat` (anything) and `PlayerEatCreature` (meat), every kind of fruit and plant food has its own
+event, named `PlayerEat` plus the food's type name in the game. They fire **in addition to** `PlayerEat`, so a
+Blue Fruit plays both `PlayerEat` and `PlayerEatDangleFruit`, and you can give one food its own sound while a
+generic `PlayerEat` sound covers the rest. Creatures you eat (batflies, vulture grubs, ...) are not in this
+list: they use `PlayerEatCreature`.
+
+"Eaten" means the food is *finished*, the same moment as `PlayerEat`: a Slime Mold or Bubble Fruit takes
+several bites but its event fires once, on the last one, not per bite. It also fires when a slugpup eats. The
+More Slugcats and Watcher foods are always listed so a shared config works for everyone; they just never fire
+if that content is off.
+
+| Event | Fires when |
+|---|---|
+| `PlayerEatDangleFruit` | The slugcat eats a Blue Fruit (dangle fruit). |
+| `PlayerEatSlimeMold` | The slugcat eats a Slime Mold. |
+| `PlayerEatMushroom` | The slugcat eats a Mushroom. |
+| `PlayerEatWaterNut` | The slugcat eats a Bubble Fruit (the game calls it a water nut, or swollen water nut). |
+| `PlayerEatJellyFish` | The slugcat eats a Jellyfish. |
+| `PlayerEatKarmaFlower` | The slugcat eats a Karma Flower. |
+| `PlayerEatEggBugEgg` | The slugcat eats an Eggbug egg. |
+| `PlayerEatSSOracleSwarmer` | The slugcat eats a Neuron Fly (the ordinary kind, from around Five Pebbles). |
+| `PlayerEatSLOracleSwarmer` | The slugcat eats one of Looks to the Moon's neuron flies (the kind that makes you glow). |
+| `PlayerEatDandelionPeach` | The slugcat eats a Dandelion Peach. |
+| `PlayerEatFireEgg` | The slugcat eats a Fire Egg. |
+| `PlayerEatGlowWeed` | The slugcat eats a Glow Weed. |
+| `PlayerEatGooieDuck` | The slugcat eats a Gooieduck. |
+| `PlayerEatLillyPuck` | The slugcat eats a Lilypuck. |
+| `PlayerEatFireSpriteLarva` | The slugcat eats a Box Worm larva (the game calls it a Fire Sprite larva). |
 
 ### The world
 
@@ -344,13 +377,13 @@ is on) other players aren't hurt by it, so they don't fire it either.
 | `GourmandRollHit` | The Gourmand rolls into a living creature and hurts it (the roll has its own half-second lockout). Plays at the Gourmand. |
 
 <details>
-<summary><b>Full list of every event name (211)</b> - click to expand</summary>
+<summary><b>Full list of every event name (226)</b> - click to expand</summary>
 
 Every event you can put under `events:` in `soundboard.yaml`, as of Rain World v1.11.8 with the
 More Slugcats and Watcher creatures. Creatures added by other mods get the same two events
 automatically; the list the mod writes to `events.txt` always includes them.
 
-**Built-in events (38)** - described in the tables above:
+**Built-in events (53)** - described in the tables above:
 
 ```
 PlayerDeath
@@ -391,6 +424,21 @@ PlayerDrowned
 GourmandSlideHit
 GourmandDropHit
 GourmandRollHit
+PlayerEatDangleFruit
+PlayerEatSlimeMold
+PlayerEatMushroom
+PlayerEatWaterNut
+PlayerEatJellyFish
+PlayerEatKarmaFlower
+PlayerEatEggBugEgg
+PlayerEatSSOracleSwarmer
+PlayerEatSLOracleSwarmer
+PlayerEatDandelionPeach
+PlayerEatFireEgg
+PlayerEatGlowWeed
+PlayerEatGooieDuck
+PlayerEatLillyPuck
+PlayerEatFireSpriteLarva
 ```
 
 **Per-creature events (88 creature types)** - one "dies" and one "notices you" event each:
@@ -539,6 +587,7 @@ SoundboardMod/
 │  ├─ SoundboardRuntime.cs     Loads/reloads the config, picks what to play, applies volume/delay
 │  ├─ SoundRegistry.cs         Loads audio files and adds them to the game's SoundLoader at runtime
 │  ├─ EventHooks.cs            Harmony patches that turn game moments into event names
+│  ├─ EdibleFoods.cs           The non-creature foods that get a PlayerEat<Food> event
 │  ├─ Options.cs               The in-game options screen (Sounds, Add Sound and Edit Sound tabs)
 │  ├─ EntryCooldowns.cs        Tracks which entries are cooling down (an entry's `cooldown:`)
 │  ├─ EventHooks.Gourmand.cs   The Gourmand's slide/drop/roll hit events (a partial of EventHooks)

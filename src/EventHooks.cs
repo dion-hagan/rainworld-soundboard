@@ -103,20 +103,36 @@ namespace SoundboardMod
             }
         }
 
+        // ObjectEaten is called once per food, by the food's own BitByPlayer when
+        // its last bite is taken (a Slime Mold or Bubble Fruit takes several
+        // bites, but only the final one gets here), and just before the food is
+        // destroyed. So all of these fire once per food eaten, not per bite.
+        // Alongside PlayerEat, a non-creature food also fires its own
+        // PlayerEat<ObjectType> (see EdibleFoods for the list).
         [HarmonyPatch(typeof(Player), nameof(Player.ObjectEaten))]
         private static class Player_ObjectEaten_Patch
         {
             [HarmonyPostfix]
             private static void Postfix(Player __instance, IPlayerEdible edible)
             {
-                Trigger("PlayerEat", __instance);
+                var eventKeys = new List<string> { "PlayerEat" };
 
                 // Bugs/critters implement IPlayerEdible directly (as opposed
                 // to fruit/plants), so this is "ate meat" specifically.
                 if (edible is Creature)
                 {
-                    Trigger("PlayerEatCreature", __instance);
+                    eventKeys.Add("PlayerEatCreature");
                 }
+                else
+                {
+                    string foodKey = FoodEventKey(edible);
+                    if (foodKey != null)
+                    {
+                        eventKeys.Add(foodKey);
+                    }
+                }
+
+                TriggerAll(eventKeys, __instance);
             }
         }
 
