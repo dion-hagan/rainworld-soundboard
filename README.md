@@ -195,9 +195,13 @@ There's also a compact one-line form: `- { file: boom.wav, volume: 0.5, delay: 1
 
 ### Taking turns
 
-If an event has **several items, they take turns**: the first time it happens the first item plays,
-the next time the second, and so on around again. So `PlayerDeath` with seven items plays a different
-death sound each time. Items switched off in the options screen are skipped.
+If an event has **several items, they take turns in a random order**: every item plays once before any
+plays again, then it reshuffles (and never plays the same item twice in a row). The order is different each
+time you start the game. So `PlayerDeath` with seven items plays a different death sound each time.
+Items switched off in the options screen are skipped, and each event shuffles on its own.
+
+Prefer the order you wrote them in (the first time the first item plays, the next time the second, and so on
+around again)? Set `shuffle: false` under [`settings:`](#settings).
 
 ### Cooldowns
 
@@ -247,6 +251,7 @@ A few events have numbers you may want to tune. All are optional.
 | `swim-underwater-cooldown` | `5` | Seconds between `PlayerSwimUnderwater` sounds. |
 | `creature-near-distance` | `10` | How close a creature has to get, in tiles (1 to 200), for its `<Creature>Near` event. See [Creatures nearby](#creatures-nearby). |
 | `creature-near-cooldown` | `10` | Seconds before the same creature can fire its `<Creature>Near` event again (`0` = only ever when it newly comes into range). |
+| `shuffle` | `true` | `true` = the items under an event take turns in a random order (see [Taking turns](#taking-turns)); `false` = in the order they're written. |
 | `debug` | `false` | `true` writes every event that fires to `BepInEx/LogOutput.log` (great for working out why a sound doesn't play, and for finding good speed values). |
 
 Falling in Rain World has no real speed cap, so "terminal velocity" is just a speed *you* pick.

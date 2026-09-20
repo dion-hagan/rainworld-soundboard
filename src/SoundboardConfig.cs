@@ -38,6 +38,10 @@ namespace SoundboardMod
         public float SpottedCooldown = 10f;
         public float SwimUnderwaterCooldown = 5f;
         public bool Debug;
+
+        /// <summary>Entries under an event take turns in a random order (true) or in the order they're written in the file (false).</summary>
+        public bool Shuffle = true;
+
         public float CreatureNearDistance = 10f;
         public float CreatureNearCooldown = 10f;
     }
@@ -192,7 +196,17 @@ namespace SoundboardMod
             new FloatSetting { Name = "creature-near-cooldown", Min = 0f, Max = 600f, Set = (s, v) => s.CreatureNearCooldown = v },
         };
 
-        private const string DebugSettingName = "debug";
+        private sealed class BoolSetting
+        {
+            public string Name;
+            public Action<SoundboardSettings, bool> Set;
+        }
+
+        private static readonly BoolSetting[] BoolSettings =
+        {
+            new BoolSetting { Name = "debug", Set = (s, v) => s.Debug = v },
+            new BoolSetting { Name = "shuffle", Set = (s, v) => s.Shuffle = v },
+        };
 
         public static SoundboardConfig Parse(string yaml, EventCatalog catalog)
         {
@@ -258,11 +272,12 @@ namespace SoundboardMod
             {
                 string key = NameMatch.Normalize(entry.Key);
 
-                if (key == NameMatch.Normalize(DebugSettingName))
+                BoolSetting flag = BoolSettings.FirstOrDefault(s => NameMatch.Normalize(s.Name) == key);
+                if (flag != null)
                 {
-                    if (TryParseBool(entry.Value, out bool debug))
+                    if (TryParseBool(entry.Value, out bool on))
                     {
-                        config.Settings.Debug = debug;
+                        flag.Set(config.Settings, on);
                     }
                     else
                     {
@@ -275,7 +290,7 @@ namespace SoundboardMod
                 FloatSetting setting = FloatSettings.FirstOrDefault(s => NameMatch.Normalize(s.Name) == key);
                 if (setting == null)
                 {
-                    config.AddIssue(IssueSeverity.Warning, entry.Line, "Unknown setting '" + entry.Key + "' (ignored)." + SuggestionText(entry.Key, FloatSettings.Select(s => s.Name).Concat(new[] { DebugSettingName })));
+                    config.AddIssue(IssueSeverity.Warning, entry.Line, "Unknown setting '" + entry.Key + "' (ignored)." + SuggestionText(entry.Key, FloatSettings.Select(s => s.Name).Concat(BoolSettings.Select(s => s.Name))));
                     continue;
                 }
 
