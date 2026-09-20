@@ -768,3 +768,5 @@ dropdowns, and a lot of new events: a creature of any type coming near (`<Creatu
 (`PlayerEat<Food>`), swimming underwater, running low on air and drowning, the movement techs (slide, slide pounce,
 flips, wall jump, super jump) with Rivulet versions, and the Gourmand's slide/drop/roll hits. The repo also gained
 the files for publishing to the Steam Workshop (`mod/thumbnail.png`, `workshop/`).
+`v1.6.0` adds the `FatalRainImminent` event (one minute until the rain) and makes the Add Sound tab start new sounds at
+30% volume with a 30 second cooldown. Every release is listed in [CHANGELOG.md](CHANGELOG.md).
