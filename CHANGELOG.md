@@ -11,6 +11,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **`PlayerThrowSpear` event.** Plays whenever the slugcat throws a spear of any kind (explosive and electric
   spears too, alongside `PlayerThrowExplosiveSpear` for an explosive one). Saint's weak spear toss doesn't count.
 
+### Fixed
+
+- **`PlayerEnterShelter` no longer double-plays in 2-player co-op.** Each player has their own camera, and
+  when a second camera ends up pointed at a shelter that's already sheltering the other player - the second
+  player walking in after the first, or a dead player's camera being pulled along with the survivor's - it
+  used to fire the event again (advancing the sound rotation and starting a second, different sound) instead
+  of doing nothing.
+
 ## [1.7.0] - 2026-09-20
 
 ### Changed

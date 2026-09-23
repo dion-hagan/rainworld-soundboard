@@ -375,6 +375,15 @@ namespace SoundboardMod
         // it in the starting shelter at the start of a cycle, when the camera
         // has no room yet), and a "change" to the room it already showed.
         // Shelters whose door is broken can't be slept in, so they're skipped too.
+        //
+        // In 2-player co-op each player has their own RoomCamera, and both can
+        // end up pointed at the same shelter room (the second player walking in
+        // after the first, or a dead player's camera being pulled along with
+        // the survivor's) - each camera runs ChangeRoom separately, so without
+        // a check the event fires (and advances the sound rotation) once per
+        // camera instead of once for the room. By the time this postfix runs
+        // the game has already set __instance.room = newRoom, so another
+        // camera already sitting on newRoom means it got here first.
         [HarmonyPatch(typeof(RoomCamera), "ChangeRoom")]
         private static class RoomCamera_ChangeRoom_Patch
         {
@@ -385,7 +394,7 @@ namespace SoundboardMod
             }
 
             [HarmonyPostfix]
-            private static void Postfix(Room newRoom, Room __state)
+            private static void Postfix(RoomCamera __instance, Room newRoom, Room __state)
             {
                 if (__state == null || __state == newRoom)
                 {
@@ -397,7 +406,31 @@ namespace SoundboardMod
                     return;
                 }
 
+                if (AnotherCameraAlreadyThere(__instance, newRoom))
+                {
+                    return;
+                }
+
                 TriggerNonPositional("PlayerEnterShelter", newRoom);
+            }
+
+            private static bool AnotherCameraAlreadyThere(RoomCamera instance, Room newRoom)
+            {
+                RoomCamera[] cameras = newRoom.game?.cameras;
+                if (cameras == null)
+                {
+                    return false;
+                }
+
+                foreach (RoomCamera camera in cameras)
+                {
+                    if (camera != null && camera != instance && camera.room == newRoom)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
             }
         }
 
