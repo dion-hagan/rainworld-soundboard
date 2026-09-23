@@ -21,6 +21,7 @@ PlayerEatCreature
 PlayerGrabExplosive
 PlayerGrabSlugcat
 PlayerGrabYeek
+PlayerThrowSpear
 PlayerThrowExplosiveSpear
 PlayerBitByLizard
 PlayerHitByDartMaggot

@@ -37,6 +37,7 @@ and still have a generic one for the rest. (Each event's rotation is separate.)
 | `PlayerGrabExplosive` | The slugcat picks up an explosive spear or a scavenger bomb. |
 | `PlayerGrabSlugcat` | The slugcat picks up another slugcat. |
 | `PlayerGrabYeek` | The slugcat grabs a Yeek. |
+| `PlayerThrowSpear` | The slugcat throws a spear - any kind, including explosive and electric ones. Not Saint's weak toss (the game doesn't count it as a spear throw). |
 | `PlayerThrowExplosiveSpear` | The slugcat throws an explosive spear. |
 | `PlayerBitByLizard` | A lizard's bite lands on the slugcat. |
 | `PlayerHitByDartMaggot` | A Spitter Spider's dart maggot sticks into the slugcat. |
