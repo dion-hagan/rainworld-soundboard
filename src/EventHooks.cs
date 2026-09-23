@@ -136,12 +136,18 @@ namespace SoundboardMod
             }
         }
 
+        // Player.ThrownSpear runs once per spear the slugcat actually throws:
+        // from ThrowObject (the normal throw) and from the throw at a creature
+        // that has grabbed you. Saint's spear "throw" is a TossObject instead
+        // and never gets here, so it doesn't count as throwing a spear.
         [HarmonyPatch(typeof(Player), "ThrownSpear")]
         private static class Player_ThrownSpear_Patch
         {
             [HarmonyPostfix]
             private static void Postfix(Player __instance, Spear spear)
             {
+                Trigger("PlayerThrowSpear", __instance);
+
                 if (spear is ExplosiveSpear)
                 {
                     Trigger("PlayerThrowExplosiveSpear", __instance);

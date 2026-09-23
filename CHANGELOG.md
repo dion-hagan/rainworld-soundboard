@@ -4,6 +4,13 @@ Every release of Custom Soundboard, newest first. Each version is a git tag (`vX
 `mod/modinfo.json`, the `[BepInPlugin]` version in `src/Plugin.cs` and the tag always agree.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added
+
+- **`PlayerThrowSpear` event.** Plays whenever the slugcat throws a spear of any kind (explosive and electric
+  spears too, alongside `PlayerThrowExplosiveSpear` for an explosive one). Saint's weak spear toss doesn't count.
+
 ## [1.7.0] - 2026-09-20
 
 ### Changed

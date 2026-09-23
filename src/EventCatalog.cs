@@ -174,6 +174,7 @@ namespace SoundboardMod
             new EventInfo { Section = SectionPlayer, Name = "PlayerGrabExplosive", Description = "The slugcat picks up an explosive spear or a scavenger bomb." },
             new EventInfo { Section = SectionPlayer, Name = "PlayerGrabSlugcat", Description = "The slugcat picks up another slugcat." },
             new EventInfo { Section = SectionPlayer, Name = "PlayerGrabYeek", Description = "The slugcat grabs a Yeek." },
+            new EventInfo { Section = SectionPlayer, Name = "PlayerThrowSpear", Description = "The slugcat throws a spear - any kind, including explosive and electric ones. Not Saint's weak toss (the game doesn't count it as a spear throw)." },
             new EventInfo { Section = SectionPlayer, Name = "PlayerThrowExplosiveSpear", Description = "The slugcat throws an explosive spear." },
             new EventInfo { Section = SectionPlayer, Name = "PlayerBitByLizard", Description = "A lizard's bite lands on the slugcat." },
             new EventInfo { Section = SectionPlayer, Name = "PlayerHitByDartMaggot", Description = "A Spitter Spider's dart maggot sticks into the slugcat." },
